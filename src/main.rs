@@ -17,7 +17,7 @@ fn main() {
     edge.twist(&(Ray(U), 1), 1);
     println!("{:?}", edge);*/
 
-    let mut puzzle = puzzle::Puzzle::make_solved(|ax| {
+    /*let mut puzzle = puzzle::Puzzle::make_solved(|ax| {
         let mut layers: Vec<puzzle::CubeLayer> = ax
             .rays()
             .iter()
@@ -27,5 +27,5 @@ fn main() {
         layers
     });
     puzzle.twist(&((puzzle::CubeSubaxis::Ray(puzzle::CubeRay::R), 1), 1));
-    println!("{:?}", puzzle.pieces[1]);
+    println!("{:?}", puzzle.pieces[1]);*/
 }

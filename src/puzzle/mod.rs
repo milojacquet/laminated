@@ -1,8 +1,23 @@
-use enum_map::{enum_map, Enum, EnumMap};
+use enum_map::{Enum, EnumMap};
+use std::iter::zip;
 
-trait CubeSystem {
-    fn to_axis(&self) -> CubeAxis;
-    fn turn(&self, axis: &CubeAxis) -> Self;
+trait RaySystem
+where
+    Self: 'static + Sized,
+{
+    /// Returns a list of rays that make up the vector. Should
+    /// return the same order for each axis.
+    fn get_axis(&self) -> Vec<Self>;
+    /// Turns the ray system about ray's axis and returns the new ray
+    /// that occupies self's direction.
+    /// Should return the same value for any ray with the same axis.
+    fn turn(&self, ray: &Self) -> Self;
+    /// Gets the order of the turn
+    fn order(&self) -> i8;
+    /// Returns a list of rays, each one of which is the first ray of its axis.
+    const AXIS_HEADS: &'static [Self];
+    /// Hamiltonian cycle for symmetry group
+    const CYCLE: &'static [(Self, i8)];
 }
 
 #[derive(Debug, Enum, Clone, Copy, PartialEq, Eq)]
@@ -15,147 +30,86 @@ pub enum CubeRay {
     L,
 }
 
-impl CubeSystem for CubeRay {
-    fn to_axis(&self) -> CubeAxis {
-        use CubeAxis::*;
+impl RaySystem for CubeRay {
+    fn get_axis(&self) -> Vec<Self> {
         use CubeRay::*;
 
         match self {
-            U | D => UD,
-            F | B => FB,
-            R | L => RL,
+            U | D => vec![U, D],
+            F | B => vec![F, B],
+            R | L => vec![R, L],
         }
     }
 
-    fn turn(&self, axis: &CubeAxis) -> Self {
-        use CubeAxis::*;
+    //fn axis_heads
+
+    fn turn(&self, axis: &Self) -> Self {
         use CubeRay::*;
 
         match (axis, self) {
-            (UD, U) => U,
-            (UD, D) => D,
-            (UD, F) => L,
-            (UD, B) => R,
-            (UD, R) => F,
-            (UD, L) => B,
+            (U | D, U) => U,
+            (U | D, D) => D,
+            (U | D, F) => R,
+            (U | D, B) => L,
+            (U | D, R) => B,
+            (U | D, L) => F,
 
-            (FB, U) => R,
-            (FB, D) => L,
-            (FB, F) => F,
-            (FB, B) => B,
-            (FB, R) => D,
-            (FB, L) => U,
+            (F | B, U) => L,
+            (F | B, D) => R,
+            (F | B, F) => F,
+            (F | B, B) => B,
+            (F | B, R) => U,
+            (F | B, L) => D,
 
-            (RL, U) => B,
-            (RL, D) => F,
-            (RL, F) => U,
-            (RL, B) => D,
-            (RL, R) => R,
-            (RL, L) => L,
-        }
-    }
-}
-
-#[derive(Debug, Enum, Clone, Copy, PartialEq, Eq)]
-pub enum CubeAxis {
-    UD,
-    FB,
-    RL,
-}
-
-// impl<V> EnumArray<V> for CubeAxis {}
-
-impl CubeSystem for CubeAxis {
-    fn to_axis(&self) -> CubeAxis {
-        *self
-    }
-
-    fn turn(&self, axis: &CubeAxis) -> Self {
-        use CubeAxis::*;
-
-        match (axis, self) {
-            (UD, UD) => UD,
-            (UD, FB) => RL,
-            (UD, RL) => FB,
-
-            (RL, UD) => FB,
-            (RL, FB) => UD,
-            (RL, RL) => RL,
-
-            (FB, UD) => RL,
-            (FB, FB) => FB,
-            (FB, RL) => UD,
-        }
-    }
-}
-
-impl CubeAxis {
-    pub fn rays(&self) -> Vec<CubeRay> {
-        use CubeAxis::*;
-        use CubeRay::*;
-
-        match self {
-            UD => vec![U, D],
-            FB => vec![F, B],
-            RL => vec![R, L],
+            (R | L, U) => F,
+            (R | L, D) => B,
+            (R | L, F) => D,
+            (R | L, B) => U,
+            (R | L, R) => R,
+            (R | L, L) => L,
         }
     }
 
     fn order(&self) -> i8 {
         4
     }
+
+    const AXIS_HEADS: &'static [Self] = &[CubeRay::U, CubeRay::F, CubeRay::R];
+
+    #[rustfmt::skip]
+    const CYCLE: &'static [(Self, i8)] = {
+        use CubeRay::*;
+        // 3u 3u 3u 3f 3u 3u 3u 3f 3u 3u 3u 3f' 3u 3u 3u 3f' 3u 3u 3u 3f 3u 3u 3u
+        &[
+            (U, 1), (U, 1), (U, 1), (F, 1),
+            (U, 1), (U, 1), (U, 1), (F, 1),
+            (U, 1), (U, 1), (U, 1), (F, 3),
+            (U, 1), (U, 1), (U, 1), (F, 3),
+            (U, 1), (U, 1), (U, 1), (F, 1),
+            (U, 1), (U, 1), (U, 1),
+        ]
+    };
 }
-
-#[derive(Debug, Enum, Clone, Copy, PartialEq, Eq)]
-pub enum CubeSubaxis {
-    Ray(CubeRay),
-    Slice(CubeAxis),
-}
-
-impl CubeSystem for CubeSubaxis {
-    fn to_axis(&self) -> CubeAxis {
-        match self {
-            CubeSubaxis::Ray(ray) => ray.to_axis(),
-            CubeSubaxis::Slice(axis) => *axis,
-        }
-    }
-
-    fn turn(&self, axis: &CubeAxis) -> Self {
-        match self {
-            CubeSubaxis::Ray(ray) => CubeSubaxis::Ray(ray.turn(axis)),
-            CubeSubaxis::Slice(to_move) => CubeSubaxis::Slice(to_move.turn(axis)),
-        }
-    }
-}
-
-pub type CubeLayer = (CubeSubaxis, u8);
-pub type CubeTwist = (CubeLayer, i8);
-
-#[rustfmt::skip]
-const CUBE_CYCLE: [(CubeAxis, i8); 23] = {
-    use CubeAxis::*;
-    // 3u 3u 3u 3f 3u 3u 3u 3f 3u 3u 3u 3f' 3u 3u 3u 3f' 3u 3u 3u 3f 3u 3u 3u 
-    [
-        (UD, 1), (UD, 1), (UD, 1), (FB, 1),
-        (UD, 1), (UD, 1), (UD, 1), (FB, 1),
-        (UD, 1), (UD, 1), (UD, 1), (FB, 3),
-        (UD, 1), (UD, 1), (UD, 1), (FB, 3),
-        (UD, 1), (UD, 1), (UD, 1), (FB, 1),
-        (UD, 1), (UD, 1), (UD, 1),
-    ]
-};
 
 /// A single piece of an abstract laminated puzzle.
 #[derive(Debug)]
 pub struct Piece {
-    /// For each axis, the layer this piece occupies.
-    layers: EnumMap<CubeAxis, CubeLayer>,
-    /// For each ray, the direction the ray currently points.
+    /// For each ray, the layer index on that ray (solved position).
+    layers: EnumMap<CubeRay, u8>,
+    /// For each ray, a tuple of the ray currently occupying
+    /// that direction and its layer parameter.
     orientation: EnumMap<CubeRay, CubeRay>,
 }
 
 impl Piece {
-    fn make_solved(layers: EnumMap<CubeAxis, CubeLayer>) -> Self {
+    fn make_solved(axis_layers: Vec<&[u8]>) -> Self {
+        let mut layers = EnumMap::from_fn(|_ray| 0);
+        for (axh, axl) in zip(CubeRay::AXIS_HEADS, axis_layers) {
+            for (ray, &layer) in zip(axh.get_axis(), axl) {
+                layers[ray] = layer;
+            }
+        }
+
         Self {
             layers,
             orientation: EnumMap::from_fn(|ray| ray),
@@ -163,28 +117,21 @@ impl Piece {
     }
 
     fn is_solved(&self) -> bool {
-        self.orientation.iter().all(|(cur, pos)| &cur == pos)
+        self.orientation.iter().all(|(pos, &cur)| pos == cur)
     }
 
-    fn twist(&mut self, (layer, order): &CubeTwist) {
-        let (subaxis, _) = layer;
-        let axis = subaxis.to_axis();
-        let order = if order < &0 {
-            layer.0.to_axis().order() + order
+    fn twist(&mut self, (ray, order): (CubeRay, i8), grip: &[u8]) {
+        let axis = ray.get_axis();
+        let order = if order < 0 {
+            ray.order() + order
         } else {
-            *order
+            order
         };
-        if layer == &self.layers[axis] {
+        if zip(axis, grip).all(|(r, &i)| self.layers[self.orientation[r]] == i) {
             for _ in 0..order {
-                for (cur, pos) in self.orientation {
-                    self.orientation[cur] = pos.turn(&axis);
+                for (pos, cur) in self.orientation {
+                    self.orientation[pos] = cur.turn(&ray);
                 }
-                let mut new_layers = enum_map! {_=>(CubeSubaxis::Slice(CubeAxis::UD),0)};
-                for (_, (sax, i)) in self.layers {
-                    let new_subaxis = sax.turn(&axis);
-                    new_layers[new_subaxis.to_axis()] = (new_subaxis, i);
-                }
-                self.layers = new_layers;
             }
         }
     }
@@ -192,63 +139,41 @@ impl Piece {
 
 /// Abstract laminated puzzle.
 #[derive(Debug)]
-pub struct Puzzle {
-    pub grips: EnumMap<CubeAxis, Vec<CubeLayer>>,
+pub struct Puzzle<'a> {
+    pub grips: Vec<&'a [u8]>,
     pub pieces: Vec<Piece>,
 }
 
-impl Puzzle {
-    pub fn make_solved<F>(axis_to_grips: F) -> Self
-    where
-        F: Fn(CubeAxis) -> Vec<CubeLayer>,
-    {
-        let grips = EnumMap::from_fn(axis_to_grips);
-        let grips_arr = grips.as_array();
-        let grip_count: usize = grips_arr[0].len();
-        let piece_count: usize = grip_count.pow(grips_arr.len().try_into().unwrap());
+impl<'a> Puzzle<'a> {
+    pub fn make_solved(grips: Vec<&'a [u8]>) -> Self {
+        let grip_count: usize = grips.len();
+        let piece_count: usize = grip_count.pow(CubeRay::AXIS_HEADS.len().try_into().unwrap());
         let pieces = (0..piece_count)
             .map(|i| {
-                Piece::make_solved(EnumMap::from_array(
-                    grips_arr
-                        .into_iter()
-                        .enumerate()
-                        .map(|(j, gs)| gs[i / grip_count.pow(j.try_into().unwrap()) % grip_count])
-                        .collect::<Vec<CubeLayer>>()
-                        .try_into()
-                        .expect("it had better be the right size"),
-                ))
+                Piece::make_solved(
+                    (0..CubeRay::AXIS_HEADS.len())
+                        .map(|j| grips[i / grip_count.pow(j.try_into().unwrap()) % grip_count])
+                        .collect(),
+                )
             })
             .collect();
-        Self {
-            grips,
-            /*pieces: grips
-            .values()
-            .multi_cartesian_product()
-            .map(|layers| Piece::make_solved(EnumMap::from_array(layers)))
-            .collect(),*/
-            pieces,
-        }
+        Self { grips, pieces }
     }
 
     pub fn is_solved(&self) -> bool {
         self.pieces.iter().all(|piece| piece.is_solved())
     }
 
-    pub fn twist(&mut self, ctwist: &CubeTwist) {
-        let (layer, order) = ctwist;
-        if layer == &self.grips[layer.0.to_axis()][0] {
+    pub fn twist(&mut self, (ray, order): (CubeRay, i8), grip: &[u8]) {
+        if grip == self.grips[0] {
             // we cannot move the core
-            let other_layers: Vec<CubeLayer> = self.grips[layer.0.to_axis()]
-                .iter()
-                .skip(1)
-                .copied()
-                .collect();
-            for new_layer in other_layers {
-                self.twist(&(new_layer, -order))
+            let other_layers: Vec<_> = self.grips.iter().skip(1).copied().collect();
+            for new_grip in other_layers {
+                self.twist((ray, order), new_grip);
             }
         } else {
             for piece in &mut self.pieces {
-                piece.twist(ctwist);
+                piece.twist((ray, order), grip);
             }
         }
     }
@@ -262,14 +187,9 @@ mod tests {
     #[test]
     fn one_turn() {
         use CubeRay::*;
-        use CubeSubaxis::*;
 
-        let mut puzzle = Puzzle::make_solved(|ax| {
-            let mut layers: Vec<CubeLayer> = ax.rays().iter().map(|r| (Ray(*r), 1)).collect();
-            layers.splice(0..0, [(Slice(ax), 0)]);
-            layers
-        });
-        puzzle.twist(&((Ray(R), 1), 1));
+        let mut puzzle = Puzzle::make_solved(vec![&[0, 0], &[1, 0], &[0, 1]]);
+        puzzle.twist((R, 1), &[1, 0]);
         assert!(!puzzle.is_solved());
     }
 
@@ -277,18 +197,13 @@ mod tests {
     #[test]
     fn six_sexy() {
         use CubeRay::*;
-        use CubeSubaxis::*;
 
-        let mut puzzle = Puzzle::make_solved(|ax| {
-            let mut layers: Vec<CubeLayer> = ax.rays().iter().map(|r| (Ray(*r), 1)).collect();
-            layers.splice(0..0, [(Slice(ax), 0)]);
-            layers
-        });
+        let mut puzzle = Puzzle::make_solved(vec![&[0, 0], &[1, 0], &[0, 1]]);
         for _ in 0..6 {
-            puzzle.twist(&((Ray(R), 1), 1));
-            puzzle.twist(&((Ray(U), 1), 1));
-            puzzle.twist(&((Ray(R), 1), 3));
-            puzzle.twist(&((Ray(U), 1), 3));
+            puzzle.twist((R, 1), &[1, 0]);
+            puzzle.twist((R, 1), &[1, 0]);
+            puzzle.twist((R, -1), &[1, 0]);
+            puzzle.twist((R, -1), &[1, 0]);
         }
         assert!(puzzle.is_solved());
     }
