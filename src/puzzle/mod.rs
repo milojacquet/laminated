@@ -1,9 +1,9 @@
 use enum_map::{Enum, EnumMap};
 use std::iter::zip;
 
-trait RaySystem
+pub trait RaySystem
 where
-    Self: 'static + Sized,
+    Self: 'static + Sized + Eq + Copy + Enum + enum_map::EnumArray<u8> + enum_map::EnumArray<Self>,
 {
     /// Returns a list of rays that make up the vector. Should
     /// return the same order for each axis.
@@ -93,18 +93,21 @@ impl RaySystem for CubeRay {
 
 /// A single piece of an abstract laminated puzzle.
 #[derive(Debug)]
-pub struct Piece {
+pub struct Piece<Ray>
+where
+    Ray: RaySystem,
+{
     /// For each ray, the layer index on that ray (solved position).
-    layers: EnumMap<CubeRay, u8>,
+    layers: EnumMap<Ray, u8>,
     /// For each ray, a tuple of the ray currently occupying
     /// that direction and its layer parameter.
-    orientation: EnumMap<CubeRay, CubeRay>,
+    orientation: EnumMap<Ray, Ray>,
 }
 
-impl Piece {
+impl<Ray: RaySystem> Piece<Ray> {
     fn make_solved(axis_layers: Vec<&[u8]>) -> Self {
         let mut layers = EnumMap::from_fn(|_ray| 0);
-        for (axh, axl) in zip(CubeRay::AXIS_HEADS, axis_layers) {
+        for (axh, axl) in zip(Ray::AXIS_HEADS, axis_layers) {
             for (ray, &layer) in zip(axh.get_axis(), axl) {
                 layers[ray] = layer;
             }
@@ -120,7 +123,7 @@ impl Piece {
         self.orientation.iter().all(|(pos, &cur)| pos == cur)
     }
 
-    fn twist(&mut self, (ray, order): (CubeRay, i8), grip: &[u8]) {
+    fn twist(&mut self, (ray, order): (Ray, i8), grip: &[u8]) {
         let axis = ray.get_axis();
         let order = if order < 0 {
             ray.order() + order
@@ -129,8 +132,8 @@ impl Piece {
         };
         if zip(axis, grip).all(|(r, &i)| self.layers[self.orientation[r]] == i) {
             for _ in 0..order {
-                for (pos, cur) in self.orientation {
-                    self.orientation[pos] = cur.turn(&ray);
+                for (_, cur) in self.orientation.iter_mut() {
+                    *cur = cur.turn(&ray);
                 }
             }
         }
@@ -139,19 +142,19 @@ impl Piece {
 
 /// Abstract laminated puzzle.
 #[derive(Debug)]
-pub struct Puzzle<'a> {
+pub struct Puzzle<'a, Ray: RaySystem> {
     pub grips: Vec<&'a [u8]>,
-    pub pieces: Vec<Piece>,
+    pub pieces: Vec<Piece<Ray>>,
 }
 
-impl<'a> Puzzle<'a> {
+impl<'a, Ray: RaySystem> Puzzle<'a, Ray> {
     pub fn make_solved(grips: Vec<&'a [u8]>) -> Self {
         let grip_count: usize = grips.len();
-        let piece_count: usize = grip_count.pow(CubeRay::AXIS_HEADS.len().try_into().unwrap());
+        let piece_count: usize = grip_count.pow(Ray::AXIS_HEADS.len().try_into().unwrap());
         let pieces = (0..piece_count)
             .map(|i| {
                 Piece::make_solved(
-                    (0..CubeRay::AXIS_HEADS.len())
+                    (0..Ray::AXIS_HEADS.len())
                         .map(|j| grips[i / grip_count.pow(j.try_into().unwrap()) % grip_count])
                         .collect(),
                 )
@@ -164,7 +167,7 @@ impl<'a> Puzzle<'a> {
         self.pieces.iter().all(|piece| piece.is_solved())
     }
 
-    pub fn twist(&mut self, (ray, order): (CubeRay, i8), grip: &[u8]) {
+    pub fn twist(&mut self, (ray, order): (Ray, i8), grip: &[u8]) {
         if grip == self.grips[0] {
             // we cannot move the core
             let other_layers: Vec<_> = self.grips.iter().skip(1).copied().collect();
