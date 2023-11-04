@@ -2,71 +2,55 @@ use enum_map::Enum;
 
 use crate::puzzle::common::RaySystem;
 
+/// Binary numbering of axes; false if UFR, true if DBL.
 #[derive(Debug, Enum, Clone, Copy, PartialEq, Eq)]
-pub enum CubeRay {
-    U,
-    D,
-    F,
-    B,
-    R,
-    L,
-}
+pub struct OctaRay(bool, bool, bool);
 
-impl RaySystem for CubeRay {
+impl RaySystem for OctaRay {
     fn get_axis(&self) -> Vec<Self> {
-        use CubeRay::*;
-
         match self {
-            U | D => vec![U, D],
-            F | B => vec![F, B],
-            R | L => vec![R, L],
+            OctaRay(true, b1, b2) => vec![OctaRay(true, *b1, *b2), OctaRay(false, !*b1, !*b2)],
+            OctaRay(false, b1, b2) => vec![OctaRay(true, !*b1, !*b2), OctaRay(false, *b1, *b2)],
         }
     }
 
     fn turn(&self, axis: &Self) -> Self {
-        use CubeRay::*;
-
-        match (axis, self) {
-            (U | D, U) => U,
-            (U | D, D) => D,
-            (U | D, F) => R,
-            (U | D, B) => L,
-            (U | D, R) => B,
-            (U | D, L) => F,
-
-            (F | B, U) => L,
-            (F | B, D) => R,
-            (F | B, F) => F,
-            (F | B, B) => B,
-            (F | B, R) => U,
-            (F | B, L) => D,
-
-            (R | L, U) => F,
-            (R | L, D) => B,
-            (R | L, F) => D,
-            (R | L, B) => U,
-            (R | L, R) => R,
-            (R | L, L) => L,
+        match axis {
+            OctaRay(true, true, true) | OctaRay(false, false, false) => {
+                OctaRay(self.1, self.2, self.0)
+            }
+            OctaRay(true, true, false) | OctaRay(false, false, true) => {
+                OctaRay(!self.2, self.0, !self.1)
+            }
+            OctaRay(true, false, true) | OctaRay(false, true, false) => {
+                OctaRay(self.2, !self.0, !self.1)
+            }
+            OctaRay(true, false, false) | OctaRay(false, true, true) => {
+                OctaRay(!self.1, self.2, !self.0)
+            }
         }
     }
 
     fn order(&self) -> i8 {
-        4
+        3
     }
 
-    const AXIS_HEADS: &'static [Self] = &[CubeRay::U, CubeRay::F, CubeRay::R];
+    const AXIS_HEADS: &'static [Self] = &[
+        OctaRay(true, true, true),
+        OctaRay(true, true, false),
+        OctaRay(true, false, true),
+        OctaRay(true, false, false),
+    ];
 
     #[rustfmt::skip]
     const CYCLE: &'static [(Self, i8)] = {
-        use CubeRay::*;
-        // 3u 3u 3u 3f 3u 3u 3u 3f 3u 3u 3u 3f' 3u 3u 3u 3f' 3u 3u 3u 3f 3u 3u 3u
         &[
-            (U, 1), (U, 1), (U, 1), (F, 1),
+            /*(U, 1), (U, 1), (U, 1), (F, 1),
             (U, 1), (U, 1), (U, 1), (F, 1),
             (U, 1), (U, 1), (U, 1), (F, 3),
             (U, 1), (U, 1), (U, 1), (F, 3),
             (U, 1), (U, 1), (U, 1), (F, 1),
-            (U, 1), (U, 1), (U, 1),
+            (U, 1), (U, 1), (U, 1),*/
         ]
     };
 }
@@ -75,14 +59,14 @@ impl RaySystem for CubeRay {
 mod tests {
     use super::*;
     use crate::puzzle::common::ray_system_tests::validate_ray_system;
-    use crate::puzzle::common::Puzzle;
 
     #[test]
-    fn validate_ray_system_cube() {
-        validate_ray_system::<CubeRay>()
+    fn validate_ray_system_octa() {
+        validate_ray_system::<OctaRay>()
     }
 
-    /// Applies one turn and asserts that it is unsolved.
+    /*
+    /// Applies one turn and asserts that it is unsolved..
     #[test]
     fn one_turn() {
         use CubeRay::*;
@@ -106,4 +90,5 @@ mod tests {
         }
         assert!(puzzle.is_solved());
     }
+    */
 }

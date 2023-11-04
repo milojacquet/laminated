@@ -1,4 +1,5 @@
 pub mod puzzle;
+pub mod util;
 
 fn main() {
     //use CubeAxis::*;
