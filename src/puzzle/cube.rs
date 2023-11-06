@@ -23,7 +23,7 @@ impl RaySystem for CubeRay {
         }
     }
 
-    fn turn(&self, axis: &Self) -> Self {
+    fn turn_one(&self, axis: &Self) -> Self {
         use CubeRay::*;
 
         match (axis, self) {
@@ -59,14 +59,14 @@ impl RaySystem for CubeRay {
     #[rustfmt::skip]
     const CYCLE: &'static [(Self, i8)] = {
         use CubeRay::*;
-        // 3u 3u 3u 3f 3u 3u 3u 3f 3u 3u 3u 3f' 3u 3u 3u 3f' 3u 3u 3u 3f 3u 3u 3u
+        // 3u 3u 3u 3f 3u 3u 3u 3f 3u 3u 3u 3f' 3u 3u 3u 3f' 3u 3u 3u 3f 3u' 3u' 3u' 3f'
         &[
             (U, 1), (U, 1), (U, 1), (F, 1),
             (U, 1), (U, 1), (U, 1), (F, 1),
             (U, 1), (U, 1), (U, 1), (F, 3),
             (U, 1), (U, 1), (U, 1), (F, 3),
             (U, 1), (U, 1), (U, 1), (F, 1),
-            (U, 1), (U, 1), (U, 1),
+            (U, 3), (U, 3), (U, 3), //(F, 3),
         ]
     };
 }

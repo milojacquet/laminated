@@ -10,10 +10,20 @@ where
     /// Returns a list of rays that make up the vector. Should
     /// return the same order for each axis.
     fn get_axis(&self) -> Vec<Self>;
+    /// Turns the ray system one unit about ray's axis and returns the new ray
+    /// that occupies self's direction.
+    /// Should return the same value for any ray with the same axis.
+    fn turn_one(&self, ray: &Self) -> Self;
     /// Turns the ray system about ray's axis and returns the new ray
     /// that occupies self's direction.
     /// Should return the same value for any ray with the same axis.
-    fn turn(&self, ray: &Self) -> Self;
+    fn turn(&self, (ray, order): &(Self, i8)) -> Self {
+        let mut turned = *self;
+        for _ in 0..order.rem_euclid(ray.order()) {
+            turned = turned.turn_one(&ray);
+        }
+        turned
+    }
     /// Gets the order of the turn
     fn order(&self) -> i8;
     /// Returns a list of rays, each one of which is the first ray of its axis.
@@ -36,7 +46,7 @@ where
 }
 
 impl<Ray: RaySystem> Piece<Ray> {
-    fn make_solved(axis_layers: Vec<&[u8]>) -> Self {
+    pub fn make_solved(axis_layers: Vec<&[u8]>) -> Self {
         let mut layers = EnumMap::from_fn(|_ray| 0);
         for (axh, axl) in zip(Ray::AXIS_HEADS, axis_layers) {
             for (ray, &layer) in zip(axh.get_axis(), axl) {
@@ -44,34 +54,31 @@ impl<Ray: RaySystem> Piece<Ray> {
             }
         }
 
+        Self::make_solved_from_layers(layers)
+    }
+
+    pub fn make_solved_from_layers(layers: EnumMap<Ray, u8>) -> Self {
         Self {
             layers,
             orientation: EnumMap::from_fn(|ray| ray),
         }
     }
 
-    fn is_solved(&self) -> bool {
+    pub fn is_solved(&self) -> bool {
         self.orientation.iter().all(|(pos, &cur)| pos == cur)
     }
 
-    fn grip_on_axis(&self, ray: &Ray) -> Vec<u8> {
+    pub fn grip_on_axis(&self, ray: &Ray) -> Vec<u8> {
         ray.get_axis()
             .iter()
             .map(|&r| self.layers[self.orientation[r]])
             .collect()
     }
 
-    fn twist(&mut self, (ray, order): (Ray, i8), grip: &[u8]) {
-        let order = if order < 0 {
-            ray.order() + order
-        } else {
-            order
-        };
+    pub fn twist(&mut self, (ray, order): (Ray, i8), grip: &[u8]) {
         if &self.grip_on_axis(&ray)[..] == grip {
-            for _ in 0..order {
-                for (_, cur) in self.orientation.iter_mut() {
-                    *cur = cur.turn(&ray);
-                }
+            for (_, cur) in self.orientation.iter_mut() {
+                *cur = cur.turn(&(ray, order));
             }
         }
     }
@@ -88,9 +95,7 @@ pub struct Puzzle<'a, Ray: RaySystem> {
 
 impl<'a, Ray: RaySystem> Puzzle<'a, Ray> {
     pub fn piece_count(&self) -> usize {
-        self.grips
-            .len()
-            .pow(Ray::AXIS_HEADS.len().try_into().unwrap())
+        self.grips.len().pow(Ray::AXIS_HEADS.len() as u32)
     }
 
     pub fn make_solved(grips: Vec<&'a [u8]>) -> Self {
@@ -99,10 +104,7 @@ impl<'a, Ray: RaySystem> Puzzle<'a, Ray> {
             permutation: Vec::new(),
             pieces: Vec::new(),
         };
-        let piece_count: usize = new
-            .grips
-            .len()
-            .pow(Ray::AXIS_HEADS.len().try_into().unwrap());
+        let piece_count: usize = new.grips.len().pow(Ray::AXIS_HEADS.len() as u32);
         new.pieces = (0..piece_count)
             .map(|i| new.index_to_solved_piece(i))
             .collect();
@@ -128,16 +130,16 @@ impl<'a, Ray: RaySystem> Puzzle<'a, Ray> {
         }
     }
 
-    fn index_to_solved_piece(&self, i: usize) -> Piece<Ray> {
+    pub fn index_to_solved_piece(&self, i: usize) -> Piece<Ray> {
         let grip_count: usize = self.grips.len();
         Piece::make_solved(
             (0..Ray::AXIS_HEADS.len())
-                .map(|j| self.grips[i / grip_count.pow(j.try_into().unwrap()) % grip_count])
+                .map(|j| self.grips[i / grip_count.pow(j as u32) % grip_count])
                 .collect(),
         )
     }
 
-    fn piece_to_index(&self, piece: &Piece<Ray>) -> usize {
+    pub fn piece_to_index(&self, piece: &Piece<Ray>) -> usize {
         Ray::AXIS_HEADS
             .iter()
             .enumerate()
@@ -146,7 +148,7 @@ impl<'a, Ray: RaySystem> Puzzle<'a, Ray> {
                     .iter()
                     .position(|gr| &&piece.grip_on_axis(r)[..] == gr)
                     .expect("grips should all exist because the piece should be valid")
-                    * self.grips.len().pow(j.try_into().unwrap())
+                    * self.grips.len().pow(j as u32)
             })
             .sum()
     }
@@ -182,8 +184,8 @@ pub mod ray_system_tests {
             for ray2 in ray.get_axis() {
                 for ray3 in enum_iter::<Ray>() {
                     assert_eq!(
-                        ray3.turn(&ray),
-                        ray3.turn(&ray2),
+                        ray3.turn_one(&ray),
+                        ray3.turn_one(&ray2),
                         "{:?} turned differently under {:?} and {:?}",
                         ray3,
                         ray,
@@ -198,7 +200,7 @@ pub mod ray_system_tests {
         for ray in Ray::AXIS_HEADS {
             for ray2s in enum_iter::<Ray>().iter().combinations(2) {
                 assert!(
-                    ray2s[0].turn(ray) != ray2s[1].turn(ray),
+                    ray2s[0].turn_one(ray) != ray2s[1].turn_one(ray),
                     "{:?} and {:?} turn the same under {:?}",
                     ray2s[0],
                     ray2s[1],

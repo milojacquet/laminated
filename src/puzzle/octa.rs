@@ -14,7 +14,7 @@ impl RaySystem for OctaRay {
         }
     }
 
-    fn turn(&self, axis: &Self) -> Self {
+    fn turn_one(&self, axis: &Self) -> Self {
         match axis {
             OctaRay(true, true, true) | OctaRay(false, false, false) => {
                 OctaRay(self.1, self.2, self.0)
