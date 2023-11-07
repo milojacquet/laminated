@@ -39,10 +39,10 @@ where
     Ray: RaySystem,
 {
     /// For each ray, the layer index on that ray (solved position).
-    layers: EnumMap<Ray, u8>,
+    pub layers: EnumMap<Ray, u8>,
     /// For each ray, a tuple of the ray currently occupying
     /// that direction and its layer parameter.
-    orientation: EnumMap<Ray, Ray>,
+    pub orientation: EnumMap<Ray, Ray>,
 }
 
 impl<Ray: RaySystem> Piece<Ray> {
@@ -68,11 +68,22 @@ impl<Ray: RaySystem> Piece<Ray> {
         self.orientation.iter().all(|(pos, &cur)| pos == cur)
     }
 
+    /*pub fb grip_on_axis_enummap(layers: &EnumMap<Ray, u8>, ray: &Ray) -> Vec<u8>{
+        ray.get_axis()
+            .iter()
+            .map(|&r| self.layers[self.orientation[r]])
+            .collect()
+    }*/
+
     pub fn grip_on_axis(&self, ray: &Ray) -> Vec<u8> {
         ray.get_axis()
             .iter()
             .map(|&r| self.layers[self.orientation[r]])
             .collect()
+    }
+
+    pub fn grip_on_axis_solved(&self, ray: &Ray) -> Vec<u8> {
+        ray.get_axis().iter().map(|&r| self.layers[r]).collect()
     }
 
     pub fn twist(&mut self, (ray, order): (Ray, i8), grip: &[u8]) {
@@ -81,6 +92,10 @@ impl<Ray: RaySystem> Piece<Ray> {
                 *cur = cur.turn(&(ray, order));
             }
         }
+    }
+
+    pub fn oriented_layers(&self) -> EnumMap<Ray, u8> {
+        EnumMap::from_fn(|ray| self.layers[self.orientation[ray]])
     }
 }
 
@@ -124,12 +139,14 @@ impl<'a, Ray: RaySystem> Puzzle<'a, Ray> {
                 self.twist((ray, order), new_grip);
             }
         } else {
-            for piece in &mut self.pieces {
-                piece.twist((ray, order), grip);
+            for i in 0..self.pieces.len() {
+                self.pieces[i].twist((ray, order), grip);
+                self.permutation[i] = self.piece_to_index(&self.pieces[i]);
             }
         }
     }
 
+    /// Returns a new solved piece whose index is the provided usize.
     pub fn index_to_solved_piece(&self, i: usize) -> Piece<Ray> {
         let grip_count: usize = self.grips.len();
         Piece::make_solved(
@@ -139,6 +156,7 @@ impl<'a, Ray: RaySystem> Puzzle<'a, Ray> {
         )
     }
 
+    /// Gets the index of the current position of the piece.
     pub fn piece_to_index(&self, piece: &Piece<Ray>) -> usize {
         Ray::AXIS_HEADS
             .iter()
@@ -147,6 +165,21 @@ impl<'a, Ray: RaySystem> Puzzle<'a, Ray> {
                 self.grips
                     .iter()
                     .position(|gr| &&piece.grip_on_axis(r)[..] == gr)
+                    .expect("grips should all exist because the piece should be valid")
+                    * self.grips.len().pow(j as u32)
+            })
+            .sum()
+    }
+
+    /// Gets the index of the solved position of the piece.
+    pub fn piece_to_index_solved(&self, piece: &Piece<Ray>) -> usize {
+        Ray::AXIS_HEADS
+            .iter()
+            .enumerate()
+            .map(|(j, r)| {
+                self.grips
+                    .iter()
+                    .position(|gr| &&piece.grip_on_axis_solved(r)[..] == gr)
                     .expect("grips should all exist because the piece should be valid")
                     * self.grips.len().pow(j as u32)
             })
