@@ -1,6 +1,8 @@
+#![allow(unused_variables)]
 use crate::puzzle::common::*;
 use crate::puzzle::cube::*;
 use enum_map::{enum_map, EnumMap};
+use std::cmp;
 use std::iter;
 
 use std::f32::consts::PI;
@@ -12,6 +14,24 @@ where
 {
     pub puzzle: Puzzle<'a, Ray>,
     pub stickers: Vec<Sticker<Ray>>,
+}
+
+impl<Ray: RaySystem> ConcretePuzzle<'_, Ray> {
+    pub fn ray_intersect(&self, position: &Vec3, direction: &Vec3) -> Option<&Sticker<Ray>> {
+        self.stickers
+            .iter()
+            .filter_map(|sticker| {
+                sticker
+                    .ray_intersect(position, direction)
+                    .map(|d| (d, sticker))
+            })
+            .reduce(|ds1, ds2| {
+                cmp::min_by(ds1, ds2, |ds1, ds2| {
+                    ds1.0.partial_cmp(&ds2.0).expect("not nan")
+                })
+            })
+            .map(|ds| ds.1)
+    }
 }
 
 #[derive(Debug)]
@@ -29,12 +49,63 @@ where
 }
 
 impl<Ray: RaySystem> Sticker<Ray> {
-    /*fn ray_intersect(&self, position: &Vec3, direction: &Vec3) -> Option<Vec3> {
-        cpu_mesh.for_each_triangle()
-    }*/
+    fn ray_intersect(&self, position: &Vec3, direction: &Vec3) -> Option<f32> {
+        let positions = self.cpu_mesh.positions.to_f32();
+        let indices = self
+            .cpu_mesh
+            .indices
+            .to_u32()
+            .unwrap_or_else(|| (0..self.cpu_mesh.positions.len() as u32 * 3).collect());
+        indices[..]
+            .chunks_exact(3)
+            .map(|inds| {
+                let verts = &inds
+                    .iter()
+                    .map(|&i| positions[i as usize])
+                    .collect::<Vec<_>>()[..];
+                ray_triangle_intersect(position, direction, verts)
+            })
+            .filter_map(|x| x)
+            .reduce(f32::min)
+    }
 }
 
-//fn ray_triangle_intersect(position: &Vec3, direction: &Vec3, vertices: )
+fn ray_triangle_intersect(position: &Vec3, direction: &Vec3, verts: &[Vec3]) -> Option<f32> {
+    // https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
+    const EPSILON: f32 = 0.0000001;
+    let edge1 = verts[1] - verts[0];
+    let edge2 = verts[2] - verts[0];
+    let h = direction.cross(edge2);
+    let a = edge1.dot(h);
+    if a.abs() < EPSILON {
+        return None;
+    }
+    let f = 1.0 / a;
+    let s = position - verts[0];
+    let u = f * s.dot(h);
+
+    if u < 0.0 || u > 1.0 {
+        return None;
+    }
+
+    let q = s.cross(edge1);
+    let v = f * direction.dot(q);
+
+    if v < 0.0 || u + v > 1.0 {
+        return None;
+    }
+
+    // At this stage we can compute t to find out where the intersection point is on the line.
+    let t = f * edge2.dot(q);
+
+    if t > EPSILON {
+        // ray intersection
+        return Some(t);
+    } else {
+        // This means that there is a line intersection but not a ray intersection.
+        return None;
+    }
+}
 
 /*
 /// Turn the entire sticker.
@@ -77,7 +148,7 @@ pub fn make_concrete_puzzle<'a>() -> ConcretePuzzle<'a, CubeRay> {
     let mut edge_mesh = CpuMesh::square();
     edge_mesh
         .transform(
-            &(Mat4::from_translation(vec3(0.0, 2.0 / 3.0, 1.0)) * Mat4::from_scale(1.0 / 3.0)),
+            &(Mat4::from_translation(vec3(2.0 / 3.0, 0.0, 1.0)) * Mat4::from_scale(1.0 / 3.0)),
         )
         .expect("the matrix should be invertible i made it");
     let init_data = &mut [
@@ -94,7 +165,8 @@ pub fn make_concrete_puzzle<'a>() -> ConcretePuzzle<'a, CubeRay> {
         for turn_m in iter::once(None).chain(CubeRay::CYCLE.iter().map(|x| Some(x))) {
             if let Some(turn) = turn_m {
                 let &(turn_ray, turn_order) = turn;
-                *layers = EnumMap::from_fn(|ray: CubeRay| layers[ray.turn(turn)]);
+                *layers =
+                    EnumMap::from_fn(|ray: CubeRay| layers[ray.turn(&(turn_ray, -turn_order))]);
                 *face = face.turn(&(turn_ray, turn_order));
                 *color = color.turn(&(turn_ray, turn_order));
                 cpu_mesh

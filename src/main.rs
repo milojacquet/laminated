@@ -6,10 +6,6 @@ pub mod render;
 pub mod util;
 
 fn main() {
-    let mut concrete_333 = render::make_concrete_puzzle();
-    concrete_333.puzzle.twist((CubeRay::U, 1), &[1, 0]);
-    //println!("{:?}", concrete_333.stickers);
-
     // all this is testing
     let window = Window::new(WindowSettings {
         title: "Laminated".to_string(),
@@ -46,6 +42,10 @@ fn main() {
     );
     sphere.set_transformation(Mat4::from_translation(vec3(1.3, 0.0, 0.0)) * Mat4::from_scale(0.2));
 
+    let mut concrete_333 = render::make_concrete_puzzle();
+    concrete_333.puzzle.twist((CubeRay::U, 1), &[1, 0]);
+    //println!("{:?}", concrete_333.stickers);
+
     window.render_loop(move |mut frame_input| {
         camera.set_viewport(frame_input.viewport);
         let geometry = render::concrete_puzzle_gm(&context, &concrete_333);
@@ -64,6 +64,21 @@ fn main() {
                 } => {
                     // asdf
                     // pick(&context, &camera, position, concrete_333.stickers)
+                    let sticker_m = concrete_333.ray_intersect(
+                        &camera.position_at_pixel(position),
+                        &camera.view_direction_at_pixel(position),
+                    );
+                    if let Some(sticker) = sticker_m {
+                        println!(
+                            "{:?}, face = {:?}, color = {:?}",
+                            concrete_333
+                                .puzzle
+                                .index_to_solved_piece(sticker.piece_ind)
+                                .layers,
+                            sticker.face,
+                            sticker.color
+                        )
+                    }
                 }
                 _ => (),
             }
