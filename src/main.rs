@@ -44,6 +44,7 @@ fn main() {
 
     let mut concrete_333 = render::make_concrete_puzzle();
     concrete_333.puzzle.twist((CubeRay::U, 1), &[1, 0]);
+    concrete_333.puzzle.twist((CubeRay::R, 1), &[1, 0]);
     //println!("{:?}", concrete_333.stickers);
 
     window.render_loop(move |mut frame_input| {
@@ -70,14 +71,19 @@ fn main() {
                     );
                     if let Some(sticker) = sticker_m {
                         println!(
-                            "{:?}, face = {:?}, color = {:?}",
+                            "sticker: {:?}, face = {:?}, color = {:?}",
                             concrete_333
                                 .puzzle
                                 .index_to_solved_piece(sticker.piece_ind)
                                 .layers,
                             sticker.face,
                             sticker.color
-                        )
+                        );
+                        println!(
+                            "piece: {:?}",
+                            concrete_333.puzzle.pieces
+                                [concrete_333.puzzle.permutation[sticker.piece_ind]]
+                        );
                     }
                 }
                 _ => (),

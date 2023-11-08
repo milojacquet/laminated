@@ -88,9 +88,11 @@ impl<Ray: RaySystem> Piece<Ray> {
 
     pub fn twist(&mut self, (ray, order): (Ray, i8), grip: &[u8]) {
         if &self.grip_on_axis(&ray)[..] == grip {
-            for (_, cur) in self.orientation.iter_mut() {
+            let new_orientation = EnumMap::from_fn(|r:Ray| self.orientation[r.turn(&(ray, order))]);
+            self.orientation = new_orientation;
+            /*for (_, cur) in self.orientation.iter_mut() {
                 *cur = cur.turn(&(ray, order));
-            }
+            }*/
         }
     }
 
@@ -141,7 +143,9 @@ impl<'a, Ray: RaySystem> Puzzle<'a, Ray> {
         } else {
             for i in 0..self.pieces.len() {
                 self.pieces[i].twist((ray, order), grip);
-                self.permutation[i] = self.piece_to_index(&self.pieces[i]);
+                //self.permutation[i] = self.piece_to_index(&self.pieces[i]);
+                let piece_index = self.piece_to_index(&self.pieces[i]);
+                self.permutation[piece_index] = i;
             }
         }
     }
