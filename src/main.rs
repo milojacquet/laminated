@@ -43,8 +43,8 @@ fn main() {
     sphere.set_transformation(Mat4::from_translation(vec3(1.3, 0.0, 0.0)) * Mat4::from_scale(0.2));
 
     let mut concrete_333 = render::make_concrete_puzzle();
-    concrete_333.puzzle.twist((CubeRay::U, 1), &[1, 0]);
-    concrete_333.puzzle.twist((CubeRay::R, 1), &[1, 0]);
+    //concrete_333.puzzle.twist((CubeRay::U, 1), &[1, 0]);
+    //concrete_333.puzzle.twist((CubeRay::R, 1), &[1, 0]);
     //println!("{:?}", concrete_333.stickers);
 
     window.render_loop(move |mut frame_input| {
@@ -59,31 +59,37 @@ fn main() {
         for event in frame_input.events {
             match event {
                 Event::MousePress {
-                    button: MouseButton::Middle,
-                    position,
-                    ..
+                    button, position, ..
                 } => {
-                    // asdf
-                    // pick(&context, &camera, position, concrete_333.stickers)
                     let sticker_m = concrete_333.ray_intersect(
                         &camera.position_at_pixel(position),
                         &camera.view_direction_at_pixel(position),
                     );
                     if let Some(sticker) = sticker_m {
-                        println!(
-                            "sticker: {:?}, face = {:?}, color = {:?}",
-                            concrete_333
-                                .puzzle
-                                .index_to_solved_piece(sticker.piece_ind)
-                                .layers,
-                            sticker.face,
-                            sticker.color
-                        );
-                        println!(
-                            "piece: {:?}",
-                            concrete_333.puzzle.pieces
-                                [concrete_333.puzzle.permutation[sticker.piece_ind]]
-                        );
+                        match button {
+                            MouseButton::Middle => {
+                                println!(
+                                    "sticker: {:?}, face = {:?}, color = {:?}",
+                                    concrete_333
+                                        .puzzle
+                                        .index_to_solved_piece(sticker.piece_ind)
+                                        .layers,
+                                    sticker.face,
+                                    sticker.color
+                                );
+                                println!(
+                                    "piece: {:?}",
+                                    concrete_333.puzzle.pieces
+                                        [concrete_333.puzzle.permutation[sticker.piece_ind]]
+                                );
+                            }
+                            three_d::MouseButton::Left => {
+                                concrete_333.puzzle.twist((sticker.face, -1), &[1, 0]);
+                            }
+                            three_d::MouseButton::Right => {
+                                concrete_333.puzzle.twist((sticker.face, 1), &[1, 0]);
+                            }
+                        }
                     }
                 }
                 _ => (),

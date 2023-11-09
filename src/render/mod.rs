@@ -48,6 +48,21 @@ where
     pub cpu_mesh: CpuMesh,
 }
 
+/// The initial data which will be symmetry-expanded into a sticker.
+#[derive(Debug)]
+pub struct StickerSeed<Ray>
+where
+    Ray: RaySystem,
+{
+    /// The index of the piece this sticker is part of in `permutation` on `Puzzle`.
+    pub layers: EnumMap<CubeRay, u8>,
+    /// The face the sticker is on. Controls what turn is done when clicked.
+    pub face: Ray,
+    /// The face that controls the color of the sticker.
+    pub color: Ray,
+    pub cpu_mesh: CpuMesh,
+}
+
 impl<Ray: RaySystem> Sticker<Ray> {
     fn ray_intersect(&self, position: &Vec3, direction: &Vec3) -> Option<f32> {
         let positions = self.cpu_mesh.positions.to_f32();
@@ -55,7 +70,7 @@ impl<Ray: RaySystem> Sticker<Ray> {
             .cpu_mesh
             .indices
             .to_u32()
-            .unwrap_or_else(|| (0..self.cpu_mesh.positions.len() as u32 * 3).collect());
+            .unwrap_or_else(|| (0..self.cpu_mesh.positions.len() as u32).collect());
         indices[..]
             .chunks_exact(3)
             .map(|inds| {
@@ -137,7 +152,7 @@ fn ray_to_color(ray: &CubeRay) -> Srgba {
 
 pub fn make_concrete_puzzle<'a>() -> ConcretePuzzle<'a, CubeRay> {
     use CubeRay::*;
-    let mut puzzle: Puzzle<'a, CubeRay> = Puzzle::make_solved(vec![&[0, 0], &[1, 0], &[0, 1]]);
+    let puzzle: Puzzle<'a, CubeRay> = Puzzle::make_solved(vec![&[0, 0], &[1, 0], &[0, 1]]);
     let mut corner_mesh = CpuMesh::square();
     corner_mesh
         .transform(
@@ -151,34 +166,70 @@ pub fn make_concrete_puzzle<'a>() -> ConcretePuzzle<'a, CubeRay> {
             &(Mat4::from_translation(vec3(2.0 / 3.0, 0.0, 1.0)) * Mat4::from_scale(1.0 / 3.0)),
         )
         .expect("the matrix should be invertible i made it");
-    let init_data = &mut [
-        (
-            enum_map! {U=>1,R=>1,B=>1,D=>0,L=>0,F=>0,},
-            U,
-            U,
-            corner_mesh,
-        ),
-        (enum_map! {U=>1,R=>1,B=>0,D=>0,L=>0,F=>0,}, U, U, edge_mesh),
+    let sticker_seeds = &mut [
+        StickerSeed {
+            layers: enum_map! {U=>1,R=>1,B=>1,D=>0,L=>0,F=>0,},
+            face: U,
+            color: U,
+            cpu_mesh: corner_mesh,
+        },
+        StickerSeed {
+            layers: enum_map! {U=>1,R=>1,B=>0,D=>0,L=>0,F=>0,},
+            face: U,
+            color: U,
+            cpu_mesh: edge_mesh,
+        },
+        StickerSeed {
+            layers: enum_map! {U=>1,R=>0,B=>0,D=>0,L=>0,F=>0,},
+            face: U,
+            color: R,
+            cpu_mesh: CpuMesh {
+                positions: Positions::F32(vec![
+                    Vec3::new(0.2, -0.2, 1.0),
+                    Vec3::new(1.0 / 3.0, -1.0 / 3.0, 1.0),
+                    Vec3::new(1.0 / 3.0, 1.0 / 3.0, 1.0),
+                    Vec3::new(0.2, 0.2, 1.0),
+                ]),
+                indices: Indices::U8(vec![0, 1, 2, 2, 3, 0]),
+                ..Default::default()
+            },
+        },
+        StickerSeed {
+            layers: enum_map! {U=>1,R=>0,B=>0,D=>0,L=>0,F=>0,},
+            face: U,
+            color: U,
+            cpu_mesh: CpuMesh {
+                positions: Positions::F32(vec![
+                    Vec3::new(0.2, -0.2, 1.0),
+                    Vec3::new(0.2, 0.2, 1.0),
+                    Vec3::new(0.0, 0.0, 1.0),
+                ]),
+                indices: Indices::None,
+                ..Default::default()
+            },
+        },
     ];
     let mut stickers = vec![];
-    for (layers, face, color, cpu_mesh) in init_data.into_iter() {
+    for seed in sticker_seeds.into_iter() {
         for turn_m in iter::once(None).chain(CubeRay::CYCLE.iter().map(|x| Some(x))) {
             if let Some(turn) = turn_m {
                 let &(turn_ray, turn_order) = turn;
-                *layers =
-                    EnumMap::from_fn(|ray: CubeRay| layers[ray.turn(&(turn_ray, -turn_order))]);
-                *face = face.turn(&(turn_ray, turn_order));
-                *color = color.turn(&(turn_ray, turn_order));
-                cpu_mesh
+                seed.layers = EnumMap::from_fn(|ray: CubeRay| {
+                    seed.layers[ray.turn(&(turn_ray, -turn_order))]
+                });
+                seed.face = seed.face.turn(turn);
+                seed.color = seed.color.turn(turn);
+                seed.cpu_mesh
                     .transform(&axis_to_transform(turn))
                     .expect("the axis transform matrices should be invertible");
             }
-            let piece_ind = puzzle.piece_to_index(&Piece::make_solved_from_layers(layers.clone()));
+            let piece_ind =
+                puzzle.piece_to_index(&Piece::make_solved_from_layers(seed.layers.clone()));
             stickers.push(Sticker {
                 piece_ind,
-                face: face.clone(),
-                color: color.clone(),
-                cpu_mesh: cpu_mesh.clone(),
+                face: seed.face.clone(),
+                color: seed.color.clone(),
+                cpu_mesh: seed.cpu_mesh.clone(),
             });
         }
     }
