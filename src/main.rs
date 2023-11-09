@@ -9,9 +9,12 @@ pub mod util;
 const TURN_DISTANCE_THRESHOLD: f32 = 3.0;
 //const ORBIT_SPEED: f32 = 0.3;
 const ORBIT_SPEED: f32 = 0.007; // radians per pixel
+const ANIMATION_LENGTH: f32 = 150.0;
+const ANIMATION_INIT_V: f32 = 0.1;
 
 fn orbit_camera(camera: &mut Camera, &(dx, dy): &(f32, f32)) {
     let pointing = -1.0 * camera.position();
+    // camera.up() does not have to be perpendicular to the view vector
     let local_x_axis = pointing.cross(*camera.up()).normalize();
     let local_y_axis = pointing.cross(local_x_axis).normalize();
     let orbit_direction = dx * local_x_axis + dy * local_y_axis;
@@ -76,9 +79,14 @@ fn main() {
     // It will be None if the mouse has moved farther than TURN_DISTANCE_THRESHOLD.
     let mut mouse_press_location: Option<(LogicalPoint, MouseButton)> = None;
 
-    window.render_loop(move |mut frame_input| {
+    window.render_loop(move |frame_input| {
         camera.set_viewport(frame_input.viewport);
-        let geometry = render::concrete_puzzle_gm(&context, &concrete_333);
+        let geometry = render::concrete_puzzle_gm(
+            &context,
+            &(frame_input.elapsed_time as f32),
+            &mut concrete_333,
+        );
+        //println!("{:?}", concrete_333.stickers[0].animation);
 
         frame_input
             .screen()
@@ -147,13 +155,9 @@ fn main() {
                                     _ => 0, // should never happen
                                 };
                                 if CubeRay::AXIS_HEADS.contains(&sticker.face) {
-                                    concrete_333
-                                        .puzzle
-                                        .twist((sticker.face, turn_direction), &[1, 0]);
+                                    concrete_333.twist(&(sticker.face, turn_direction), &[1, 0]);
                                 } else {
-                                    concrete_333
-                                        .puzzle
-                                        .twist((sticker.face, -turn_direction), &[0, 1]);
+                                    concrete_333.twist(&(sticker.face, -turn_direction), &[0, 1]);
                                 }
                             }
                         }

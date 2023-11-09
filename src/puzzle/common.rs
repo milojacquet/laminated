@@ -1,4 +1,5 @@
 use enum_map::{Enum, EnumMap};
+use std::collections::HashSet;
 use std::iter::zip;
 
 use crate::util::*;
@@ -64,6 +65,8 @@ impl<Ray: RaySystem> Piece<Ray> {
         }
     }
 
+    /// WARNING: this method checks if the piece is in the solved orientation!
+    /// The puzzle is considered solved if all its pieces are in the same orientation.
     pub fn is_solved(&self) -> bool {
         self.orientation.iter().all(|(pos, &cur)| pos == cur)
     }
@@ -86,14 +89,17 @@ impl<Ray: RaySystem> Piece<Ray> {
         ray.get_axis().iter().map(|&r| self.layers[r]).collect()
     }
 
-    pub fn twist(&mut self, (ray, order): (Ray, i8), grip: &[u8]) {
+    pub fn twist(&mut self, (ray, order): (Ray, i8), grip: &[u8]) -> bool {
         if &self.grip_on_axis(&ray)[..] == grip {
-            let new_orientation = EnumMap::from_fn(|r:Ray| self.orientation[r.turn(&(ray, order))]);
+            let new_orientation =
+                EnumMap::from_fn(|r: Ray| self.orientation[r.turn(&(ray, order))]);
             self.orientation = new_orientation;
             /*for (_, cur) in self.orientation.iter_mut() {
                 *cur = cur.turn(&(ray, order));
             }*/
+            return true;
         }
+        false
     }
 
     pub fn oriented_layers(&self) -> EnumMap<Ray, u8> {
@@ -129,25 +135,28 @@ impl<'a, Ray: RaySystem> Puzzle<'a, Ray> {
         return new;
     }
 
+    /// Checks whether the puzzle is solved, i.e. whether all pieces
+    /// are in the same orientation.
     pub fn is_solved(&self) -> bool {
-        self.pieces.iter().all(|piece| piece.is_solved())
+        self.pieces
+            .iter()
+            .skip(1)
+            .all(|piece| piece.orientation == self.pieces[0].orientation)
     }
 
-    pub fn twist(&mut self, (ray, order): (Ray, i8), grip: &[u8]) {
-        if grip == self.grips[0] {
-            // we cannot move the core
-            let other_layers: Vec<_> = self.grips.iter().skip(1).copied().collect();
-            for new_grip in other_layers {
-                self.twist((ray, order), new_grip);
-            }
-        } else {
-            for i in 0..self.pieces.len() {
-                self.pieces[i].twist((ray, order), grip);
-                //self.permutation[i] = self.piece_to_index(&self.pieces[i]);
-                let piece_index = self.piece_to_index(&self.pieces[i]);
-                self.permutation[piece_index] = i;
+    /// Applies the twist to the puzzle, and returns a set of pieces that were twisted.
+    pub fn twist(&mut self, (ray, order): (Ray, i8), grip: &[u8]) -> HashSet<usize> {
+        let mut twisted = HashSet::new();
+        for i in 0..self.pieces.len() {
+            let piece_twisted = self.pieces[i].twist((ray, order), grip);
+            //self.permutation[i] = self.piece_to_index(&self.pieces[i]);
+            let piece_index = self.piece_to_index(&self.pieces[i]);
+            self.permutation[piece_index] = i;
+            if piece_twisted {
+                twisted.insert(piece_index);
             }
         }
+        twisted
     }
 
     /// Returns a new solved piece whose index is the provided usize.
