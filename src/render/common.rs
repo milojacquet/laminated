@@ -123,6 +123,7 @@ fn ray_triangle_intersect(position: &Vec3, direction: &Vec3, verts: &[Vec3]) -> 
     }
 }
 
+#[derive(Clone)]
 pub struct AbstractViewport {
     pub x: f32,
     pub y: f32,
@@ -136,8 +137,8 @@ where
 {
     pub abstract_viewport: AbstractViewport,
     //pub viewport: Option<Viewport>,
-    pub context: Option<Context>,
-    pub camera: Option<Camera>,
+    pub context: Context,
+    pub camera: Camera,
     pub conjugate: Ray::Conjugate,
     pub stickers: Vec<Sticker<Ray>>,
 }
@@ -185,173 +186,4 @@ impl<Ray: ConcreteRaySystem> ConcretePuzzle<'_, Ray> {
             }
         }
     }
-}
-
-pub fn make_concrete_puzzle<'a>() -> ConcretePuzzle<'a, CubeRay> {
-    use CubeRay::*;
-    let puzzle: Puzzle<'a, CubeRay> = Puzzle::make_solved(vec![&[0, 0], &[1, -1], &[-1, 1]]);
-    let mut corner_mesh = CpuMesh::square();
-    corner_mesh
-        .transform(
-            &(Mat4::from_translation(vec3(2.0 / 3.0, 2.0 / 3.0, 1.0))
-                * Mat4::from_scale(1.0 / 3.0)),
-        )
-        .expect("the matrix should be invertible i made it");
-    let mut edge_mesh = CpuMesh::square();
-    edge_mesh
-        .transform(
-            &(Mat4::from_translation(vec3(2.0 / 3.0, 0.0, 1.0)) * Mat4::from_scale(1.0 / 3.0)),
-        )
-        .expect("the matrix should be invertible i made it");
-    let sticker_seeds = &mut [
-        StickerSeed {
-            layers: enum_map! {U=>1,R=>1,B=>1,D=>-1,L=>-1,F=>-1,},
-            face: U,
-            color: U,
-            cpu_mesh: corner_mesh,
-        },
-        StickerSeed {
-            layers: enum_map! {U=>1,R=>1,B=>0,D=>-1,L=>-1,F=>0,},
-            face: U,
-            color: U,
-            cpu_mesh: edge_mesh,
-        },
-        StickerSeed {
-            layers: enum_map! {U=>1,R=>0,B=>0,D=>-1,L=>0,F=>0,},
-            face: U,
-            color: R,
-            cpu_mesh: CpuMesh {
-                positions: Positions::F32(vec![
-                    Vec3::new(0.2, -0.2, 1.0),
-                    Vec3::new(1.0 / 3.0, -1.0 / 3.0, 1.0),
-                    Vec3::new(1.0 / 3.0, 1.0 / 3.0, 1.0),
-                    Vec3::new(0.2, 0.2, 1.0),
-                ]),
-                indices: Indices::U8(vec![0, 1, 2, 2, 3, 0]),
-                ..Default::default()
-            },
-        },
-        StickerSeed {
-            layers: enum_map! {U=>1,R=>0,B=>0,D=>-1,L=>0,F=>0,},
-            face: U,
-            color: U,
-            cpu_mesh: CpuMesh {
-                positions: Positions::F32(vec![
-                    Vec3::new(0.2, -0.2, 1.0),
-                    Vec3::new(0.2, 0.2, 1.0),
-                    Vec3::new(0.0, 0.0, 1.0),
-                ]),
-                indices: Indices::None,
-                ..Default::default()
-            },
-        },
-    ];
-    let mut stickers = vec![];
-    for seed in sticker_seeds.iter_mut() {
-        for turn_m in iter::once(None).chain(CubeRay::CYCLE.iter().map(Some)) {
-            if let Some(turn) = turn_m {
-                let &(turn_ray, turn_order) = turn;
-                seed.layers = EnumMap::from_fn(|ray: CubeRay| {
-                    seed.layers[ray.turn(&(turn_ray, -turn_order))]
-                });
-                seed.face = seed.face.turn(turn);
-                seed.color = seed.color.turn(turn);
-                seed.cpu_mesh
-                    .transform(&CubeRay::axis_to_transform(turn, Default::default()))
-                    .expect("the axis transform matrices should be invertible");
-            }
-            let piece_ind =
-                puzzle.piece_to_index(&Piece::make_solved_from_layers(seed.layers.clone()));
-            let mut new_cpu_mesh = seed.cpu_mesh.clone();
-            new_cpu_mesh.compute_normals();
-            stickers.push(Sticker {
-                piece_ind,
-                face: seed.face.clone(),
-                color: seed.color.clone(),
-                cpu_mesh: new_cpu_mesh,
-                animation: None,
-            });
-        }
-    }
-
-    ConcretePuzzle {
-        puzzle,
-        viewports: vec![PuzzleViewport {
-            abstract_viewport: AbstractViewport {
-                x: 0.0,
-                y: 0.0,
-                width: 1.0,
-                height: 1.0,
-            },
-            context: None,
-            camera: None,
-            conjugate: (),
-            stickers,
-        }],
-    }
-}
-
-/// Smoothly maps 0 to 0 and 1 to 1, with derivative ANIMATION_INIT_V at 0 and 1.
-pub fn cubic_interpolate(t: f32) -> f32 {
-    ANIMATION_INIT_V * (2.0 * t * t * t - 3.0 * t * t + t) - (2.0 * t * t * t - 3.0 * t * t)
-}
-
-pub fn concrete_puzzle_gm<Ray: ConcreteRaySystem>(
-    //contexts: &Vec<Context>,
-    elapsed_time: &f32,
-    concrete_puzzle: &mut ConcretePuzzle<Ray>,
-) -> Vec<Vec<Gm<Mesh, ColorMaterial>>> {
-    let puzzle = &concrete_puzzle.puzzle;
-
-    concrete_puzzle
-        .viewports
-        .iter_mut()
-        .map(|viewport| {
-            let mut sticker_meshes = vec![];
-            if let Some(context) = &viewport.context {
-                for sticker in viewport.stickers.iter_mut() {
-                    let mut sticker_mesh = Gm::new(
-                        Mesh::new(&context, &sticker.cpu_mesh),
-                        ColorMaterial {
-                            color: Ray::ray_to_color(
-                                &puzzle.pieces[puzzle.permutation[sticker.piece_ind]].orientation
-                                    [sticker.color],
-                            ),
-                            render_states: RenderStates {
-                                cull: Cull::Back,
-                                ..Default::default()
-                            },
-                            ..Default::default()
-                        },
-                    );
-
-                    // can this section be written better
-                    let remove_animation;
-                    let sticker_mat;
-                    if let Some(animation) = &mut sticker.animation {
-                        animation.time_remaining -= elapsed_time;
-                        remove_animation = animation.time_remaining < 0.0;
-                    } else {
-                        remove_animation = false;
-                    }
-                    if remove_animation {
-                        sticker.animation = None;
-                    }
-                    if let Some(animation) = &mut sticker.animation {
-                        let sticker_angle = animation.start_angle
-                            * cubic_interpolate(animation.time_remaining / ANIMATION_LENGTH);
-                        sticker_mat =
-                            Mat4::from_axis_angle(animation.rotation_axis, Rad(sticker_angle));
-                    } else {
-                        sticker_mat = Mat4::identity();
-                    }
-                    sticker_mesh.set_transformation(sticker_mat);
-
-                    sticker_meshes.push(sticker_mesh);
-                    //screen.render(camera, sticker_mesh.into_iter(), &[]);
-                }
-            }
-            sticker_meshes
-        })
-        .collect()
 }

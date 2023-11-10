@@ -1,6 +1,7 @@
 use crate::puzzle::common::RaySystem;
 use crate::puzzle::cube::CubeRay;
 use crate::render::common::*;
+use crate::render::create::*;
 use crate::render::cube::*;
 use std::collections::HashSet;
 use three_d::*;
@@ -44,76 +45,8 @@ fn orbit_cameras<Ray: ConcreteRaySystem>(
 ) {
     for viewport in puzzle.viewports.iter_mut() {
         if viewport.conjugate == *conjugate {
-            viewport
-                .camera
-                .as_mut()
-                .map(|camera| orbit_camera(camera, delta));
+            orbit_camera(&mut viewport.camera, delta);
         }
-    }
-}
-
-fn make_viewports<Ray: ConcreteRaySystem>(
-    window: &Window,
-    concrete_puzzle: &mut ConcretePuzzle<Ray>,
-) {
-    let min_abstract_x = concrete_puzzle
-        .viewports
-        .iter()
-        .map(|viewport| viewport.abstract_viewport.x)
-        .reduce(f32::min)
-        .expect("at least one viewport");
-    let min_abstract_y = concrete_puzzle
-        .viewports
-        .iter()
-        .map(|viewport| viewport.abstract_viewport.y)
-        .reduce(f32::min)
-        .expect("at least one viewport");
-    let max_abstract_x = concrete_puzzle
-        .viewports
-        .iter()
-        .map(|viewport| viewport.abstract_viewport.x + viewport.abstract_viewport.width)
-        .reduce(f32::max)
-        .expect("at least one viewport");
-    let max_abstract_y = concrete_puzzle
-        .viewports
-        .iter()
-        .map(|viewport| viewport.abstract_viewport.y + viewport.abstract_viewport.height)
-        .reduce(f32::max)
-        .expect("at least one viewport");
-    let (window_width, window_height) = window.size();
-    let abstract_width = max_abstract_x - min_abstract_x;
-    let abstract_height = max_abstract_y - min_abstract_y;
-    let scale = f32::min(
-        abstract_width as f32 / abstract_width,
-        window_height as f32 / abstract_height,
-    );
-
-    let viewport_width = scale * abstract_width;
-    let viewport_height = scale * abstract_height;
-    let viewport_x0 = (window_width as f32 / 2.0 - viewport_width / 2.0).max(0.0);
-    let viewport_y0 = (window_height as f32 / 2.0 - viewport_height / 2.0).max(0.0);
-
-    for puzzle_viewport in concrete_puzzle.viewports.iter_mut() {
-        //puzzle_viewport.viewport = Some(Viewport {
-        let viewport = Viewport {
-            x: (viewport_x0 + puzzle_viewport.abstract_viewport.x * scale).ceil() as i32,
-            y: (viewport_y0 + puzzle_viewport.abstract_viewport.y * scale).ceil() as i32,
-            width: (puzzle_viewport.abstract_viewport.width * scale).round() as u32,
-            height: (puzzle_viewport.abstract_viewport.height * scale).round() as u32,
-        };
-        let context = window.gl();
-        context.set_cull(Cull::Back);
-        context.set_viewport(viewport);
-        puzzle_viewport.context = Some(context);
-        puzzle_viewport.camera = Some(Camera::new_perspective(
-            window.viewport(),
-            vec3(5.0, -10.0, 4.0),
-            vec3(0.0, 0.0, 0.0),
-            vec3(0.0, 0.0, 1.0),
-            degrees(22.0),
-            0.1,
-            1000.0,
-        ));
     }
 }
 
@@ -125,9 +58,9 @@ fn main() {
     })
     .unwrap();
 
-    let mut concrete_333 = make_concrete_puzzle();
+    let mut concrete_333 = make_concrete_puzzle(&window);
 
-    make_viewports(&window, &mut concrete_333);
+    //make_viewports(&window, &mut concrete_333);
 
     /*let mut camera = Camera::new_perspective(
         window.viewport(),
@@ -176,10 +109,10 @@ fn main() {
 
         //println!("{:?} {:?}", concrete_333.viewports.len(), geometry.len());
         for (viewport, geom) in concrete_333.viewports.iter().zip(geometry) {
-            if let Some(camera) = &viewport.camera {
-                frame_input.screen().render(&camera, geom.into_iter(), &[]);
-                //println!("here!");
-            }
+            frame_input
+                .screen()
+                .render(&viewport.camera, geom.into_iter(), &[]);
+            //println!("here!");
         }
 
         for event in frame_input.events {
