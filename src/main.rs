@@ -51,16 +51,17 @@ fn orbit_cameras<Ray: ConcreteRaySystem>(
 }
 
 fn get_viewport_from_pixel<'a, Ray: ConcreteRaySystem>(
-    concrete_puzzle: &ConcretePuzzle<'a, Ray>,
+    concrete_puzzle: &'a ConcretePuzzle<Ray>,
     pixel: impl Into<PhysicalPoint>,
 ) -> Option<&'a PuzzleViewport<Ray>> {
     let phys_pixel = pixel.into();
-    for viewport in concrete_puzzle.viewports {
+    for viewport in &concrete_puzzle.viewports {
         let vp = viewport.viewport;
+        dbg!(phys_pixel, vp);
         if (vp.x..vp.x + vp.width as i32).contains(&(phys_pixel.x as i32))
             && (vp.y..vp.y + vp.height as i32).contains(&(phys_pixel.y as i32))
         {
-            return Some(&viewport);
+            return Some(viewport);
         }
     }
     None
@@ -126,6 +127,7 @@ fn main() {
 
         //println!("{:?} {:?}", concrete_puzzle.viewports.len(), geometry.len());
         for viewport in &mut concrete_puzzle.viewports {
+            // use render_partially ?
             frame_input.screen().render(
                 /**/
                 &viewport.camera,
@@ -151,9 +153,11 @@ fn main() {
                 Event::MousePress {
                     button, position, ..
                 } => {
+                    //println!("{:?}", get_viewport_from_pixel(&concrete_puzzle, position));
                     if let Some(viewport_clicked) =
                         get_viewport_from_pixel(&concrete_puzzle, position)
                     {
+                        println!("here!");
                         mouse_press_location =
                             Some((viewport_clicked.conjugate, Some((position, button))));
                     }

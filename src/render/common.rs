@@ -169,7 +169,7 @@ fn ray_triangle_intersect(position: &Vec3, direction: &Vec3, verts: &[Vec3]) -> 
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct AbstractViewport {
     pub x: f32,
     pub y: f32,
