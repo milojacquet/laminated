@@ -182,7 +182,7 @@ where
     Ray: ConcreteRaySystem,
 {
     pub abstract_viewport: AbstractViewport,
-    //pub viewport: Option<Viewport>,
+    pub viewport: Viewport,
     pub context: Context,
     pub camera: Camera,
     pub conjugate: Ray::Conjugate,

@@ -50,6 +50,22 @@ fn orbit_cameras<Ray: ConcreteRaySystem>(
     }
 }
 
+fn get_viewport_from_pixel<'a, Ray: ConcreteRaySystem>(
+    concrete_puzzle: &ConcretePuzzle<'a, Ray>,
+    pixel: impl Into<PhysicalPoint>,
+) -> Option<&'a PuzzleViewport<Ray>> {
+    let phys_pixel = pixel.into();
+    for viewport in concrete_puzzle.viewports {
+        let vp = viewport.viewport;
+        if (vp.x..vp.x + vp.width as i32).contains(&(phys_pixel.x as i32))
+            && (vp.y..vp.y + vp.height as i32).contains(&(phys_pixel.y as i32))
+        {
+            return Some(&viewport);
+        }
+    }
+    None
+}
+
 fn main() {
     let window = Window::new(WindowSettings {
         title: "Laminated".to_string(),
@@ -135,7 +151,12 @@ fn main() {
                 Event::MousePress {
                     button, position, ..
                 } => {
-                    mouse_press_location = Some((Default::default(), Some((position, button))));
+                    if let Some(viewport_clicked) =
+                        get_viewport_from_pixel(&concrete_puzzle, position)
+                    {
+                        mouse_press_location =
+                            Some((viewport_clicked.conjugate, Some((position, button))));
+                    }
                 }
                 Event::MouseMotion {
                     button: Some(MouseButton::Left | MouseButton::Right),
@@ -170,11 +191,17 @@ fn main() {
                     button, position, ..
                 } => {
                     mouse_press_location = None;
-                    /*let sticker_m = concrete_puzzle.ray_intersect(
-                        &camera.position_at_pixel(position),
-                        &camera.view_direction_at_pixel(position),
-                    );
-                    if let Some(sticker) = sticker_m {
+
+                    if let Some(viewport_clicked) =
+                        get_viewport_from_pixel(&concrete_puzzle, position)
+                    {
+                        let sticker_m = viewport_clicked.ray_intersect(
+                            &viewport_clicked.camera.position_at_pixel(position),
+                            &viewport_clicked.camera.view_direction_at_pixel(position),
+                        );
+                    }
+
+                    /*if let Some(sticker) = sticker_m {
                         if button == MouseButton::Middle {
                             println!(
                                 "sticker: {:?}, face = {:?}, color = {:?}",
