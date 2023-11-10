@@ -48,7 +48,7 @@ pub struct StickerAnimation {
     pub time_remaining: f32,
 }
 
-#[derive(Debug)]
+//#[derive(Debug)]
 pub struct Sticker<Ray>
 where
     Ray: RaySystem,
@@ -62,6 +62,11 @@ where
     /// The mesh of the sticker.
     pub cpu_mesh: CpuMesh,
     pub animation: Option<StickerAnimation>,
+}
+
+/// Smoothly maps 0 to 0 and 1 to 1, with derivative ANIMATION_INIT_V at 0 and 1.
+pub fn cubic_interpolate(t: f32) -> f32 {
+    ANIMATION_INIT_V * (2.0 * t * t * t - 3.0 * t * t + t) - (2.0 * t * t * t - 3.0 * t * t)
 }
 
 impl<Ray: RaySystem> Sticker<Ray> {
@@ -83,6 +88,47 @@ impl<Ray: RaySystem> Sticker<Ray> {
             })
             .filter_map(|x| x)
             .reduce(f32::min)
+    }
+
+    pub fn gm(
+        &mut self,
+        context: &Context,
+        color: Srgba,
+        elapsed_time: f32,
+    ) -> Gm<Mesh, ColorMaterial> {
+        // can this section be written better
+        let remove_animation;
+        let sticker_mat;
+        if let Some(animation) = &mut self.animation {
+            animation.time_remaining -= elapsed_time;
+            remove_animation = animation.time_remaining < 0.0;
+        } else {
+            remove_animation = false;
+        }
+        if remove_animation {
+            self.animation = None;
+        }
+        if let Some(animation) = &mut self.animation {
+            let sticker_angle = animation.start_angle
+                * cubic_interpolate(animation.time_remaining / ANIMATION_LENGTH);
+            sticker_mat = Mat4::from_axis_angle(animation.rotation_axis, Rad(sticker_angle));
+        } else {
+            sticker_mat = Mat4::identity();
+        }
+
+        let mut gm = Gm::new(
+            Mesh::new(&context, &self.cpu_mesh),
+            ColorMaterial {
+                color,
+                render_states: RenderStates {
+                    cull: Cull::Back,
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+        );
+        gm.set_transformation(sticker_mat);
+        gm
     }
 }
 

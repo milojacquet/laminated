@@ -58,9 +58,9 @@ fn main() {
     })
     .unwrap();
 
-    let mut concrete_333 = make_concrete_puzzle(&window);
+    let mut concrete_puzzle = make_concrete_puzzle(&window);
 
-    //make_viewports(&window, &mut concrete_333);
+    //make_viewports(&window, &mut concrete_puzzle);
 
     /*let mut camera = Camera::new_perspective(
         window.viewport(),
@@ -100,18 +100,32 @@ fn main() {
 
     window.render_loop(move |frame_input| {
         //camera.set_viewport(frame_input.viewport);
-        let geometry = concrete_puzzle_gm(&(frame_input.elapsed_time as f32), &mut concrete_333);
-        //println!("{:?}", concrete_333.stickers[0].animation);
+        //let geometry = concrete_puzzle_gm(&(frame_input.elapsed_time as f32), &mut concrete_puzzle);
+        //update_concrete_puzzle_gm(&(frame_input.elapsed_time as f32), &mut concrete_puzzle);
+        //println!("{:?}", concrete_puzzle.stickers[0].animation);
 
         frame_input
             .screen()
             .clear(ClearState::color_and_depth(0.8, 0.8, 0.8, 1.0, 1.0));
 
-        //println!("{:?} {:?}", concrete_333.viewports.len(), geometry.len());
-        for (viewport, geom) in concrete_333.viewports.iter().zip(geometry) {
-            frame_input
-                .screen()
-                .render(&viewport.camera, geom.into_iter(), &[]);
+        //println!("{:?} {:?}", concrete_puzzle.viewports.len(), geometry.len());
+        for viewport in &mut concrete_puzzle.viewports {
+            frame_input.screen().render(
+                /**/
+                &viewport.camera,
+                viewport.stickers.iter_mut().map(|sticker| {
+                    let puzzle = &concrete_puzzle.puzzle;
+                    sticker.gm(
+                        &viewport.context,
+                        CubeRay::ray_to_color(
+                            &puzzle.pieces[puzzle.permutation[sticker.piece_ind]].orientation
+                                [sticker.color],
+                        ),
+                        frame_input.elapsed_time as f32,
+                    )
+                }),
+                &[],
+            );
             //println!("here!");
         }
 
@@ -138,14 +152,14 @@ fn main() {
                             mouse_press_location = Some((conjugate, None));
 
                             orbit_cameras(
-                                &mut concrete_333,
+                                &mut concrete_puzzle,
                                 &conjugate,
                                 &(position.x - press_position.x, position.y - press_position.y),
                             )
                         }
                     }
                     Some((conjugate, None)) => {
-                        orbit_cameras(&mut concrete_333, &conjugate, &delta);
+                        orbit_cameras(&mut concrete_puzzle, &conjugate, &delta);
                         // change default
                     }
                     None => {
@@ -156,7 +170,7 @@ fn main() {
                     button, position, ..
                 } => {
                     mouse_press_location = None;
-                    /*let sticker_m = concrete_333.ray_intersect(
+                    /*let sticker_m = concrete_puzzle.ray_intersect(
                         &camera.position_at_pixel(position),
                         &camera.view_direction_at_pixel(position),
                     );
@@ -164,7 +178,7 @@ fn main() {
                         if button == MouseButton::Middle {
                             println!(
                                 "sticker: {:?}, face = {:?}, color = {:?}",
-                                concrete_333
+                                concrete_puzzle
                                     .puzzle
                                     .index_to_solved_piece(sticker.piece_ind)
                                     .layers,
@@ -173,8 +187,8 @@ fn main() {
                             );
                             println!(
                                 "piece: {:?}",
-                                concrete_333.puzzle.pieces
-                                    [concrete_333.puzzle.permutation[sticker.piece_ind]]
+                                concrete_puzzle.puzzle.pieces
+                                    [concrete_puzzle.puzzle.permutation[sticker.piece_ind]]
                             );
                         } else if let Some((_, press_button)) = mouse_press_location {
                             if press_button == button {
@@ -206,7 +220,7 @@ fn main() {
 
                                 let turn_face = sticker.face;
                                 for layer_offset in layer_offsets {
-                                    concrete_333.twist(
+                                    concrete_puzzle.twist(
                                         &(turn_face, opposite_axis * turn_direction),
                                         &[
                                             opposite_axis * (1 - layer_offset),
