@@ -57,7 +57,7 @@ fn get_viewport_from_pixel<'a, Ray: ConcreteRaySystem>(
     let phys_pixel = pixel.into();
     for viewport in &concrete_puzzle.viewports {
         let vp = viewport.viewport;
-        dbg!(phys_pixel, vp);
+        //dbg!(phys_pixel, vp);
         if (vp.x..vp.x + vp.width as i32).contains(&(phys_pixel.x as i32))
             && (vp.y..vp.y + vp.height as i32).contains(&(phys_pixel.y as i32))
         {
@@ -157,7 +157,7 @@ fn main() {
                     if let Some(viewport_clicked) =
                         get_viewport_from_pixel(&concrete_puzzle, position)
                     {
-                        println!("here!");
+                        //println!("here!");
                         mouse_press_location =
                             Some((viewport_clicked.conjugate, Some((position, button))));
                     }
@@ -194,8 +194,6 @@ fn main() {
                 Event::MouseRelease {
                     button, position, ..
                 } => {
-                    mouse_press_location = None;
-
                     if let Some(viewport_clicked) =
                         get_viewport_from_pixel(&concrete_puzzle, position)
                     {
@@ -203,65 +201,71 @@ fn main() {
                             &viewport_clicked.camera.position_at_pixel(position),
                             &viewport_clicked.camera.view_direction_at_pixel(position),
                         );
-                    }
 
-                    /*if let Some(sticker) = sticker_m {
-                        if button == MouseButton::Middle {
-                            println!(
-                                "sticker: {:?}, face = {:?}, color = {:?}",
-                                concrete_puzzle
-                                    .puzzle
-                                    .index_to_solved_piece(sticker.piece_ind)
-                                    .layers,
-                                sticker.face,
-                                sticker.color
-                            );
-                            println!(
-                                "piece: {:?}",
-                                concrete_puzzle.puzzle.pieces
-                                    [concrete_puzzle.puzzle.permutation[sticker.piece_ind]]
-                            );
-                        } else if let Some((_, press_button)) = mouse_press_location {
-                            if press_button == button {
-                                let turn_direction = match button {
-                                    three_d::MouseButton::Left => -1,
-                                    three_d::MouseButton::Right => 1,
-                                    _ => 0, // should never happen
-                                };
+                        if let Some(sticker) = sticker_m {
+                            if button == MouseButton::Middle {
+                                println!(
+                                    "sticker: {:?}, face = {:?}, color = {:?}",
+                                    concrete_puzzle
+                                        .puzzle
+                                        .index_to_solved_piece(sticker.piece_ind)
+                                        .layers,
+                                    sticker.face,
+                                    sticker.color
+                                );
+                                println!(
+                                    "piece: {:?}",
+                                    concrete_puzzle.puzzle.pieces
+                                        [concrete_puzzle.puzzle.permutation[sticker.piece_ind]]
+                                );
+                            } else if let Some((_conjugate, Some((_, press_button)))) =
+                                mouse_press_location
+                            {
+                                if press_button == button {
+                                    // TODO revise for conjugate
+                                    let turn_direction = match button {
+                                        three_d::MouseButton::Left => -1,
+                                        three_d::MouseButton::Right => 1,
+                                        _ => 0, // should never happen
+                                    };
 
-                                let mut layer_offsets = Vec::new();
-                                if keys_down.contains(&Key::Num1) {
-                                    layer_offsets.push(0);
-                                }
-                                if keys_down.contains(&Key::Num2) {
-                                    layer_offsets.push(1);
-                                }
-                                if keys_down.contains(&Key::Num3) {
-                                    layer_offsets.push(2);
-                                }
-                                if layer_offsets.is_empty() {
-                                    layer_offsets.push(0);
-                                }
+                                    let mut layer_offsets = Vec::new();
+                                    if keys_down.contains(&Key::Num1) {
+                                        layer_offsets.push(0);
+                                    }
+                                    if keys_down.contains(&Key::Num2) {
+                                        layer_offsets.push(1);
+                                    }
+                                    if keys_down.contains(&Key::Num3) {
+                                        layer_offsets.push(2);
+                                    }
+                                    if layer_offsets.is_empty() {
+                                        layer_offsets.push(0);
+                                    }
 
-                                let opposite_axis = if CubeRay::AXIS_HEADS.contains(&sticker.face) {
-                                    1
-                                } else {
-                                    -1
-                                };
+                                    let opposite_axis =
+                                        if CubeRay::AXIS_HEADS.contains(&sticker.face) {
+                                            1
+                                        } else {
+                                            -1
+                                        };
 
-                                let turn_face = sticker.face;
-                                for layer_offset in layer_offsets {
-                                    concrete_puzzle.twist(
-                                        &(turn_face, opposite_axis * turn_direction),
-                                        &[
-                                            opposite_axis * (1 - layer_offset),
-                                            -opposite_axis * (1 - layer_offset),
-                                        ],
-                                    );
+                                    let turn_face = sticker.face;
+                                    for layer_offset in layer_offsets {
+                                        concrete_puzzle.twist(
+                                            &(turn_face, opposite_axis * turn_direction),
+                                            &[
+                                                opposite_axis * (1 - layer_offset),
+                                                -opposite_axis * (1 - layer_offset),
+                                            ],
+                                        );
+                                    }
                                 }
                             }
                         }
-                    }*/
+                    }
+
+                    mouse_press_location = None;
                 }
                 Event::KeyPress { kind, .. } => {
                     keys_down.insert(kind);
