@@ -6,7 +6,7 @@ use crate::util::*;
 
 pub trait RaySystem
 where
-    Self: 'static + Sized + Eq + Copy + Enum + enum_map::EnumArray<u8> + enum_map::EnumArray<Self>,
+    Self: 'static + Sized + Eq + Copy + Enum + enum_map::EnumArray<i8> + enum_map::EnumArray<Self>,
 {
     /// Returns a list of rays that make up the vector. Should
     /// return the same order for each axis.
@@ -40,14 +40,14 @@ where
     Ray: RaySystem,
 {
     /// For each ray, the layer index on that ray (solved position).
-    pub layers: EnumMap<Ray, u8>,
+    pub layers: EnumMap<Ray, i8>,
     /// For each ray, a tuple of the ray currently occupying
     /// that direction and its layer parameter.
     pub orientation: EnumMap<Ray, Ray>,
 }
 
 impl<Ray: RaySystem> Piece<Ray> {
-    pub fn make_solved(axis_layers: Vec<&[u8]>) -> Self {
+    pub fn make_solved(axis_layers: Vec<&[i8]>) -> Self {
         let mut layers = EnumMap::from_fn(|_ray| 0);
         for (axh, axl) in zip(Ray::AXIS_HEADS, axis_layers) {
             for (ray, &layer) in zip(axh.get_axis(), axl) {
@@ -58,7 +58,7 @@ impl<Ray: RaySystem> Piece<Ray> {
         Self::make_solved_from_layers(layers)
     }
 
-    pub fn make_solved_from_layers(layers: EnumMap<Ray, u8>) -> Self {
+    pub fn make_solved_from_layers(layers: EnumMap<Ray, i8>) -> Self {
         Self {
             layers,
             orientation: EnumMap::from_fn(|ray| ray),
@@ -71,25 +71,25 @@ impl<Ray: RaySystem> Piece<Ray> {
         self.orientation.iter().all(|(pos, &cur)| pos == cur)
     }
 
-    /*pub fb grip_on_axis_enummap(layers: &EnumMap<Ray, u8>, ray: &Ray) -> Vec<u8>{
+    /*pub fb grip_on_axis_enummap(layers: &EnumMap<Ray, i8>, ray: &Ray) -> Vec<i8>{
         ray.get_axis()
             .iter()
             .map(|&r| self.layers[self.orientation[r]])
             .collect()
     }*/
 
-    pub fn grip_on_axis(&self, ray: &Ray) -> Vec<u8> {
+    pub fn grip_on_axis(&self, ray: &Ray) -> Vec<i8> {
         ray.get_axis()
             .iter()
             .map(|&r| self.layers[self.orientation[r]])
             .collect()
     }
 
-    pub fn grip_on_axis_solved(&self, ray: &Ray) -> Vec<u8> {
+    pub fn grip_on_axis_solved(&self, ray: &Ray) -> Vec<i8> {
         ray.get_axis().iter().map(|&r| self.layers[r]).collect()
     }
 
-    pub fn twist(&mut self, (ray, order): (Ray, i8), grip: &[u8]) -> bool {
+    pub fn twist(&mut self, (ray, order): (Ray, i8), grip: &[i8]) -> bool {
         if &self.grip_on_axis(&ray)[..] == grip {
             let new_orientation =
                 EnumMap::from_fn(|r: Ray| self.orientation[r.turn(&(ray, order))]);
@@ -102,7 +102,7 @@ impl<Ray: RaySystem> Piece<Ray> {
         false
     }
 
-    pub fn oriented_layers(&self) -> EnumMap<Ray, u8> {
+    pub fn oriented_layers(&self) -> EnumMap<Ray, i8> {
         EnumMap::from_fn(|ray| self.layers[self.orientation[ray]])
     }
 }
@@ -110,7 +110,7 @@ impl<Ray: RaySystem> Piece<Ray> {
 /// Abstract laminated puzzle.
 #[derive(Debug)]
 pub struct Puzzle<'a, Ray: RaySystem> {
-    pub grips: Vec<&'a [u8]>,
+    pub grips: Vec<&'a [i8]>,
     pub pieces: Vec<Piece<Ray>>,
     /// number at index i is the index of the piece that occupies position i
     pub permutation: Vec<usize>,
@@ -121,7 +121,7 @@ impl<'a, Ray: RaySystem> Puzzle<'a, Ray> {
         self.grips.len().pow(Ray::AXIS_HEADS.len() as u32)
     }
 
-    pub fn make_solved(grips: Vec<&'a [u8]>) -> Self {
+    pub fn make_solved(grips: Vec<&'a [i8]>) -> Self {
         let mut new = Self {
             grips: grips.clone(),
             permutation: Vec::new(),
@@ -132,7 +132,7 @@ impl<'a, Ray: RaySystem> Puzzle<'a, Ray> {
             .map(|i| new.index_to_solved_piece(i))
             .collect();
         new.permutation = (0..piece_count).collect();
-        return new;
+        new
     }
 
     /// Checks whether the puzzle is solved, i.e. whether all pieces
@@ -145,7 +145,7 @@ impl<'a, Ray: RaySystem> Puzzle<'a, Ray> {
     }
 
     /// Applies the twist to the puzzle, and returns a set of pieces that were twisted.
-    pub fn twist(&mut self, (ray, order): (Ray, i8), grip: &[u8]) -> HashSet<usize> {
+    pub fn twist(&mut self, (ray, order): (Ray, i8), grip: &[i8]) -> HashSet<usize> {
         let mut twisted = HashSet::new();
         for i in 0..self.pieces.len() {
             let piece_twisted = self.pieces[i].twist((ray, order), grip);

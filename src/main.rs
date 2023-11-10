@@ -1,5 +1,8 @@
 use crate::puzzle::common::RaySystem;
 use crate::puzzle::cube::CubeRay;
+use crate::render::common::*;
+use crate::render::cube::*;
+use std::collections::HashSet;
 use three_d::*;
 
 pub mod puzzle;
@@ -34,6 +37,86 @@ fn orbit_camera(camera: &mut Camera, &(dx, dy): &(f32, f32)) {
     )*/
 }
 
+fn orbit_cameras<Ray: ConcreteRaySystem>(
+    puzzle: &mut ConcretePuzzle<Ray>,
+    conjugate: &Ray::Conjugate,
+    delta: &(f32, f32),
+) {
+    for viewport in puzzle.viewports.iter_mut() {
+        if viewport.conjugate == *conjugate {
+            viewport
+                .camera
+                .as_mut()
+                .map(|camera| orbit_camera(camera, delta));
+        }
+    }
+}
+
+fn make_viewports<Ray: ConcreteRaySystem>(
+    window: &Window,
+    concrete_puzzle: &mut ConcretePuzzle<Ray>,
+) {
+    let min_abstract_x = concrete_puzzle
+        .viewports
+        .iter()
+        .map(|viewport| viewport.abstract_viewport.x)
+        .reduce(f32::min)
+        .expect("at least one viewport");
+    let min_abstract_y = concrete_puzzle
+        .viewports
+        .iter()
+        .map(|viewport| viewport.abstract_viewport.y)
+        .reduce(f32::min)
+        .expect("at least one viewport");
+    let max_abstract_x = concrete_puzzle
+        .viewports
+        .iter()
+        .map(|viewport| viewport.abstract_viewport.x + viewport.abstract_viewport.width)
+        .reduce(f32::max)
+        .expect("at least one viewport");
+    let max_abstract_y = concrete_puzzle
+        .viewports
+        .iter()
+        .map(|viewport| viewport.abstract_viewport.y + viewport.abstract_viewport.height)
+        .reduce(f32::max)
+        .expect("at least one viewport");
+    let (window_width, window_height) = window.size();
+    let abstract_width = max_abstract_x - min_abstract_x;
+    let abstract_height = max_abstract_y - min_abstract_y;
+    let scale = f32::min(
+        abstract_width as f32 / abstract_width,
+        window_height as f32 / abstract_height,
+    );
+
+    let viewport_width = scale * abstract_width;
+    let viewport_height = scale * abstract_height;
+    let viewport_x0 = (window_width as f32 / 2.0 - viewport_width / 2.0).max(0.0);
+    let viewport_y0 = (window_height as f32 / 2.0 - viewport_height / 2.0).max(0.0);
+
+    for puzzle_viewport in concrete_puzzle.viewports.iter_mut() {
+        //puzzle_viewport.viewport = Some(Viewport {
+        let viewport = Viewport {
+            x: (viewport_x0 + puzzle_viewport.abstract_viewport.x * scale).ceil() as i32,
+            y: (viewport_y0 + puzzle_viewport.abstract_viewport.y * scale).ceil() as i32,
+            width: (puzzle_viewport.abstract_viewport.width * scale).round() as u32,
+            height: (puzzle_viewport.abstract_viewport.height * scale).round() as u32,
+        };
+        let context = window.gl();
+        context.set_cull(Cull::Back);
+        context.set_viewport(viewport);
+        puzzle_viewport.context = Some(context);
+        puzzle_viewport.camera = Some(Camera::new_perspective(
+            window.viewport(),
+            vec3(5.0, -10.0, 4.0),
+            vec3(0.0, 0.0, 0.0),
+            vec3(0.0, 0.0, 1.0),
+            degrees(22.0),
+            0.1,
+            1000.0,
+        ));
+    }
+}
+
 fn main() {
     let window = Window::new(WindowSettings {
         title: "Laminated".to_string(),
@@ -41,9 +124,12 @@ fn main() {
         ..Default::default()
     })
     .unwrap();
-    let context = window.gl();
 
-    let mut camera = Camera::new_perspective(
+    let mut concrete_333 = make_concrete_puzzle();
+
+    make_viewports(&window, &mut concrete_333);
+
+    /*let mut camera = Camera::new_perspective(
         window.viewport(),
         vec3(5.0, -10.0, 4.0),
         vec3(0.0, 0.0, 0.0),
@@ -51,7 +137,7 @@ fn main() {
         degrees(22.0),
         0.1,
         1000.0,
-    );
+    );*/
 
     /*let mut cube = Gm::new(
         Mesh::new(&context, &CpuMesh::cube()),
@@ -61,7 +147,7 @@ fn main() {
         },
     );
     cube.set_transformation(Mat4::from_translation(vec3(0.0, 0.0, 0.0)) * Mat4::from_scale(1.0));*/
-    let mut sphere = Gm::new(
+    /*let mut sphere = Gm::new(
         Mesh::new(&context, &CpuMesh::sphere(16)),
         ColorMaterial {
             color: Srgba::BLACK,
@@ -69,29 +155,32 @@ fn main() {
         },
     );
     sphere.set_transformation(Mat4::from_translation(vec3(1.3, 0.0, 0.0)) * Mat4::from_scale(0.2));
-
-    let mut concrete_333 = render::make_concrete_puzzle();
-    //concrete_333.puzzle.twist((CubeRay::U, 1), &[1, 0]);
-    //concrete_333.puzzle.twist((CubeRay::R, 1), &[1, 0]);
-    //println!("{:?}", concrete_333.stickers);
+    */
 
     // If the mouse is down, the time when it was first pressed.
     // It will be None if the mouse has moved farther than TURN_DISTANCE_THRESHOLD.
-    let mut mouse_press_location: Option<(LogicalPoint, MouseButton)> = None;
+    // None: the mouse is not pressed.
+    // Some((conj, None)): the mouse is being held from a viewport with conjugation conj, and camera orbiting has started.
+    // Some((conj, Some((loc, button)))): the mouse is being held from a viewport with conjugation conj, and camera orbiting has not yet started. the moouse was pressed at loc with button.
+    let mut mouse_press_location: Option<((), Option<(LogicalPoint, MouseButton)>)> = None;
+    let mut keys_down: HashSet<Key> = HashSet::new();
 
     window.render_loop(move |frame_input| {
-        camera.set_viewport(frame_input.viewport);
-        let geometry = render::concrete_puzzle_gm(
-            &context,
-            &(frame_input.elapsed_time as f32),
-            &mut concrete_333,
-        );
+        //camera.set_viewport(frame_input.viewport);
+        let geometry = concrete_puzzle_gm(&(frame_input.elapsed_time as f32), &mut concrete_333);
         //println!("{:?}", concrete_333.stickers[0].animation);
 
         frame_input
             .screen()
-            .clear(ClearState::color_and_depth(0.8, 0.8, 0.8, 1.0, 1.0))
-            .render(&camera, geometry.into_iter(), &[]);
+            .clear(ClearState::color_and_depth(0.8, 0.8, 0.8, 1.0, 1.0));
+
+        //println!("{:?} {:?}", concrete_333.viewports.len(), geometry.len());
+        for (viewport, geom) in concrete_333.viewports.iter().zip(geometry) {
+            if let Some(camera) = &viewport.camera {
+                frame_input.screen().render(&camera, geom.into_iter(), &[]);
+                //println!("here!");
+            }
+        }
 
         for event in frame_input.events {
             //println!("{:?}", event);
@@ -99,35 +188,42 @@ fn main() {
                 Event::MousePress {
                     button, position, ..
                 } => {
-                    mouse_press_location = Some((position, button));
+                    mouse_press_location = Some((Default::default(), Some((position, button))));
                 }
                 Event::MouseMotion {
-                    button: Some(MouseButton::Left),
+                    button: Some(MouseButton::Left | MouseButton::Right),
                     position,
                     delta,
                     ..
                 } => match mouse_press_location {
-                    Some((press_position, _)) => {
+                    Some((conjugate, Some((press_position, _)))) => {
                         let distance_moved = f32::hypot(
                             position.x - press_position.x,
                             position.y - press_position.y,
                         );
                         if distance_moved > TURN_DISTANCE_THRESHOLD {
-                            mouse_press_location = None;
-                            orbit_camera(
-                                &mut camera,
+                            mouse_press_location = Some((conjugate, None));
+
+                            orbit_cameras(
+                                &mut concrete_333,
+                                &conjugate,
                                 &(position.x - press_position.x, position.y - press_position.y),
-                            );
+                            )
                         }
                     }
+                    Some((conjugate, None)) => {
+                        orbit_cameras(&mut concrete_333, &conjugate, &delta);
+                        // change default
+                    }
                     None => {
-                        orbit_camera(&mut camera, &delta);
+                        // do not orbit the camera
                     }
                 },
                 Event::MouseRelease {
                     button, position, ..
                 } => {
-                    let sticker_m = concrete_333.ray_intersect(
+                    mouse_press_location = None;
+                    /*let sticker_m = concrete_333.ray_intersect(
                         &camera.position_at_pixel(position),
                         &camera.view_direction_at_pixel(position),
                     );
@@ -154,14 +250,46 @@ fn main() {
                                     three_d::MouseButton::Right => 1,
                                     _ => 0, // should never happen
                                 };
-                                if CubeRay::AXIS_HEADS.contains(&sticker.face) {
-                                    concrete_333.twist(&(sticker.face, turn_direction), &[1, 0]);
+
+                                let mut layer_offsets = Vec::new();
+                                if keys_down.contains(&Key::Num1) {
+                                    layer_offsets.push(0);
+                                }
+                                if keys_down.contains(&Key::Num2) {
+                                    layer_offsets.push(1);
+                                }
+                                if keys_down.contains(&Key::Num3) {
+                                    layer_offsets.push(2);
+                                }
+                                if layer_offsets.is_empty() {
+                                    layer_offsets.push(0);
+                                }
+
+                                let opposite_axis = if CubeRay::AXIS_HEADS.contains(&sticker.face) {
+                                    1
                                 } else {
-                                    concrete_333.twist(&(sticker.face, -turn_direction), &[0, 1]);
+                                    -1
+                                };
+
+                                let turn_face = sticker.face;
+                                for layer_offset in layer_offsets {
+                                    concrete_333.twist(
+                                        &(turn_face, opposite_axis * turn_direction),
+                                        &[
+                                            opposite_axis * (1 - layer_offset),
+                                            -opposite_axis * (1 - layer_offset),
+                                        ],
+                                    );
                                 }
                             }
                         }
-                    }
+                    }*/
+                }
+                Event::KeyPress { kind, .. } => {
+                    keys_down.insert(kind);
+                }
+                Event::KeyRelease { kind, .. } => {
+                    keys_down.remove(&kind);
                 }
                 _ => (),
             }
