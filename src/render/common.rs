@@ -2,9 +2,8 @@ use crate::puzzle::common::*;
 use crate::puzzle::cube::*;
 use crate::ANIMATION_INIT_V;
 use crate::ANIMATION_LENGTH;
-use enum_map::{enum_map, EnumMap};
+use enum_map::EnumMap;
 use std::cmp;
-use std::iter;
 
 use std::f32::consts::PI;
 use three_d::*;
@@ -183,7 +182,6 @@ where
 {
     pub abstract_viewport: AbstractViewport,
     pub viewport: Viewport,
-    pub context: Context,
     pub camera: Camera,
     pub conjugate: Ray::Conjugate,
     pub stickers: Vec<Sticker<Ray>>,

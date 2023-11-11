@@ -2,7 +2,7 @@ use crate::puzzle::common::RaySystem;
 use crate::puzzle::cube::CubeRay;
 use crate::render::common::*;
 use crate::render::create::*;
-use crate::render::cube::*;
+
 use std::collections::HashSet;
 use three_d::*;
 
@@ -75,6 +75,10 @@ fn main() {
     })
     .unwrap();
 
+    let context = window.gl();
+    context.set_cull(Cull::Back);
+    //context.set_viewport(viewport);
+
     let mut concrete_puzzle = make_concrete_puzzle(&window);
 
     //make_viewports(&window, &mut concrete_puzzle);
@@ -115,7 +119,7 @@ fn main() {
     let mut mouse_press_location: Option<((), Option<(LogicalPoint, MouseButton)>)> = None;
     let mut keys_down: HashSet<Key> = HashSet::new();
 
-    window.render_loop(move |frame_input| {
+    window.render_loop(move |mut frame_input| {
         //camera.set_viewport(frame_input.viewport);
         //let geometry = concrete_puzzle_gm(&(frame_input.elapsed_time as f32), &mut concrete_puzzle);
         //update_concrete_puzzle_gm(&(frame_input.elapsed_time as f32), &mut concrete_puzzle);
@@ -126,15 +130,28 @@ fn main() {
             .clear(ClearState::color_and_depth(0.8, 0.8, 0.8, 1.0, 1.0));
 
         //println!("{:?} {:?}", concrete_puzzle.viewports.len(), geometry.len());
-        for viewport in &mut concrete_puzzle.viewports {
-            // use render_partially ?
+        /*dbg!(concrete_puzzle
+        .viewports
+        .iter()
+        .map(|v| v.viewport)
+        .collect::<Vec<_>>());*/
+        for viewport in &mut concrete_puzzle.viewports.iter_mut() {
+            /*let viewport_viewport = Viewport {
+                x: 0,
+                y: 0,
+                width: 800,
+                height: 500,
+            };*/
+            //context.set_viewport(viewport.viewport);
+            //frame_input.viewport = viewport.viewport;
+
             frame_input.screen().render(
-                /**/
+                //viewport.viewport.into(),
                 &viewport.camera,
                 viewport.stickers.iter_mut().map(|sticker| {
                     let puzzle = &concrete_puzzle.puzzle;
                     sticker.gm(
-                        &viewport.context,
+                        &context,
                         CubeRay::ray_to_color(
                             &puzzle.pieces[puzzle.permutation[sticker.piece_ind]].orientation
                                 [sticker.color],
