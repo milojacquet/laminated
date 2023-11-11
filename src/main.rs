@@ -2,6 +2,8 @@ use crate::puzzle::common::RaySystem;
 use crate::puzzle::cube::CubeRay;
 use crate::render::common::*;
 use crate::render::create::*;
+use crate::render::cube::nnn_seeds;
+use std::cmp::Ordering;
 
 use std::collections::HashSet;
 use three_d::*;
@@ -15,6 +17,17 @@ const TURN_DISTANCE_THRESHOLD: f32 = 3.0;
 const ORBIT_SPEED: f32 = 0.007; // radians per pixel
 const ANIMATION_LENGTH: f32 = 150.0;
 const ANIMATION_INIT_V: f32 = 0.1;
+const NUMBER_KEYS: [Key; 9] = [
+    Key::Num1,
+    Key::Num2,
+    Key::Num3,
+    Key::Num4,
+    Key::Num5,
+    Key::Num6,
+    Key::Num7,
+    Key::Num8,
+    Key::Num9,
+];
 
 fn orbit_camera(camera: &mut Camera, &(dx, dy): &(f32, f32)) {
     let pointing = -1.0 * camera.position();
@@ -79,7 +92,8 @@ fn main() {
     context.set_cull(Cull::Back);
     //context.set_viewport(viewport);
 
-    let mut concrete_puzzle = make_concrete_puzzle(&window);
+    //let mut concrete_puzzle = make_concrete_puzzle(&window, weird_puzzle_seeds());
+    let mut concrete_puzzle = make_concrete_puzzle(&window, nnn_seeds(5));
 
     //make_viewports(&window, &mut concrete_puzzle);
 
@@ -163,7 +177,17 @@ fn main() {
             );
             //println!("here!");
         }
-
+        /*let mut events_sorted = frame_input.events.iter().enumerate().collect::<Vec<_>>();
+        events_sorted.sort_by(|(i1, e1), (i2, e2)| match (e1, e2) {
+            (
+                Event::KeyPress { .. } | Event::KeyRelease { .. },
+                Event::KeyPress { .. } | Event::KeyRelease { .. },
+            ) => i1.cmp(i2),
+            (Event::KeyPress { .. } | Event::KeyRelease { .. }, _) => Ordering::Less,
+            (_, Event::KeyPress { .. } | Event::KeyRelease { .. }) => Ordering::Greater,
+            (_, _) => i1.cmp(i2),
+        });*/
+ // this didn't work
         for event in frame_input.events {
             //println!("{:?}", event);
             match event {
@@ -246,35 +270,30 @@ fn main() {
                                         _ => 0, // should never happen
                                     };
 
-                                    let mut layer_offsets = Vec::new();
-                                    if keys_down.contains(&Key::Num1) {
-                                        layer_offsets.push(0);
-                                    }
-                                    if keys_down.contains(&Key::Num2) {
-                                        layer_offsets.push(1);
-                                    }
-                                    if keys_down.contains(&Key::Num3) {
-                                        layer_offsets.push(2);
-                                    }
-                                    if layer_offsets.is_empty() {
-                                        layer_offsets.push(0);
-                                    }
-
-                                    let opposite_axis =
-                                        if CubeRay::AXIS_HEADS.contains(&sticker.face) {
-                                            1
-                                        } else {
-                                            -1
-                                        };
-
                                     let turn_face = sticker.face;
-                                    for layer_offset in layer_offsets {
+                                    let axis_index = turn_face
+                                        .get_axis()
+                                        .iter()
+                                        .position(|&r| r == turn_face)
+                                        .expect("rays are always in their axes");
+                                    let opposite_axis = (-1i8).pow(axis_index as u32);
+                                    let mut face_turned = false;
+                                    for key in keys_down.iter() {
+                                        if let Some(grip) =
+                                            concrete_puzzle.key_layers[axis_index].get(&key)
+                                        {
+                                            concrete_puzzle.twist(
+                                                &(turn_face, opposite_axis * turn_direction),
+                                                &grip.clone()[..],
+                                            );
+                                            face_turned = true;
+                                        }
+                                    }
+                                    if !face_turned {
                                         concrete_puzzle.twist(
                                             &(turn_face, opposite_axis * turn_direction),
-                                            &[
-                                                opposite_axis * (1 - layer_offset),
-                                                -opposite_axis * (1 - layer_offset),
-                                            ],
+                                            &concrete_puzzle.key_layers[axis_index][&Key::Num1]
+                                                .clone()[..],
                                         );
                                     }
                                 }

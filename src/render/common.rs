@@ -4,6 +4,7 @@ use crate::ANIMATION_INIT_V;
 use crate::ANIMATION_LENGTH;
 use enum_map::EnumMap;
 use std::cmp;
+use std::collections::HashMap;
 
 use std::f32::consts::PI;
 use three_d::*;
@@ -168,7 +169,7 @@ fn ray_triangle_intersect(position: &Vec3, direction: &Vec3, verts: &[Vec3]) -> 
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct AbstractViewport {
     pub x: f32,
     pub y: f32,
@@ -185,6 +186,15 @@ where
     pub camera: Camera,
     pub conjugate: Ray::Conjugate,
     pub stickers: Vec<Sticker<Ray>>,
+}
+
+pub struct ViewportSeed<Ray>
+where
+    Ray: ConcreteRaySystem,
+{
+    pub abstract_viewport: AbstractViewport,
+    pub conjugate: Ray::Conjugate,
+    pub stickers: Vec<StickerSeed<Ray>>,
 }
 
 impl<Ray: ConcreteRaySystem> PuzzleViewport<Ray> {
@@ -205,15 +215,27 @@ impl<Ray: ConcreteRaySystem> PuzzleViewport<Ray> {
     }
 }
 
-pub struct ConcretePuzzle<'a, Ray>
+pub struct PuzzleSeed<Ray>
 where
     Ray: ConcreteRaySystem,
 {
-    pub puzzle: Puzzle<'a, Ray>,
-    pub viewports: Vec<PuzzleViewport<Ray>>,
+    pub grips: Vec<Vec<i8>>,
+    pub viewports: Vec<ViewportSeed<Ray>>,
+    pub key_layers: Vec<HashMap<Key, Vec<i8>>>,
 }
 
-impl<Ray: ConcreteRaySystem> ConcretePuzzle<'_, Ray> {
+pub struct ConcretePuzzle<Ray>
+where
+    Ray: ConcreteRaySystem,
+{
+    pub puzzle: Puzzle<Ray>,
+    pub viewports: Vec<PuzzleViewport<Ray>>,
+    /// The nth entry in here is a HashMap mapping keys to layers,
+    /// for rays that are the nth in their axis.
+    pub key_layers: Vec<HashMap<Key, Vec<i8>>>, // Key is a keyboard key and a HashMap key!
+}
+
+impl<Ray: ConcreteRaySystem> ConcretePuzzle<Ray> {
     pub fn twist(&mut self, &(ray, order): &(Ray, i8), grip: &[i8]) {
         let twisted = self.puzzle.twist((ray, order), grip);
         //println!("{:?}", twisted);
@@ -229,5 +251,19 @@ impl<Ray: ConcreteRaySystem> ConcretePuzzle<'_, Ray> {
                 }
             }
         }
+    }
+}
+
+pub fn polygon(verts: Vec<Vec3>) -> CpuMesh {
+    let indices = Indices::U8(
+        (2..verts.len() as u8)
+            .map(|i| vec![0, i - 1, i])
+            .flatten()
+            .collect(),
+    );
+    CpuMesh {
+        positions: Positions::F32(verts),
+        indices,
+        ..Default::default()
     }
 }

@@ -1,9 +1,16 @@
-use crate::render::common::ConcreteRaySystem;
+use crate::puzzle::common::*;
+use crate::render::common::*;
 use crate::CubeRay;
+use crate::NUMBER_KEYS;
+use enum_map::enum_map;
+use std::collections::HashMap;
 use std::f32::consts::PI;
 use std::iter;
 use three_d::*;
 use CubeRay::*;
+
+const SUPER_START: f32 = 0.75;
+
 impl ConcreteRaySystem for CubeRay {
     type Conjugate = ();
 
@@ -35,140 +42,223 @@ impl ConcreteRaySystem for CubeRay {
     }
 }
 
-/*pub fn make_concrete_nnn<'a>(window: &Window, order: i8) -> ConcretePuzzle<'a, CubeRay> {
-    use CubeRay::*;
-
-    let axes = (if order & 1 == 1 { &[&[0, 0]] } else { &[] })
-        .chain((1..=order / 2).map(|k| &[&[k, -k], &[-k, k]]).flatten())
-        .collect();
-    let puzzle: Puzzle<'a, CubeRay> = Puzzle::make_solved(axes);
-
-    /*let abstract_viewports = vec![
-        AbstractViewport {
+pub fn weird_puzzle_seeds() -> Vec<ViewportSeed<CubeRay>> {
+    let mut corner_mesh = CpuMesh::square();
+    corner_mesh
+        .transform(
+            &(Mat4::from_translation(vec3(2.0 / 3.0, 2.0 / 3.0, 1.0))
+                * Mat4::from_scale(1.0 / 3.0)),
+        )
+        .expect("the matrix should be invertible i made it");
+    let mut edge_mesh = CpuMesh::square();
+    edge_mesh
+        .transform(
+            &(Mat4::from_translation(vec3(2.0 / 3.0, 0.0, 1.0)) * Mat4::from_scale(1.0 / 3.0)),
+        )
+        .expect("the matrix should be invertible i made it");
+    vec![ViewportSeed {
+        abstract_viewport: AbstractViewport {
             x: 0.0,
             y: 0.0,
             width: 1.0,
             height: 1.0,
         },
-        AbstractViewport {
-            x: 1.0,
-            y: 0.0,
-            width: 1.0,
-            height: 1.0,
-        },
-    ];
+        conjugate: (),
+        stickers: vec![
+            StickerSeed {
+                layers: enum_map! {U=>1,R=>1,B=>1,D=>-1,L=>-1,F=>-1,},
+                face: U,
+                color: U,
+                cpu_mesh: corner_mesh,
+            },
+            StickerSeed {
+                layers: enum_map! {U=>1,R=>1,B=>0,D=>-1,L=>-1,F=>0,},
+                face: U,
+                color: U,
+                cpu_mesh: edge_mesh,
+            },
+            StickerSeed {
+                layers: enum_map! {U=>1,R=>0,B=>0,D=>-1,L=>0,F=>0,},
+                face: U,
+                color: R,
+                cpu_mesh: CpuMesh {
+                    positions: Positions::F32(vec![
+                        Vec3::new(0.2, -0.2, 1.0),
+                        Vec3::new(1.0 / 3.0, -1.0 / 3.0, 1.0),
+                        Vec3::new(1.0 / 3.0, 1.0 / 3.0, 1.0),
+                        Vec3::new(0.2, 0.2, 1.0),
+                    ]),
+                    indices: Indices::U8(vec![0, 1, 2, 2, 3, 0]),
+                    ..Default::default()
+                },
+            },
+            StickerSeed {
+                layers: enum_map! {U=>1,R=>0,B=>0,D=>-1,L=>0,F=>0,},
+                face: U,
+                color: U,
+                cpu_mesh: CpuMesh {
+                    positions: Positions::F32(vec![
+                        Vec3::new(0.2, -0.2, 1.0),
+                        Vec3::new(0.2, 0.2, 1.0),
+                        Vec3::new(0.0, 0.0, 1.0),
+                    ]),
+                    indices: Indices::None,
+                    ..Default::default()
+                },
+            },
+        ],
+    }]
+}
 
-    let viewports = abstract_viewports
-        .iter()
-        .enumerate()
-        .map(|(i, abstract_viewport)| {
-            let mut corner_mesh = CpuMesh::square();
-            corner_mesh
-                .transform(
-                    &(Mat4::from_translation(vec3(2.0 / 3.0, 2.0 / 3.0, 1.0))
-                        * Mat4::from_scale(1.0 / 3.0)),
-                )
-                .expect("the matrix should be invertible i made it");
-            let mut edge_mesh = CpuMesh::square();
-            edge_mesh
-                .transform(
-                    &(Mat4::from_translation(vec3(2.0 / 3.0, 0.0, 1.0))
-                        * Mat4::from_scale(1.0 / 3.0)),
-                )
-                .expect("the matrix should be invertible i made it");
-            let sticker_seeds = &mut [
-                StickerSeed {
-                    layers: enum_map! {U=>1,R=>1,B=>1,D=>-1,L=>-1,F=>-1,},
-                    face: U,
-                    color: U,
-                    cpu_mesh: corner_mesh,
-                },
-                StickerSeed {
-                    layers: enum_map! {U=>1,R=>1,B=>0,D=>-1,L=>-1,F=>0,},
-                    face: U,
-                    color: U,
-                    cpu_mesh: edge_mesh,
-                },
-                StickerSeed {
-                    layers: enum_map! {U=>1,R=>0,B=>0,D=>-1,L=>0,F=>0,},
-                    face: U,
-                    color: R,
-                    cpu_mesh: CpuMesh {
-                        positions: Positions::F32(vec![
-                            Vec3::new(0.2, -0.2, 1.0),
-                            Vec3::new(1.0 / 3.0, -1.0 / 3.0, 1.0),
-                            Vec3::new(1.0 / 3.0, 1.0 / 3.0, 1.0),
-                            Vec3::new(0.2, 0.2, 1.0),
-                        ]),
-                        indices: Indices::U8(vec![0, 1, 2, 2, 3, 0]),
-                        ..Default::default()
-                    },
-                },
-                StickerSeed {
-                    layers: enum_map! {U=>1,R=>0,B=>0,D=>-1,L=>0,F=>0,},
-                    face: U,
-                    color: U,
-                    cpu_mesh: CpuMesh {
-                        positions: Positions::F32(vec![
-                            Vec3::new(0.2, -0.2, 1.0),
-                            Vec3::new(0.2, 0.2, 1.0),
-                            Vec3::new(0.0, 0.0, 1.0),
-                        ]),
-                        indices: Indices::None,
-                        ..Default::default()
-                    },
-                },
-            ];
+pub fn nnn_seeds<'a>(order: i8) -> PuzzleSeed<CubeRay> {
+    use CubeRay::*;
 
-            let viewport = make_viewport(&window, &abstract_viewports[..], i);
+    let grips: Vec<Vec<i8>> = (-order + 1..=order - 1)
+        .step_by(2)
+        .map(|k| vec![k, -k])
+        .collect();
+
+    let viewports = (1 + (order & 1)..=order - 1)
+        .step_by(2)
+        .map(|n| {
+            // n = outer layer of the puzzle in this viewport
+            // convenience
+            let si = 1.0 / (n + 1) as f32;
+            let cube_scale = (n as f32 + 1.0) / (order as f32);
+
+            let abstract_viewport = AbstractViewport {
+                x: ((n - 1) / 2) as f32,
+                y: 0.0,
+                width: 1.0,
+                height: 1.0,
+            };
 
             let mut stickers = vec![];
-            for seed in sticker_seeds.iter_mut() {
-                for turn_m in iter::once(None).chain(CubeRay::CYCLE.iter().map(Some)) {
-                    if let Some(turn) = turn_m {
-                        let &(turn_ray, turn_order) = turn;
-                        seed.layers = EnumMap::from_fn(|ray: CubeRay| {
-                            seed.layers[ray.turn(&(turn_ray, -turn_order))]
-                        });
-                        seed.face = seed.face.turn(turn);
-                        seed.color = seed.color.turn(turn);
-                        seed.cpu_mesh
-                            .transform(&CubeRay::axis_to_transform(turn, Default::default()))
-                            .expect("the axis transform matrices should be invertible");
-                    }
-                    let piece_ind =
-                        puzzle.piece_to_index(&Piece::make_solved_from_layers(seed.layers.clone()));
-                    let mut new_cpu_mesh = seed.cpu_mesh.clone();
 
-                    new_cpu_mesh.compute_normals();
-                    stickers.push(Sticker {
-                        piece_ind,
-                        face: seed.face.clone(),
-                        color: seed.color.clone(),
-                        cpu_mesh: new_cpu_mesh,
-                        animation: None,
-                    });
+            for i in (2 - (n & 1)..=n).step_by(2) {
+                for j in (2 - i..=i).step_by(2) {
+                    //dbg!(n, i, j);
+                    let layers = enum_map! {U=>n,R=>i,B=>j,D=>-n,L=>-i,F=>-j,};
+                    let cv = |x: f32, y: f32| {
+                        Vec3::new((i as f32 + x) * si, (j as f32 + y) * si, 1.0) * cube_scale
+                    };
+
+                    if i == n {
+                        // corner or edge
+                        stickers.push(StickerSeed {
+                            layers,
+                            face: U,
+                            color: U,
+                            cpu_mesh: polygon(vec![
+                                cv(-1.0, -1.0),
+                                cv(1.0, -1.0),
+                                cv(1.0, 1.0),
+                                cv(-1.0, 1.0),
+                            ]),
+                        });
+                    } else if j == i {
+                        // x-center
+                        stickers.push(StickerSeed {
+                            layers,
+                            face: U,
+                            color: U,
+                            cpu_mesh: polygon(vec![
+                                cv(-1.0, -1.0),
+                                cv(SUPER_START, -1.0),
+                                cv(SUPER_START, SUPER_START),
+                                cv(-1.0, SUPER_START),
+                            ]),
+                        });
+                        stickers.push(StickerSeed {
+                            layers,
+                            face: U,
+                            color: R,
+                            cpu_mesh: polygon(vec![
+                                cv(SUPER_START, -1.0),
+                                cv(1.0, -1.0),
+                                cv(1.0, 1.0),
+                                cv(SUPER_START, SUPER_START),
+                            ]),
+                        });
+                        stickers.push(StickerSeed {
+                            layers,
+                            face: U,
+                            color: B,
+                            cpu_mesh: polygon(vec![
+                                cv(-1.0, SUPER_START),
+                                cv(SUPER_START, SUPER_START),
+                                cv(1.0, 1.0),
+                                cv(-1.0, 1.0),
+                            ]),
+                        });
+                    } else {
+                        // t-center or oblique
+                        stickers.push(StickerSeed {
+                            layers,
+                            face: U,
+                            color: U,
+                            cpu_mesh: polygon(vec![
+                                cv(-1.0, -1.0),
+                                cv(SUPER_START, -1.0),
+                                cv(SUPER_START, 1.0),
+                                cv(-1.0, 1.0),
+                            ]),
+                        });
+                        stickers.push(StickerSeed {
+                            layers,
+                            face: U,
+                            color: R,
+                            cpu_mesh: polygon(vec![
+                                cv(SUPER_START, -1.0),
+                                cv(1.0, -1.0),
+                                cv(1.0, 1.0),
+                                cv(SUPER_START, 1.0),
+                            ]),
+                        });
+                    }
                 }
             }
+            if order & 1 == 1 {
+                let layers = enum_map! {U=>n,R=>0,B=>0,D=>-n,L=>0,F=>0,};
+                stickers.push(StickerSeed {
+                    layers,
+                    face: U,
+                    color: U,
+                    cpu_mesh: polygon(vec![
+                        Vec3::new(0.0, 0.0, 1.0) * cube_scale,
+                        Vec3::new(SUPER_START * si, -SUPER_START * si, 1.0) * cube_scale,
+                        Vec3::new(SUPER_START * si, SUPER_START * si, 1.0) * cube_scale,
+                    ]),
+                });
+                stickers.push(StickerSeed {
+                    layers,
+                    face: U,
+                    color: R,
+                    cpu_mesh: polygon(vec![
+                        Vec3::new(SUPER_START * si, -SUPER_START * si, 1.0) * cube_scale,
+                        Vec3::new(si, -si, 1.0) * cube_scale,
+                        Vec3::new(si, si, 1.0) * cube_scale,
+                        Vec3::new(SUPER_START * si, SUPER_START * si, 1.0) * cube_scale,
+                    ]),
+                });
+            }
 
-            PuzzleViewport {
-                abstract_viewport: abstract_viewport.clone(),
-                viewport,
-                camera: Camera::new_perspective(
-                    viewport,
-                    vec3(5.0, -10.0, 4.0),
-                    vec3(0.0, 0.0, 0.0),
-                    vec3(0.0, 0.0, 1.0),
-                    degrees(22.0),
-                    0.1,
-                    1000.0,
-                ),
+            ViewportSeed {
+                abstract_viewport,
                 conjugate: (),
                 stickers,
             }
         })
         .collect();
 
-    ConcretePuzzle { puzzle, viewports }*/
+    let key_layers = vec![
+        HashMap::from_iter(NUMBER_KEYS.into_iter().zip(grips.iter().rev().cloned())),
+        HashMap::from_iter(NUMBER_KEYS.into_iter().zip(grips.iter().cloned())),
+    ];
+
+    PuzzleSeed {
+        grips,
+        viewports,
+        key_layers,
+    }
 }
-*/

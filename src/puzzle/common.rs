@@ -6,7 +6,14 @@ use crate::util::*;
 
 pub trait RaySystem
 where
-    Self: 'static + Sized + Eq + Copy + Enum + enum_map::EnumArray<i8> + enum_map::EnumArray<Self>,
+    Self: 'static
+        + Sized
+        + Eq
+        + Copy
+        + Clone
+        + Enum
+        + enum_map::EnumArray<i8>
+        + enum_map::EnumArray<Self>,
 {
     /// Returns a list of rays that make up the vector. Should
     /// return the same order for each axis.
@@ -18,7 +25,8 @@ where
     /// Turns the ray system about ray's axis and returns the new ray
     /// that occupies self's direction.
     /// Should return the same value for any ray with the same axis.
-    fn turn(&self, (ray, order): &(Self, i8)) -> Self {
+    fn turn(&self, ray_order: &(Self, i8)) -> Self {
+        let (ray, order) = ray_order;
         let mut turned = *self;
         for _ in 0..order.rem_euclid(ray.order()) {
             turned = turned.turn_one(&ray);
@@ -31,8 +39,6 @@ where
     const AXIS_HEADS: &'static [Self];
     /// Hamiltonian cycle for symmetry group
     const CYCLE: &'static [(Self, i8)];
-
-    
 }
 
 /// A single piece of an abstract laminated puzzle.
@@ -49,10 +55,10 @@ where
 }
 
 impl<Ray: RaySystem> Piece<Ray> {
-    pub fn make_solved(axis_layers: Vec<&[i8]>) -> Self {
+    pub fn make_solved(axis_layers: Vec<Vec<i8>>) -> Self {
         let mut layers = EnumMap::from_fn(|_ray| 0);
         for (axh, axl) in zip(Ray::AXIS_HEADS, axis_layers) {
-            for (ray, &layer) in zip(axh.get_axis(), axl) {
+            for (ray, layer) in zip(axh.get_axis(), axl) {
                 layers[ray] = layer;
             }
         }
@@ -111,19 +117,19 @@ impl<Ray: RaySystem> Piece<Ray> {
 
 /// Abstract laminated puzzle.
 #[derive(Debug)]
-pub struct Puzzle<'a, Ray: RaySystem> {
-    pub grips: Vec<&'a [i8]>,
+pub struct Puzzle<Ray: RaySystem> {
+    pub grips: Vec<Vec<i8>>,
     pub pieces: Vec<Piece<Ray>>,
     /// number at index i is the index of the piece that occupies position i
     pub permutation: Vec<usize>,
 }
 
-impl<'a, Ray: RaySystem> Puzzle<'a, Ray> {
+impl<'a, Ray: RaySystem> Puzzle<Ray> {
     pub fn piece_count(&self) -> usize {
         self.grips.len().pow(Ray::AXIS_HEADS.len() as u32)
     }
 
-    pub fn make_solved(grips: Vec<&'a [i8]>) -> Self {
+    pub fn make_solved(grips: Vec<Vec<i8>>) -> Self {
         let mut new = Self {
             grips: grips.clone(),
             permutation: Vec::new(),
@@ -166,7 +172,7 @@ impl<'a, Ray: RaySystem> Puzzle<'a, Ray> {
         let grip_count: usize = self.grips.len();
         Piece::make_solved(
             (0..Ray::AXIS_HEADS.len())
-                .map(|j| self.grips[i / grip_count.pow(j as u32) % grip_count])
+                .map(|j| self.grips[i / grip_count.pow(j as u32) % grip_count].clone())
                 .collect(),
         )
     }
