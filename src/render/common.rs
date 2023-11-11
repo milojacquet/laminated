@@ -29,7 +29,7 @@ where
     Ray: RaySystem,
 {
     /// The index of the piece this sticker is part of in `permutation` on `Puzzle`.
-    pub layers: EnumMap<CubeRay, i8>,
+    pub layers: EnumMap<Ray, i8>,
     /// The face the sticker is on. Controls what turn is done when clicked.
     pub face: Ray,
     /// The face that controls the color of the sticker.

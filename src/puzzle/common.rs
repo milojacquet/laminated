@@ -31,6 +31,8 @@ where
     const AXIS_HEADS: &'static [Self];
     /// Hamiltonian cycle for symmetry group
     const CYCLE: &'static [(Self, i8)];
+
+    
 }
 
 /// A single piece of an abstract laminated puzzle.
