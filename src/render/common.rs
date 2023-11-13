@@ -186,6 +186,9 @@ where
     pub camera: Camera,
     pub conjugate: Ray::Conjugate,
     pub stickers: Vec<Sticker<Ray>>,
+    /// For the ith ray in an axis, position i contains the layer turned
+    /// when clicking that ray without layer modifiers.
+    pub default_layers: Vec<Vec<i8>>,
 }
 
 pub struct ViewportSeed<Ray>
@@ -195,6 +198,7 @@ where
     pub abstract_viewport: AbstractViewport,
     pub conjugate: Ray::Conjugate,
     pub stickers: Vec<StickerSeed<Ray>>,
+    pub default_layers: Vec<Vec<i8>>,
 }
 
 impl<Ray: ConcreteRaySystem> PuzzleViewport<Ray> {

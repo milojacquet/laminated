@@ -6,6 +6,8 @@ use crate::render::cube::nnn_seeds;
 use std::cmp::Ordering;
 
 use std::collections::HashSet;
+use std::thread::sleep;
+use std::time::Duration;
 use three_d::*;
 
 pub mod puzzle;
@@ -28,6 +30,12 @@ const NUMBER_KEYS: [Key; 9] = [
     Key::Num8,
     Key::Num9,
 ];
+
+// only every FRAME_RENDER_PERIOD'th frame will contain a rendering call
+// this is so the other frames can pick up events, since the event loop
+// can only provide one event per frame.
+const FRAME_RENDER_PERIOD: u8 = 4;
+const EVENT_FRAME_DURATION_MS: u64 = 4;
 
 fn orbit_camera(camera: &mut Camera, &(dx, dy): &(f32, f32)) {
     let pointing = -1.0 * camera.position();
@@ -84,6 +92,10 @@ fn main() {
     let window = Window::new(WindowSettings {
         title: "Laminated".to_string(),
         max_size: Some((1280, 720)),
+        surface_settings: SurfaceSettings {
+            vsync: false,
+            ..Default::default()
+        },
         ..Default::default()
     })
     .unwrap();
@@ -132,50 +144,59 @@ fn main() {
     // Some((conj, Some((loc, button)))): the mouse is being held from a viewport with conjugation conj, and camera orbiting has not yet started. the moouse was pressed at loc with button.
     let mut mouse_press_location: Option<((), Option<(LogicalPoint, MouseButton)>)> = None;
     let mut keys_down: HashSet<Key> = HashSet::new();
+    let mut frame_cycle = FRAME_RENDER_PERIOD;
+    let mut time_since_last_render: f32 = 0.0;
 
     window.render_loop(move |mut frame_input| {
+        time_since_last_render += frame_input.elapsed_time as f32;
+
         //camera.set_viewport(frame_input.viewport);
         //let geometry = concrete_puzzle_gm(&(frame_input.elapsed_time as f32), &mut concrete_puzzle);
         //update_concrete_puzzle_gm(&(frame_input.elapsed_time as f32), &mut concrete_puzzle);
         //println!("{:?}", concrete_puzzle.stickers[0].animation);
 
-        frame_input
-            .screen()
-            .clear(ClearState::color_and_depth(0.8, 0.8, 0.8, 1.0, 1.0));
+        if frame_cycle == FRAME_RENDER_PERIOD {
+            println!("render frame");
+            frame_input
+                .screen()
+                .clear(ClearState::color_and_depth(0.8, 0.8, 0.8, 1.0, 1.0));
 
-        //println!("{:?} {:?}", concrete_puzzle.viewports.len(), geometry.len());
-        /*dbg!(concrete_puzzle
-        .viewports
-        .iter()
-        .map(|v| v.viewport)
-        .collect::<Vec<_>>());*/
-        for viewport in &mut concrete_puzzle.viewports.iter_mut() {
-            /*let viewport_viewport = Viewport {
-                x: 0,
-                y: 0,
-                width: 800,
-                height: 500,
-            };*/
-            //context.set_viewport(viewport.viewport);
-            //frame_input.viewport = viewport.viewport;
+            //println!("{:?} {:?}", concrete_puzzle.viewports.len(), geometry.len());
+            /*dbg!(concrete_puzzle
+            .viewports
+            .iter()
+            .map(|v| v.viewport)
+            .collect::<Vec<_>>());*/
+            for viewport in &mut concrete_puzzle.viewports.iter_mut() {
+                /*let viewport_viewport = Viewport {
+                    x: 0,
+                    y: 0,
+                    width: 800,
+                    height: 500,
+                };*/
+                //context.set_viewport(viewport.viewport);
+                //frame_input.viewport = viewport.viewport;
 
-            frame_input.screen().render(
-                //viewport.viewport.into(),
-                &viewport.camera,
-                viewport.stickers.iter_mut().map(|sticker| {
-                    let puzzle = &concrete_puzzle.puzzle;
-                    sticker.gm(
-                        &context,
-                        CubeRay::ray_to_color(
-                            &puzzle.pieces[puzzle.permutation[sticker.piece_ind]].orientation
-                                [sticker.color],
-                        ),
-                        frame_input.elapsed_time as f32,
-                    )
-                }),
-                &[],
-            );
-            //println!("here!");
+                frame_input.screen().render(
+                    //viewport.viewport.into(),
+                    &viewport.camera,
+                    viewport.stickers.iter_mut().map(|sticker| {
+                        let puzzle = &concrete_puzzle.puzzle;
+                        sticker.gm(
+                            &context,
+                            CubeRay::ray_to_color(
+                                &puzzle.pieces[puzzle.permutation[sticker.piece_ind]].orientation
+                                    [sticker.color],
+                            ),
+                            time_since_last_render,
+                        )
+                    }),
+                    &[],
+                );
+                frame_cycle = 0;
+                time_since_last_render = 0.0;
+                //println!("here!");
+            }
         }
         /*let mut events_sorted = frame_input.events.iter().enumerate().collect::<Vec<_>>();
         events_sorted.sort_by(|(i1, e1), (i2, e2)| match (e1, e2) {
@@ -187,7 +208,7 @@ fn main() {
             (_, Event::KeyPress { .. } | Event::KeyRelease { .. }) => Ordering::Greater,
             (_, _) => i1.cmp(i2),
         });*/
- // this didn't work
+        // this didn't work
         for event in frame_input.events {
             //println!("{:?}", event);
             match event {
@@ -277,24 +298,34 @@ fn main() {
                                         .position(|&r| r == turn_face)
                                         .expect("rays are always in their axes");
                                     let opposite_axis = (-1i8).pow(axis_index as u32);
-                                    let mut face_turned = false;
+                                    let turn = (turn_face, opposite_axis * turn_direction);
+                                    /*let mut face_turned = false;
+                                    // why do i need to clone it twice?
                                     for key in keys_down.iter() {
                                         if let Some(grip) =
-                                            concrete_puzzle.key_layers[axis_index].get(&key)
+                                            concrete_puzzle.key_layers[axis_index].get(&key).clone()
                                         {
-                                            concrete_puzzle.twist(
-                                                &(turn_face, opposite_axis * turn_direction),
-                                                &grip.clone()[..],
-                                            );
+                                            concrete_puzzle.twist(&turn, &grip.clone()[..]);
                                             face_turned = true;
                                         }
                                     }
                                     if !face_turned {
-                                        concrete_puzzle.twist(
-                                            &(turn_face, opposite_axis * turn_direction),
-                                            &concrete_puzzle.key_layers[axis_index][&Key::Num1]
-                                                .clone()[..],
-                                        );
+                                        let grip =
+                                            viewport_clicked.default_layers[axis_index].clone();
+                                        concrete_puzzle.twist(&turn, &grip.clone()[..]);
+                                    }*/
+                                    let grips: Vec<_> = keys_down
+                                        .iter()
+                                        .filter_map(|key| {
+                                            concrete_puzzle.key_layers[axis_index].get(&key).clone()
+                                        })
+                                        .collect();
+                                    for grip in if grips.is_empty() {
+                                        vec![viewport_clicked.default_layers[axis_index].clone()]
+                                    } else {
+                                        grips.into_iter().cloned().collect()
+                                    } {
+                                        concrete_puzzle.twist(&turn, &grip.clone()[..]);
                                     }
                                 }
                             }
@@ -304,15 +335,19 @@ fn main() {
                     mouse_press_location = None;
                 }
                 Event::KeyPress { kind, .. } => {
+                    println!("adding {:?}", kind);
                     keys_down.insert(kind);
                 }
                 Event::KeyRelease { kind, .. } => {
+                    println!("removing {:?}", kind);
                     keys_down.remove(&kind);
                 }
                 _ => (),
             }
         }
 
+        sleep(Duration::from_millis(EVENT_FRAME_DURATION_MS));
+        frame_cycle += 1;
         FrameOutput::default()
     });
 }
