@@ -186,6 +186,7 @@ where
     pub camera: Camera,
     pub conjugate: Ray::Conjugate,
     pub stickers: Vec<Sticker<Ray>>,
+    pub default_layers: Vec<Vec<i8>>,
 }
 
 pub struct ViewportSeed<Ray>
@@ -195,6 +196,7 @@ where
     pub abstract_viewport: AbstractViewport,
     pub conjugate: Ray::Conjugate,
     pub stickers: Vec<StickerSeed<Ray>>,
+    pub default_layers: Vec<Vec<i8>>,
 }
 
 impl<Ray: ConcreteRaySystem> PuzzleViewport<Ray> {

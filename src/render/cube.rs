@@ -42,7 +42,7 @@ impl ConcreteRaySystem for CubeRay {
     }
 }
 
-pub fn weird_puzzle_seeds() -> Vec<ViewportSeed<CubeRay>> {
+/*pub fn weird_puzzle_seeds() -> Vec<ViewportSeed<CubeRay>> {
     let mut corner_mesh = CpuMesh::square();
     corner_mesh
         .transform(
@@ -108,7 +108,7 @@ pub fn weird_puzzle_seeds() -> Vec<ViewportSeed<CubeRay>> {
             },
         ],
     }]
-}
+}*/
 
 pub fn nnn_seeds<'a>(order: i8) -> PuzzleSeed<CubeRay> {
     use CubeRay::*;
@@ -247,6 +247,7 @@ pub fn nnn_seeds<'a>(order: i8) -> PuzzleSeed<CubeRay> {
                 abstract_viewport,
                 conjugate: (),
                 stickers,
+                default_layers: vec![vec![n, -n]],
             }
         })
         .collect();

@@ -39,14 +39,16 @@ fn make_top_viewport(abstract_viewports: &[AbstractViewport]) -> AbstractViewpor
 }
 
 fn make_viewport(
-    window: &winit::window::Window,
+    window: &Window,
     top_viewport: &AbstractViewport,
     abstract_viewport: &AbstractViewport,
 ) -> Viewport {
-    let (window_width, window_height): (u32, u32) = window
-        .inner_size()
-        .to_logical::<f64>(window.scale_factor())
-        .into(); // https://docs.rs/three-d/latest/src/three_d/window/winit_window.rs.html#289-294
+    /*let (window_width, window_height): (u32, u32) = window
+    .inner_size()
+    .to_logical::<f64>(window.scale_factor())
+    .into(); // https://docs.rs/three-d/latest/src/three_d/window/winit_window.rs.html#289-294
+    */
+    let (window_width, window_height) = window.size();
     let scale = f32::min(
         window_width as f32 / top_viewport.width,
         window_height as f32 / top_viewport.height,
@@ -68,7 +70,7 @@ fn make_viewport(
 }
 
 pub fn make_concrete_puzzle<Ray: ConcreteRaySystem>(
-    window: &winit::window::Window,
+    window: &Window,
     mut puzzle_seed: PuzzleSeed<Ray>,
 ) -> ConcretePuzzle<Ray> {
     let puzzle: Puzzle<Ray> = Puzzle::make_solved(puzzle_seed.grips);

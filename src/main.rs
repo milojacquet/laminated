@@ -187,7 +187,7 @@ fn main() {
             (_, Event::KeyPress { .. } | Event::KeyRelease { .. }) => Ordering::Greater,
             (_, _) => i1.cmp(i2),
         });*/
- // this didn't work
+        // this didn't work
         for event in frame_input.events {
             //println!("{:?}", event);
             match event {
@@ -277,24 +277,19 @@ fn main() {
                                         .position(|&r| r == turn_face)
                                         .expect("rays are always in their axes");
                                     let opposite_axis = (-1i8).pow(axis_index as u32);
-                                    let mut face_turned = false;
-                                    for key in keys_down.iter() {
-                                        if let Some(grip) =
-                                            concrete_puzzle.key_layers[axis_index].get(&key)
-                                        {
-                                            concrete_puzzle.twist(
-                                                &(turn_face, opposite_axis * turn_direction),
-                                                &grip.clone()[..],
-                                            );
-                                            face_turned = true;
-                                        }
-                                    }
-                                    if !face_turned {
-                                        concrete_puzzle.twist(
-                                            &(turn_face, opposite_axis * turn_direction),
-                                            &concrete_puzzle.key_layers[axis_index][&Key::Num1]
-                                                .clone()[..],
-                                        );
+                                    let turn = (turn_face, opposite_axis * turn_direction);
+                                    let grips: Vec<_> = keys_down
+                                        .iter()
+                                        .filter_map(|key| {
+                                            concrete_puzzle.key_layers[axis_index].get(&key).clone()
+                                        })
+                                        .collect();
+                                    for grip in if grips.is_empty() {
+                                        vec![viewport_clicked.default_layers[axis_index].clone()]
+                                    } else {
+                                        grips.into_iter().cloned().collect()
+                                    } {
+                                        concrete_puzzle.twist(&turn, &grip.clone()[..]);
                                     }
                                 }
                             }
