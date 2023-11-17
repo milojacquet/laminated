@@ -6,6 +6,10 @@ use crate::render::cube::nnn_seeds;
 use std::cmp::Ordering;
 
 use std::collections::HashSet;
+use std::{
+    thread::sleep,
+    time::{Duration, Instant},
+};
 use three_d::*;
 
 pub mod puzzle;
@@ -80,6 +84,39 @@ fn get_viewport_from_pixel<'a, Ray: ConcreteRaySystem>(
     None
 }
 
+fn render_puzzle<Ray: ConcreteRaySystem>(
+    frame_input: &mut FrameInput,
+    context: &Context,
+    concrete_puzzle: &mut ConcretePuzzle<Ray>,
+) {
+    println!("new frame");
+    //sleep(Duration::from_millis(100));
+    //return;
+
+    frame_input
+        .screen()
+        .clear(ClearState::color_and_depth(0.8, 0.8, 0.8, 1.0, 1.0));
+
+    for viewport in &mut concrete_puzzle.viewports.iter_mut() {
+        frame_input.screen().render(
+            //viewport.viewport.into(),
+            &viewport.camera,
+            viewport.stickers.iter_mut().map(|sticker| {
+                let puzzle = &concrete_puzzle.puzzle;
+                sticker.gm(
+                    &context,
+                    Ray::ray_to_color(
+                        &puzzle.pieces[puzzle.permutation[sticker.piece_ind]].orientation
+                            [sticker.color],
+                    ),
+                    frame_input.elapsed_time as f32,
+                )
+            }),
+            &[],
+        );
+    }
+}
+
 fn main() {
     let window = Window::new(WindowSettings {
         title: "Laminated".to_string(),
@@ -90,40 +127,8 @@ fn main() {
 
     let context = window.gl();
     context.set_cull(Cull::Back);
-    //context.set_viewport(viewport);
 
-    //let mut concrete_puzzle = make_concrete_puzzle(&window, weird_puzzle_seeds());
-    let mut concrete_puzzle = make_concrete_puzzle(&window, nnn_seeds(5));
-
-    //make_viewports(&window, &mut concrete_puzzle);
-
-    /*let mut camera = Camera::new_perspective(
-        window.viewport(),
-        vec3(5.0, -10.0, 4.0),
-        vec3(0.0, 0.0, 0.0),
-        vec3(0.0, 0.0, 1.0),
-        degrees(22.0),
-        0.1,
-        1000.0,
-    );*/
-
-    /*let mut cube = Gm::new(
-        Mesh::new(&context, &CpuMesh::cube()),
-        ColorMaterial {
-            color: Srgba::RED,
-            ..Default::default()
-        },
-    );
-    cube.set_transformation(Mat4::from_translation(vec3(0.0, 0.0, 0.0)) * Mat4::from_scale(1.0));*/
-    /*let mut sphere = Gm::new(
-        Mesh::new(&context, &CpuMesh::sphere(16)),
-        ColorMaterial {
-            color: Srgba::BLACK,
-            ..Default::default()
-        },
-    );
-    sphere.set_transformation(Mat4::from_translation(vec3(1.3, 0.0, 0.0)) * Mat4::from_scale(0.2));
-    */
+    let mut concrete_puzzle = make_concrete_puzzle(&window, nnn_seeds(7));
 
     // If the mouse is down, the time when it was first pressed.
     // It will be None if the mouse has moved farther than TURN_DISTANCE_THRESHOLD.
@@ -134,71 +139,16 @@ fn main() {
     let mut keys_down: HashSet<Key> = HashSet::new();
 
     window.render_loop(move |mut frame_input| {
-        //camera.set_viewport(frame_input.viewport);
-        //let geometry = concrete_puzzle_gm(&(frame_input.elapsed_time as f32), &mut concrete_puzzle);
-        //update_concrete_puzzle_gm(&(frame_input.elapsed_time as f32), &mut concrete_puzzle);
-        //println!("{:?}", concrete_puzzle.stickers[0].animation);
+        render_puzzle(&mut frame_input, &context, &mut concrete_puzzle);
 
-        frame_input
-            .screen()
-            .clear(ClearState::color_and_depth(0.8, 0.8, 0.8, 1.0, 1.0));
-
-        //println!("{:?} {:?}", concrete_puzzle.viewports.len(), geometry.len());
-        /*dbg!(concrete_puzzle
-        .viewports
-        .iter()
-        .map(|v| v.viewport)
-        .collect::<Vec<_>>());*/
-        for viewport in &mut concrete_puzzle.viewports.iter_mut() {
-            /*let viewport_viewport = Viewport {
-                x: 0,
-                y: 0,
-                width: 800,
-                height: 500,
-            };*/
-            //context.set_viewport(viewport.viewport);
-            //frame_input.viewport = viewport.viewport;
-
-            frame_input.screen().render(
-                //viewport.viewport.into(),
-                &viewport.camera,
-                viewport.stickers.iter_mut().map(|sticker| {
-                    let puzzle = &concrete_puzzle.puzzle;
-                    sticker.gm(
-                        &context,
-                        CubeRay::ray_to_color(
-                            &puzzle.pieces[puzzle.permutation[sticker.piece_ind]].orientation
-                                [sticker.color],
-                        ),
-                        frame_input.elapsed_time as f32,
-                    )
-                }),
-                &[],
-            );
-            //println!("here!");
-        }
-        /*let mut events_sorted = frame_input.events.iter().enumerate().collect::<Vec<_>>();
-        events_sorted.sort_by(|(i1, e1), (i2, e2)| match (e1, e2) {
-            (
-                Event::KeyPress { .. } | Event::KeyRelease { .. },
-                Event::KeyPress { .. } | Event::KeyRelease { .. },
-            ) => i1.cmp(i2),
-            (Event::KeyPress { .. } | Event::KeyRelease { .. }, _) => Ordering::Less,
-            (_, Event::KeyPress { .. } | Event::KeyRelease { .. }) => Ordering::Greater,
-            (_, _) => i1.cmp(i2),
-        });*/
-        // this didn't work
         for event in frame_input.events {
-            //println!("{:?}", event);
             match event {
                 Event::MousePress {
                     button, position, ..
                 } => {
-                    //println!("{:?}", get_viewport_from_pixel(&concrete_puzzle, position));
                     if let Some(viewport_clicked) =
                         get_viewport_from_pixel(&concrete_puzzle, position)
                     {
-                        //println!("here!");
                         mouse_press_location =
                             Some((viewport_clicked.conjugate, Some((position, button))));
                     }
@@ -299,9 +249,12 @@ fn main() {
                     mouse_press_location = None;
                 }
                 Event::KeyPress { kind, .. } => {
+                    println!("pressed {:?}", kind);
                     keys_down.insert(kind);
+                    //sleep(Duration::from_millis(20));
                 }
                 Event::KeyRelease { kind, .. } => {
+                    println!("released {:?}", kind);
                     keys_down.remove(&kind);
                 }
                 _ => (),
