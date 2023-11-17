@@ -89,7 +89,6 @@ fn render_puzzle<Ray: ConcreteRaySystem>(
     context: &Context,
     concrete_puzzle: &mut ConcretePuzzle<Ray>,
 ) {
-    println!("new frame");
     //sleep(Duration::from_millis(100));
     //return;
 
@@ -138,7 +137,27 @@ fn main() {
     let mut mouse_press_location: Option<((), Option<(LogicalPoint, MouseButton)>)> = None;
     let mut keys_down: HashSet<Key> = HashSet::new();
 
+    let mut window_size = window.size();
+
     window.render_loop(move |mut frame_input| {
+        println!("new frame");
+        //println!("size: {:?}", window_size);
+        /*dbg!(concrete_puzzle
+        .viewports
+        .iter()
+        .map(|v| v.viewport)
+        .collect::<Vec<_>>());*/
+
+        let new_window_size = (
+            (frame_input.window_width as f32 * frame_input.device_pixel_ratio) as u32,
+            (frame_input.window_height as f32 * frame_input.device_pixel_ratio) as u32,
+        );
+        if new_window_size != window_size {
+            window_size = new_window_size;
+            println!("resized to {:?}", window_size);
+            update_viewports(window_size, &mut concrete_puzzle);
+        }
+
         render_puzzle(&mut frame_input, &context, &mut concrete_puzzle);
 
         for event in frame_input.events {

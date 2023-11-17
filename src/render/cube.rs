@@ -113,6 +113,8 @@ impl ConcreteRaySystem for CubeRay {
 pub fn nnn_seeds<'a>(order: i8) -> PuzzleSeed<CubeRay> {
     use CubeRay::*;
 
+    let mut current_width = 0.0;
+
     let grips: Vec<Vec<i8>> = (-order + 1..=order - 1)
         .step_by(2)
         .map(|k| vec![k, -k])
@@ -127,11 +129,14 @@ pub fn nnn_seeds<'a>(order: i8) -> PuzzleSeed<CubeRay> {
             let cube_scale = (n as f32 + 1.0) / (order as f32);
 
             let abstract_viewport = AbstractViewport {
-                x: ((n - 1) / 2) as f32,
+                x: current_width, //((n - 1) / 2) as f32,
                 y: 0.0,
-                width: 1.0,
+                //width: 1.0 * ((n + 1) as f32) / (order as f32),
+                width: 0.7 * ((n + 1) as f32) / (order as f32) + 0.3,
                 height: 1.0,
             };
+
+            current_width += abstract_viewport.width;
 
             let mut stickers = vec![];
 

@@ -1,8 +1,7 @@
 use crate::puzzle::common::*;
-use crate::puzzle::cube::*;
 use crate::render::common::*;
 
-use enum_map::{enum_map, EnumMap};
+use enum_map::EnumMap;
 
 use std::iter;
 
@@ -39,7 +38,7 @@ fn make_top_viewport(abstract_viewports: &[AbstractViewport]) -> AbstractViewpor
 }
 
 fn make_viewport(
-    window: &Window,
+    window_size: (u32, u32),
     top_viewport: &AbstractViewport,
     abstract_viewport: &AbstractViewport,
 ) -> Viewport {
@@ -48,7 +47,7 @@ fn make_viewport(
     .to_logical::<f64>(window.scale_factor())
     .into(); // https://docs.rs/three-d/latest/src/three_d/window/winit_window.rs.html#289-294
     */
-    let (window_width, window_height) = window.size();
+    let (window_width, window_height) = window_size;
     let scale = f32::min(
         window_width as f32 / top_viewport.width,
         window_height as f32 / top_viewport.height,
@@ -59,7 +58,7 @@ fn make_viewport(
     let viewport_x0 = (window_width as f32 / 2.0 - viewport_width / 2.0).max(0.0);
     let viewport_y0 = (window_height as f32 / 2.0 - viewport_height / 2.0).max(0.0);
 
-    //dbg!(scale, &abstract_viewports[i]);
+    //dbg!(scale, top_viewport, abstract_viewport, window_size);
 
     Viewport {
         x: (viewport_x0 + abstract_viewport.x * scale).ceil() as i32,
@@ -87,7 +86,11 @@ pub fn make_concrete_puzzle<Ray: ConcreteRaySystem>(
         .viewports
         .iter_mut()
         .map(|viewport_seed| {
-            let viewport = make_viewport(&window, &top_viewport, &viewport_seed.abstract_viewport);
+            let viewport = make_viewport(
+                window.size(),
+                &top_viewport,
+                &viewport_seed.abstract_viewport,
+            );
 
             let mut stickers = vec![];
             for seed in viewport_seed.stickers.iter_mut() {
@@ -143,6 +146,38 @@ pub fn make_concrete_puzzle<Ray: ConcreteRaySystem>(
         puzzle,
         viewports,
         key_layers: puzzle_seed.key_layers,
+    }
+}
+
+pub fn update_viewports<Ray: ConcreteRaySystem>(
+    window_size: (u32, u32),
+    mut concrete_puzzle: &mut ConcretePuzzle<Ray>,
+) {
+    let top_viewport = make_top_viewport(
+        &concrete_puzzle
+            .viewports
+            .iter()
+            .map(|vp| vp.abstract_viewport)
+            .collect::<Vec<_>>()[..],
+    );
+
+    for puzzle_viewport in concrete_puzzle.viewports.iter_mut() {
+        let viewport = make_viewport(
+            window_size,
+            &top_viewport,
+            &puzzle_viewport.abstract_viewport,
+        );
+        puzzle_viewport.viewport = viewport;
+
+        puzzle_viewport.camera = Camera::new_perspective(
+            viewport,
+            vec3(5.0, -10.0, 4.0),
+            vec3(0.0, 0.0, 0.0),
+            vec3(0.0, 0.0, 1.0),
+            degrees(20.0),
+            0.1,
+            1000.0,
+        )
     }
 }
 
