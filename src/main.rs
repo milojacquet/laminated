@@ -34,6 +34,7 @@ const NUMBER_KEYS: [Key; 9] = [
 ];
 
 fn orbit_camera(camera: &mut Camera, &(dx, dy): &(f32, f32)) {
+    // (dx, dy) will never both be zero
     let pointing = -1.0 * camera.position();
     // camera.up() does not have to be perpendicular to the view vector
     let local_x_axis = pointing.cross(*camera.up()).normalize();
@@ -60,6 +61,9 @@ fn orbit_cameras<Ray: ConcreteRaySystem>(
     conjugate: &Ray::Conjugate,
     delta: &(f32, f32),
 ) {
+    if delta == &(0.0f32, 0.0f32) {
+        return;
+    }
     for viewport in puzzle.viewports.iter_mut() {
         if viewport.conjugate == *conjugate {
             orbit_camera(&mut viewport.camera, delta);
