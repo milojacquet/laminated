@@ -106,14 +106,16 @@ fn render_puzzle<Ray: ConcreteRaySystem>(
             &viewport.camera,
             viewport.stickers.iter_mut().map(|sticker| {
                 let puzzle = &concrete_puzzle.puzzle;
-                sticker.gm(
+                sticker.update_gm(
                     &context,
                     Ray::ray_to_color(
                         &puzzle.pieces[puzzle.permutation[sticker.piece_ind]].orientation
                             [sticker.color],
                     ),
                     frame_input.elapsed_time as f32,
-                )
+                );
+
+                &sticker.gm
             }),
             &[],
         );

@@ -113,11 +113,24 @@ pub fn make_concrete_puzzle<Ray: ConcreteRaySystem>(
                     let mut new_cpu_mesh = seed.cpu_mesh.clone();
 
                     new_cpu_mesh.compute_normals();
+                    let gm = Gm::new(
+                        Mesh::new(&window.gl(), &new_cpu_mesh),
+                        ColorMaterial {
+                            color: Ray::ray_to_color(&seed.color),
+                            render_states: RenderStates {
+                                cull: Cull::Back,
+                                ..Default::default()
+                            },
+                            ..Default::default()
+                        },
+                    );
+
                     stickers.push(Sticker {
                         piece_ind,
                         face: seed.face.clone(),
                         color: seed.color.clone(),
                         cpu_mesh: new_cpu_mesh,
+                        gm,
                         animation: None,
                     });
                 }

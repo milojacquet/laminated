@@ -27,7 +27,7 @@ where
 #[derive(Debug)]
 pub struct StickerSeed<Ray>
 where
-    Ray: RaySystem,
+    Ray: ConcreteRaySystem,
 {
     /// The index of the piece this sticker is part of in `permutation` on `Puzzle`.
     pub layers: EnumMap<Ray, i8>,
@@ -51,7 +51,7 @@ pub struct StickerAnimation {
 //#[derive(Debug)]
 pub struct Sticker<Ray>
 where
-    Ray: RaySystem,
+    Ray: ConcreteRaySystem,
 {
     /// The index of the piece this sticker is part of in `permutation` on `Puzzle`.
     pub piece_ind: usize,
@@ -61,6 +61,7 @@ where
     pub color: Ray,
     /// The mesh of the sticker.
     pub cpu_mesh: CpuMesh,
+    pub gm: Gm<Mesh, ColorMaterial>,
     pub animation: Option<StickerAnimation>,
 }
 
@@ -69,7 +70,7 @@ pub fn cubic_interpolate(t: f32) -> f32 {
     ANIMATION_INIT_V * (2.0 * t * t * t - 3.0 * t * t + t) - (2.0 * t * t * t - 3.0 * t * t)
 }
 
-impl<Ray: RaySystem> Sticker<Ray> {
+impl<Ray: ConcreteRaySystem> Sticker<Ray> {
     fn ray_intersect(&self, position: &Vec3, direction: &Vec3) -> Option<f32> {
         let positions = self.cpu_mesh.positions.to_f32();
         let indices = self
@@ -90,12 +91,21 @@ impl<Ray: RaySystem> Sticker<Ray> {
             .reduce(f32::min)
     }
 
-    pub fn gm(
-        &mut self,
-        context: &Context,
-        color: Srgba,
-        elapsed_time: f32,
-    ) -> Gm<Mesh, ColorMaterial> {
+    pub fn create_gm(&mut self, context: &Context) -> Gm<Mesh, ColorMaterial> {
+        Gm::new(
+            Mesh::new(&context, &self.cpu_mesh),
+            ColorMaterial {
+                color: Ray::ray_to_color(&self.color),
+                render_states: RenderStates {
+                    cull: Cull::Back,
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+        )
+    }
+
+    pub fn update_gm(&mut self, context: &Context, color: Srgba, elapsed_time: f32) {
         // can this section be written better
         let remove_animation;
         let sticker_mat;
@@ -116,19 +126,8 @@ impl<Ray: RaySystem> Sticker<Ray> {
             sticker_mat = Mat4::identity();
         }
 
-        let mut gm = Gm::new(
-            Mesh::new(&context, &self.cpu_mesh),
-            ColorMaterial {
-                color,
-                render_states: RenderStates {
-                    cull: Cull::Back,
-                    ..Default::default()
-                },
-                ..Default::default()
-            },
-        );
-        gm.set_transformation(sticker_mat);
-        gm
+        self.gm.material.color = color;
+        self.gm.set_transformation(sticker_mat);
     }
 }
 
