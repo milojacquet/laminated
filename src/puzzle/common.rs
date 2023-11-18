@@ -21,15 +21,15 @@ where
     /// Turns the ray system one unit about ray's axis and returns the new ray
     /// that occupies self's direction.
     /// Should return the same value for any ray with the same axis.
-    fn turn_one(&self, ray: &Self) -> Self;
+    fn turn_one(&self, ray: Self) -> Self;
     /// Turns the ray system about ray's axis and returns the new ray
     /// that occupies self's direction.
     /// Should return the same value for any ray with the same axis.
-    fn turn(&self, ray_order: &(Self, i8)) -> Self {
+    fn turn(&self, ray_order: (Self, i8)) -> Self {
         let (ray, order) = ray_order;
         let mut turned = *self;
         for _ in 0..order.rem_euclid(ray.order()) {
-            turned = turned.turn_one(&ray);
+            turned = turned.turn_one(ray);
         }
         turned
     }
@@ -79,13 +79,6 @@ impl<Ray: RaySystem> Piece<Ray> {
         self.orientation.iter().all(|(pos, &cur)| pos == cur)
     }
 
-    /*pub fb grip_on_axis_enummap(layers: &EnumMap<Ray, i8>, ray: &Ray) -> Vec<i8>{
-        ray.get_axis()
-            .iter()
-            .map(|&r| self.layers[self.orientation[r]])
-            .collect()
-    }*/
-
     pub fn grip_on_axis(&self, ray: &Ray) -> Vec<i8> {
         ray.get_axis()
             .iter()
@@ -99,8 +92,7 @@ impl<Ray: RaySystem> Piece<Ray> {
 
     pub fn twist(&mut self, (ray, order): (Ray, i8), grip: &[i8]) -> bool {
         if &self.grip_on_axis(&ray)[..] == grip {
-            let new_orientation =
-                EnumMap::from_fn(|r: Ray| self.orientation[r.turn(&(ray, order))]);
+            let new_orientation = EnumMap::from_fn(|r: Ray| self.orientation[r.turn((ray, order))]);
             self.orientation = new_orientation;
             /*for (_, cur) in self.orientation.iter_mut() {
                 *cur = cur.turn(&(ray, order));
@@ -234,12 +226,12 @@ pub mod ray_system_tests {
     }
 
     fn turns_consistent_axis<Ray: RaySystem + std::fmt::Debug>() {
-        for ray in Ray::AXIS_HEADS {
+        for &ray in Ray::AXIS_HEADS {
             for ray2 in ray.get_axis() {
                 for ray3 in enum_iter::<Ray>() {
                     assert_eq!(
-                        ray3.turn_one(&ray),
-                        ray3.turn_one(&ray2),
+                        ray3.turn_one(ray),
+                        ray3.turn_one(ray2),
                         "{:?} turned differently under {:?} and {:?}",
                         ray3,
                         ray,
@@ -251,7 +243,7 @@ pub mod ray_system_tests {
     }
 
     fn turns_permutations<Ray: RaySystem + std::fmt::Debug>() {
-        for ray in Ray::AXIS_HEADS {
+        for &ray in Ray::AXIS_HEADS {
             for ray2s in enum_iter::<Ray>().iter().combinations(2) {
                 assert!(
                     ray2s[0].turn_one(ray) != ray2s[1].turn_one(ray),
@@ -263,11 +255,6 @@ pub mod ray_system_tests {
             }
         }
     }
-
-    /*// not technically the ray system
-    fn index_piece_inverses<Ray: RaySystem + std::fmt::Debug>(){
-
-    }*/
 
     pub fn validate_ray_system<Ray: RaySystem + std::fmt::Debug>() {
         axes_all_same_order::<Ray>();

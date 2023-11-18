@@ -16,7 +16,7 @@ where
 {
     type Conjugate;
 
-    fn axis_to_transform(turn: &(Self, i8), conjugate: Self::Conjugate) -> Mat4;
+    fn axis_to_transform(turn: (Self, i8), conjugate: Self::Conjugate) -> Mat4;
 
     fn axis_to_vec(&self, conjugate: Self::Conjugate) -> Vec3;
 

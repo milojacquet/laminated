@@ -23,7 +23,7 @@ impl RaySystem for CubeRay {
         }
     }
 
-    fn turn_one(&self, axis: &Self) -> Self {
+    fn turn_one(&self, axis: Self) -> Self {
         use CubeRay::*;
 
         match (axis, self) {
@@ -87,7 +87,7 @@ mod tests {
     fn one_turn() {
         use CubeRay::*;
 
-        let mut puzzle = Puzzle::make_solved(vec![&[0, 0], &[1, 0], &[0, 1]]);
+        let mut puzzle = Puzzle::make_solved(vec![vec![0, 0], vec![1, 0], vec![0, 1]]);
         puzzle.twist((R, 1), &[1, 0]);
         assert!(!puzzle.is_solved());
     }
@@ -97,7 +97,7 @@ mod tests {
     fn six_sexy() {
         use CubeRay::*;
 
-        let mut puzzle = Puzzle::make_solved(vec![&[0, 0], &[1, 0], &[0, 1]]);
+        let mut puzzle = Puzzle::make_solved(vec![vec![0, 0], vec![1, 0], vec![0, 1]]);
         for _ in 0..6 {
             puzzle.twist((R, 1), &[1, 0]);
             puzzle.twist((R, 1), &[1, 0]);

@@ -14,7 +14,7 @@ impl RaySystem for OctaRay {
         }
     }
 
-    fn turn_one(&self, axis: &Self) -> Self {
+    fn turn_one(&self, axis: Self) -> Self {
         match axis {
             OctaRay(true, true, true) | OctaRay(false, false, false) => {
                 OctaRay(self.1, self.2, self.0)
@@ -64,31 +64,4 @@ mod tests {
     fn validate_ray_system_octa() {
         validate_ray_system::<OctaRay>()
     }
-
-    /*
-    /// Applies one turn and asserts that it is unsolved..
-    #[test]
-    fn one_turn() {
-        use CubeRay::*;
-
-        let mut puzzle = Puzzle::make_solved(vec![&[0, 0], &[1, 0], &[0, 1]]);
-        puzzle.twist((R, 1), &[1, 0]);
-        assert!(!puzzle.is_solved());
-    }
-
-    /// Applies (R U R' U')6 to the 3x3x3 and asserts that it is solved.
-    #[test]
-    fn six_sexy() {
-        use CubeRay::*;
-
-        let mut puzzle = Puzzle::make_solved(vec![&[0, 0], &[1, 0], &[0, 1]]);
-        for _ in 0..6 {
-            puzzle.twist((R, 1), &[1, 0]);
-            puzzle.twist((R, 1), &[1, 0]);
-            puzzle.twist((R, -1), &[1, 0]);
-            puzzle.twist((R, -1), &[1, 0]);
-        }
-        assert!(puzzle.is_solved());
-    }
-    */
 }

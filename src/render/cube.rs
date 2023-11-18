@@ -1,11 +1,10 @@
-use crate::puzzle::common::*;
 use crate::render::common::*;
 use crate::CubeRay;
 use crate::NUMBER_KEYS;
 use enum_map::enum_map;
 use std::collections::HashMap;
 use std::f32::consts::PI;
-use std::iter;
+
 use three_d::*;
 use CubeRay::*;
 
@@ -14,7 +13,7 @@ const SUPER_START: f32 = 0.75;
 impl ConcreteRaySystem for CubeRay {
     type Conjugate = ();
 
-    fn axis_to_transform(&(ray, order): &(Self, i8), _conjugate: Self::Conjugate) -> Mat4 {
+    fn axis_to_transform((ray, order): (Self, i8), _conjugate: Self::Conjugate) -> Mat4 {
         match ray {
             U | D => Mat4::from_angle_z(Rad(PI / 2.0 * (order as f32))),
             R | L => Mat4::from_angle_x(Rad(PI / 2.0 * (order as f32))),
@@ -252,7 +251,7 @@ pub fn nnn_seeds<'a>(order: i8) -> PuzzleSeed<CubeRay> {
                 abstract_viewport,
                 conjugate: (),
                 stickers,
-                default_layers: vec![vec![n, -n]],
+                default_layers: vec![vec![n, -n], vec![-n, n]],
             }
         })
         .collect();

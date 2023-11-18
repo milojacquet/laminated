@@ -3,13 +3,9 @@ use crate::puzzle::cube::CubeRay;
 use crate::render::common::*;
 use crate::render::create::*;
 use crate::render::cube::nnn_seeds;
-use std::cmp::Ordering;
 
 use std::collections::HashSet;
-use std::{
-    thread::sleep,
-    time::{Duration, Instant},
-};
+
 use three_d::*;
 
 pub mod puzzle;
@@ -17,7 +13,6 @@ pub mod render;
 pub mod util;
 
 const TURN_DISTANCE_THRESHOLD: f32 = 3.0;
-//const ORBIT_SPEED: f32 = 0.3;
 const ORBIT_SPEED: f32 = 0.007; // radians per pixel
 const ANIMATION_LENGTH: f32 = 150.0;
 const ANIMATION_INIT_V: f32 = 0.1;
@@ -31,7 +26,7 @@ const NUMBER_KEYS: [Key; 9] = [
     Key::Num7,
     Key::Num8,
     Key::Num9,
-];
+]; // has to be an array?
 
 fn orbit_camera(camera: &mut Camera, &(dx, dy): &(f32, f32)) {
     // (dx, dy) will never both be zero
@@ -71,10 +66,14 @@ fn orbit_cameras<Ray: ConcreteRaySystem>(
     }
 }
 
-fn get_viewport_from_pixel<'a, Ray: ConcreteRaySystem>(
-    concrete_puzzle: &'a ConcretePuzzle<Ray>,
+fn get_viewport_from_pixel<Ray: ConcreteRaySystem>(
+    concrete_puzzle: &ConcretePuzzle<Ray>,
     pixel: impl Into<PhysicalPoint>,
-) -> Option<&'a PuzzleViewport<Ray>> {
+) -> Option<&PuzzleViewport<Ray>> {
+    if concrete_puzzle.viewports.len() == 1 {
+        // if there's only one viewport, clicking anywhere should trigger that viewport
+        return Some(&concrete_puzzle.viewports[0]);
+    }
     let phys_pixel = pixel.into();
     for viewport in &concrete_puzzle.viewports {
         let vp = viewport.viewport;
@@ -93,16 +92,12 @@ fn render_puzzle<Ray: ConcreteRaySystem>(
     context: &Context,
     concrete_puzzle: &mut ConcretePuzzle<Ray>,
 ) {
-    //sleep(Duration::from_millis(100));
-    //return;
-
     frame_input
         .screen()
         .clear(ClearState::color_and_depth(0.8, 0.8, 0.8, 1.0, 1.0));
 
     for viewport in &mut concrete_puzzle.viewports.iter_mut() {
         frame_input.screen().render(
-            //viewport.viewport.into(),
             &viewport.camera,
             viewport.stickers.iter_mut().map(|sticker| {
                 let puzzle = &concrete_puzzle.puzzle;
@@ -132,8 +127,9 @@ fn main() {
 
     let context = window.gl();
     context.set_cull(Cull::Back);
+    let mut gui = GUI::new(&context);
 
-    let mut concrete_puzzle = make_concrete_puzzle(&window, nnn_seeds(7));
+    let mut concrete_puzzle = make_concrete_puzzle(window.size(), &context, nnn_seeds(3));
 
     // If the mouse is down, the time when it was first pressed.
     // It will be None if the mouse has moved farther than TURN_DISTANCE_THRESHOLD.
@@ -146,25 +142,55 @@ fn main() {
     let mut window_size = window.size();
 
     window.render_loop(move |mut frame_input| {
-        println!("new frame");
-        //println!("size: {:?}", window_size);
-        /*dbg!(concrete_puzzle
-        .viewports
-        .iter()
-        .map(|v| v.viewport)
-        .collect::<Vec<_>>());*/
+        //println!("new frame");
 
         let new_window_size = (
             (frame_input.window_width as f32 * frame_input.device_pixel_ratio) as u32,
             (frame_input.window_height as f32 * frame_input.device_pixel_ratio) as u32,
         );
+
         if new_window_size != window_size {
             window_size = new_window_size;
             println!("resized to {:?}", window_size);
             update_viewports(window_size, &mut concrete_puzzle);
         }
 
+        gui.update(
+            &mut frame_input.events,
+            frame_input.accumulated_time,
+            frame_input.viewport,
+            frame_input.device_pixel_ratio,
+            |gui_context| {
+                use three_d::egui::*;
+                egui::TopBottomPanel::top("menu_bar").show(gui_context, |ui| {
+                    menu::bar(ui, |ui| {
+                        /*ui.menu_button("File", |ui| {
+                            if ui.button("Open").clicked() {
+                                // …
+                            }
+                        });*/
+                        ui.menu_button("Puzzle", |ui| {
+                            ui.menu_button("Cube", |ui| {
+                                for n in 2..=9 {
+                                    if ui.button(format!("{0} layers ({0}×{0}×{0})", n)).clicked()
+                                    {
+                                        concrete_puzzle = make_concrete_puzzle(
+                                            window_size,
+                                            &context,
+                                            nnn_seeds(n),
+                                        );
+                                    }
+                                }
+                            });
+                        });
+                    });
+                });
+            },
+        );
+
         render_puzzle(&mut frame_input, &context, &mut concrete_puzzle);
+
+        frame_input.screen().write(|| gui.render());
 
         for event in frame_input.events {
             match event {
@@ -274,12 +300,11 @@ fn main() {
                     mouse_press_location = None;
                 }
                 Event::KeyPress { kind, .. } => {
-                    println!("pressed {:?}", kind);
+                    //println!("pressed {:?}", kind);
                     keys_down.insert(kind);
-                    //sleep(Duration::from_millis(20));
                 }
                 Event::KeyRelease { kind, .. } => {
-                    println!("released {:?}", kind);
+                    //println!("released {:?}", kind);
                     keys_down.remove(&kind);
                 }
                 _ => (),
