@@ -71,6 +71,7 @@ impl<'a, Ray: ConcreteRaySystem> Session<Ray> {
     pub fn do_inverse(&mut self) {
         if let Some(((ray, order), grips)) = self.twists.pop() {
             self.twists.push(((ray, -order), grips.clone()));
+            self.undid_twists = vec![];
             // we want the animation this time
             self.multi_layer_twist((ray, -order), &grips);
             self.multi_layer_twist((ray, -order), &grips); // do it again

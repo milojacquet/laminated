@@ -120,6 +120,20 @@ fn render_puzzle<Ray: ConcreteRaySystem>(
     }
 }
 
+fn shortcut_button(
+    ui: &mut egui::Ui,
+    gui_context: &egui::Context,
+    text: impl Into<egui::widget_text::WidgetText>,
+    modifiers: egui::Modifiers,
+    key: egui::Key,
+) -> egui::Response {
+    let mut button = egui::Button::new(text);
+    button = button
+        .shortcut_text(gui_context.format_shortcut(&egui::KeyboardShortcut { modifiers, key }));
+
+    ui.add(button)
+}
+
 fn main() {
     let window = Window::new(WindowSettings {
         title: "Laminated".to_string(),
@@ -169,6 +183,7 @@ fn main() {
                 use three_d::egui::*;
                 egui::TopBottomPanel::top("menu_bar").show(gui_context, |ui| {
                     menu::bar(ui, |ui| {
+                        //use egui::Modifiers::*;
                         /*ui.menu_button("File", |ui| {
                             if ui.button("Open").clicked() {
                                 // …
@@ -197,11 +212,32 @@ fn main() {
                                 session.reset();
                             }
                             ui.separator();
-                            if ui.button("Undo").clicked() {
+                            if shortcut_button(ui, gui_context, "Undo", Modifiers::COMMAND, Key::Z)
+                                .clicked()
+                            {
                                 session.undo();
                             }
-                            if ui.button("Redo").clicked() {
+                            if shortcut_button(
+                                ui,
+                                gui_context,
+                                "Redo",
+                                Modifiers::COMMAND | Modifiers::SHIFT,
+                                Key::Z,
+                            )
+                            .clicked()
+                            {
                                 session.redo();
+                            }
+                            if shortcut_button(
+                                ui,
+                                gui_context,
+                                "Do inverse",
+                                Modifiers::COMMAND,
+                                Key::X,
+                            )
+                            .clicked()
+                            {
+                                session.do_inverse();
                             }
                         });
                     });
@@ -334,6 +370,7 @@ fn main() {
                     match (kind, modifiers.shift, ctrl) {
                         (Key::Z, false, true) => session.undo(),
                         (Key::Y, false, true) | (Key::Z, true, true) => session.redo(),
+                        (Key::X, false, true) => session.do_inverse(),
                         _ => (),
                     }
                 }
