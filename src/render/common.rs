@@ -238,13 +238,12 @@ where
 
 impl<Ray: ConcreteRaySystem> ConcretePuzzle<Ray> {
     pub fn twist(&mut self, (ray, order): (Ray, i8), grip: &[i8]) {
-        let twisted = self.puzzle.twist((ray, order), grip);
-        //println!("{:?}", twisted);
+        self.puzzle.twist((ray, order), grip);
         for viewport in self.viewports.iter_mut() {
             for sticker in viewport.stickers.iter_mut() {
-                if twisted.contains(&sticker.piece_ind) {
+                let piece_at_sticker = self.puzzle.index_to_solved_piece(sticker.piece_ind);
+                if piece_at_sticker.grip_on_axis(ray) == grip {
                     sticker.animation = Some(StickerAnimation {
-                        //rotation_axis: Ray::axis_to_vec(&ray, Default::default()),
                         rotation_axis: ray.axis_to_vec(viewport.conjugate),
                         start_angle: (order as f32) * 2.0 * PI / (ray.order() as f32),
                         time_remaining: ANIMATION_LENGTH,

@@ -90,19 +90,19 @@ impl<Ray: RaySystem> Piece<Ray> {
         self.orientation.iter().all(|(pos, &cur)| pos == cur)
     }
 
-    pub fn grip_on_axis(&self, ray: &Ray) -> Vec<i8> {
+    pub fn grip_on_axis(&self, ray: Ray) -> Vec<i8> {
         ray.get_axis()
             .iter()
             .map(|&r| self.layers[self.orientation[r]])
             .collect()
     }
 
-    pub fn grip_on_axis_solved(&self, ray: &Ray) -> Vec<i8> {
+    pub fn grip_on_axis_solved(&self, ray: Ray) -> Vec<i8> {
         ray.get_axis().iter().map(|&r| self.layers[r]).collect()
     }
 
     pub fn twist(&mut self, (ray, order): (Ray, i8), grip: &[i8]) -> bool {
-        if &self.grip_on_axis(&ray)[..] == grip {
+        if &self.grip_on_axis(ray)[..] == grip {
             let new_orientation = EnumMap::from_fn(|r: Ray| self.orientation[r.turn((ray, order))]);
             self.orientation = new_orientation;
             /*for (_, cur) in self.orientation.iter_mut() {
@@ -123,8 +123,8 @@ impl<Ray: RaySystem> Piece<Ray> {
 pub struct Puzzle<Ray: RaySystem> {
     pub grips: Vec<Vec<i8>>,
     pub pieces: Vec<Piece<Ray>>,
-    /// number at index i is the index of the piece that occupies position i
-    pub permutation: Vec<usize>,
+    // / number at index i is the index of the piece that occupies position i
+    //pub permutation: Vec<usize>,
 }
 
 impl<'a, Ray: RaySystem> Puzzle<Ray> {
@@ -135,14 +135,11 @@ impl<'a, Ray: RaySystem> Puzzle<Ray> {
     pub fn make_solved(grips: Vec<Vec<i8>>) -> Self {
         let mut new = Self {
             grips: grips.clone(),
-            permutation: Vec::new(),
             pieces: Vec::new(),
         };
-        let piece_count: usize = new.grips.len().pow(Ray::AXIS_HEADS.len() as u32);
-        new.pieces = (0..piece_count)
+        new.pieces = (0..new.piece_count())
             .map(|i| new.index_to_solved_piece(i))
             .collect();
-        new.permutation = (0..piece_count).collect();
         new
     }
 
@@ -155,19 +152,11 @@ impl<'a, Ray: RaySystem> Puzzle<Ray> {
             .all(|piece| piece.orientation == self.pieces[0].orientation)
     }
 
-    /// Applies the twist to the puzzle, and returns a set of pieces that were twisted.
-    pub fn twist(&mut self, (ray, order): (Ray, i8), grip: &[i8]) -> HashSet<usize> {
-        let mut twisted = HashSet::new();
+    /// Applies the twist to the puzzle.
+    pub fn twist(&mut self, (ray, order): (Ray, i8), grip: &[i8]) {
         for i in 0..self.pieces.len() {
-            let piece_twisted = self.pieces[i].twist((ray, order), grip);
-            //self.permutation[i] = self.piece_to_index(&self.pieces[i]);
-            let piece_index = self.piece_to_index(&self.pieces[i]);
-            self.permutation[piece_index] = i;
-            if piece_twisted {
-                twisted.insert(piece_index);
-            }
+            let _piece_twisted = self.pieces[i].twist((ray, order), grip);
         }
-        twisted
     }
 
     /// Returns a new solved piece whose index is the provided usize.
@@ -185,7 +174,7 @@ impl<'a, Ray: RaySystem> Puzzle<Ray> {
         Ray::AXIS_HEADS
             .iter()
             .enumerate()
-            .map(|(j, r)| {
+            .map(|(j, &r)| {
                 self.grips
                     .iter()
                     .position(|gr| &&piece.grip_on_axis(r)[..] == gr)
@@ -200,7 +189,7 @@ impl<'a, Ray: RaySystem> Puzzle<Ray> {
         Ray::AXIS_HEADS
             .iter()
             .enumerate()
-            .map(|(j, r)| {
+            .map(|(j, &r)| {
                 self.grips
                     .iter()
                     .position(|gr| &&piece.grip_on_axis_solved(r)[..] == gr)
@@ -208,6 +197,15 @@ impl<'a, Ray: RaySystem> Puzzle<Ray> {
                     * self.grips.len().pow(j as u32)
             })
             .sum()
+    }
+
+    pub fn permutation(&self) -> Vec<usize> {
+        let mut permutation = vec![0; self.piece_count()];
+        for i in 0..self.pieces.len() {
+            let piece_index = self.piece_to_index(&self.pieces[i]);
+            permutation[piece_index] = i;
+        }
+        permutation
     }
 
     pub fn scramble(&mut self) {

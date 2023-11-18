@@ -11,7 +11,7 @@ pub struct Session<Ray: ConcreteRaySystem> {
 impl<'a, Ray: ConcreteRaySystem> Session<Ray> {
     pub fn from_concrete(concrete_puzzle: ConcretePuzzle<Ray>) -> Session<Ray> {
         Session {
-            scramble: concrete_puzzle.puzzle.permutation.clone(),
+            scramble: concrete_puzzle.puzzle.permutation(),
             concrete_puzzle,
             twists: vec![],
             undid_twists: vec![],
@@ -32,7 +32,7 @@ impl<'a, Ray: ConcreteRaySystem> Session<Ray> {
 
     fn scramble_from_concrete(&mut self) {
         self.concrete_puzzle.reset_animations();
-        self.scramble = self.concrete_puzzle.puzzle.permutation.clone();
+        self.scramble = self.concrete_puzzle.puzzle.permutation();
         self.twists = vec![];
         self.undid_twists = vec![];
     }
@@ -52,7 +52,7 @@ impl<'a, Ray: ConcreteRaySystem> Session<Ray> {
         if let Some(((ray, order), grips)) = self.twists.pop() {
             self.undid_twists.push(((ray, order), grips.clone()));
             // we want the animation this time
-            self.multi_layer_twist((ray, -order), &grips)
+            self.multi_layer_twist((ray, -order), &grips);
         } else {
             // no undo left
         }
@@ -62,9 +62,20 @@ impl<'a, Ray: ConcreteRaySystem> Session<Ray> {
         if let Some(((ray, order), grips)) = self.undid_twists.pop() {
             self.twists.push(((ray, order), grips.clone()));
             // we want the animation this time
-            self.multi_layer_twist((ray, order), &grips)
+            self.multi_layer_twist((ray, order), &grips);
         } else {
             // no redo left
+        }
+    }
+
+    pub fn do_inverse(&mut self) {
+        if let Some(((ray, order), grips)) = self.twists.pop() {
+            self.twists.push(((ray, -order), grips.clone()));
+            // we want the animation this time
+            self.multi_layer_twist((ray, -order), &grips);
+            self.multi_layer_twist((ray, -order), &grips); // do it again
+        } else {
+            // no undo left
         }
     }
 }

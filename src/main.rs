@@ -98,6 +98,8 @@ fn render_puzzle<Ray: ConcreteRaySystem>(
         .screen()
         .clear(ClearState::color_and_depth(0.8, 0.8, 0.8, 1.0, 1.0));
 
+    let permutation = concrete_puzzle.puzzle.permutation();
+
     for viewport in &mut concrete_puzzle.viewports.iter_mut() {
         frame_input.screen().render(
             &viewport.camera,
@@ -106,8 +108,7 @@ fn render_puzzle<Ray: ConcreteRaySystem>(
                 sticker.update_gm(
                     &context,
                     Ray::ray_to_color(
-                        &puzzle.pieces[puzzle.permutation[sticker.piece_ind]].orientation
-                            [sticker.color],
+                        &puzzle.pieces[permutation[sticker.piece_ind]].orientation[sticker.color],
                     ),
                     frame_input.elapsed_time as f32,
                 );
@@ -281,7 +282,7 @@ fn main() {
                                     session.concrete_puzzle.puzzle.pieces[session
                                         .concrete_puzzle
                                         .puzzle
-                                        .permutation[sticker.piece_ind]]
+                                        .permutation()[sticker.piece_ind]]
                                 );
                             } else if let Some((_conjugate, Some((_, press_button)))) =
                                 mouse_press_location
