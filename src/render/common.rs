@@ -71,7 +71,7 @@ pub fn cubic_interpolate(t: f32) -> f32 {
 }
 
 impl<Ray: ConcreteRaySystem> Sticker<Ray> {
-    fn ray_intersect(&self, position: &Vec3, direction: &Vec3) -> Option<f32> {
+    fn ray_intersect(&self, position: Vec3, direction: Vec3) -> Option<f32> {
         let positions = self.cpu_mesh.positions.to_f32();
         let indices = self
             .cpu_mesh
@@ -131,7 +131,7 @@ impl<Ray: ConcreteRaySystem> Sticker<Ray> {
     }
 }
 
-fn ray_triangle_intersect(position: &Vec3, direction: &Vec3, verts: &[Vec3]) -> Option<f32> {
+fn ray_triangle_intersect(position: Vec3, direction: Vec3, verts: &[Vec3]) -> Option<f32> {
     // https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
     const EPSILON: f32 = 0.0000001;
     let edge1 = verts[1] - verts[0];
@@ -199,7 +199,7 @@ where
 }
 
 impl<Ray: ConcreteRaySystem> PuzzleViewport<Ray> {
-    pub fn ray_intersect(&self, position: &Vec3, direction: &Vec3) -> Option<&Sticker<Ray>> {
+    pub fn ray_intersect(&self, position: Vec3, direction: Vec3) -> Option<&Sticker<Ray>> {
         self.stickers
             .iter()
             .filter_map(|sticker| {
@@ -237,7 +237,7 @@ where
 }
 
 impl<Ray: ConcreteRaySystem> ConcretePuzzle<Ray> {
-    pub fn twist(&mut self, &(ray, order): &(Ray, i8), grip: &[i8]) {
+    pub fn twist(&mut self, (ray, order): (Ray, i8), grip: &[i8]) {
         let twisted = self.puzzle.twist((ray, order), grip);
         //println!("{:?}", twisted);
         for viewport in self.viewports.iter_mut() {
@@ -250,6 +250,14 @@ impl<Ray: ConcreteRaySystem> ConcretePuzzle<Ray> {
                         time_remaining: ANIMATION_LENGTH,
                     })
                 }
+            }
+        }
+    }
+
+    pub fn reset_animations(&mut self) {
+        for viewport in self.viewports.iter_mut() {
+            for sticker in viewport.stickers.iter_mut() {
+                sticker.animation = None;
             }
         }
     }

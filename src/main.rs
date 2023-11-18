@@ -3,6 +3,7 @@ use crate::puzzle::cube::CubeRay;
 use crate::render::common::*;
 use crate::render::create::*;
 use crate::render::cube::nnn_seeds;
+use crate::session::*;
 
 use std::collections::HashSet;
 
@@ -10,6 +11,7 @@ use three_d::*;
 
 pub mod puzzle;
 pub mod render;
+pub mod session;
 pub mod util;
 
 const TURN_DISTANCE_THRESHOLD: f32 = 3.0;
@@ -28,7 +30,7 @@ const NUMBER_KEYS: [Key; 9] = [
     Key::Num9,
 ]; // has to be an array?
 
-fn orbit_camera(camera: &mut Camera, &(dx, dy): &(f32, f32)) {
+fn orbit_camera(camera: &mut Camera, (dx, dy): (f32, f32)) {
     // (dx, dy) will never both be zero
     let pointing = -1.0 * camera.position();
     // camera.up() does not have to be perpendicular to the view vector
@@ -53,14 +55,14 @@ fn orbit_camera(camera: &mut Camera, &(dx, dy): &(f32, f32)) {
 
 fn orbit_cameras<Ray: ConcreteRaySystem>(
     puzzle: &mut ConcretePuzzle<Ray>,
-    conjugate: &Ray::Conjugate,
-    delta: &(f32, f32),
+    conjugate: Ray::Conjugate,
+    delta: (f32, f32),
 ) {
-    if delta == &(0.0f32, 0.0f32) {
+    if delta == (0.0f32, 0.0f32) {
         return;
     }
     for viewport in puzzle.viewports.iter_mut() {
-        if viewport.conjugate == *conjugate {
+        if viewport.conjugate == conjugate {
             orbit_camera(&mut viewport.camera, delta);
         }
     }
@@ -129,7 +131,9 @@ fn main() {
     context.set_cull(Cull::Back);
     let mut gui = GUI::new(&context);
 
-    let mut concrete_puzzle = make_concrete_puzzle(window.size(), &context, nnn_seeds(3));
+    //let mut concrete_puzzle = make_concrete_puzzle(window.size(), &context, nnn_seeds(3));
+    let mut session =
+        Session::from_concrete(make_concrete_puzzle(window.size(), &context, nnn_seeds(3)));
 
     // If the mouse is down, the time when it was first pressed.
     // It will be None if the mouse has moved farther than TURN_DISTANCE_THRESHOLD.
@@ -152,7 +156,7 @@ fn main() {
         if new_window_size != window_size {
             window_size = new_window_size;
             println!("resized to {:?}", window_size);
-            update_viewports(window_size, &mut concrete_puzzle);
+            update_viewports(window_size, &mut session.concrete_puzzle);
         }
 
         gui.update(
@@ -174,21 +178,37 @@ fn main() {
                                 for n in 2..=9 {
                                     if ui.button(format!("{0} layers ({0}×{0}×{0})", n)).clicked()
                                     {
-                                        concrete_puzzle = make_concrete_puzzle(
+                                        session = Session::from_concrete(make_concrete_puzzle(
                                             window_size,
                                             &context,
                                             nnn_seeds(n),
-                                        );
+                                        ));
                                     }
                                 }
                             });
+                        });
+
+                        ui.menu_button("Control", |ui| {
+                            if ui.button("Scramble").clicked() {
+                                session.scramble();
+                            }
+                            if ui.button("Reset").clicked() {
+                                session.reset();
+                            }
+                            ui.separator();
+                            if ui.button("Undo").clicked() {
+                                session.undo();
+                            }
+                            if ui.button("Redo").clicked() {
+                                session.redo();
+                            }
                         });
                     });
                 });
             },
         );
 
-        render_puzzle(&mut frame_input, &context, &mut concrete_puzzle);
+        render_puzzle(&mut frame_input, &context, &mut session.concrete_puzzle);
 
         frame_input.screen().write(|| gui.render());
 
@@ -198,7 +218,7 @@ fn main() {
                     button, position, ..
                 } => {
                     if let Some(viewport_clicked) =
-                        get_viewport_from_pixel(&concrete_puzzle, position)
+                        get_viewport_from_pixel(&session.concrete_puzzle, position)
                     {
                         mouse_press_location =
                             Some((viewport_clicked.conjugate, Some((position, button))));
@@ -219,14 +239,14 @@ fn main() {
                             mouse_press_location = Some((conjugate, None));
 
                             orbit_cameras(
-                                &mut concrete_puzzle,
-                                &conjugate,
-                                &(position.x - press_position.x, position.y - press_position.y),
+                                &mut session.concrete_puzzle,
+                                conjugate,
+                                (position.x - press_position.x, position.y - press_position.y),
                             )
                         }
                     }
                     Some((conjugate, None)) => {
-                        orbit_cameras(&mut concrete_puzzle, &conjugate, &delta);
+                        orbit_cameras(&mut session.concrete_puzzle, conjugate, delta);
                         // change default
                     }
                     None => {
@@ -237,18 +257,19 @@ fn main() {
                     button, position, ..
                 } => {
                     if let Some(viewport_clicked) =
-                        get_viewport_from_pixel(&concrete_puzzle, position)
+                        get_viewport_from_pixel(&session.concrete_puzzle, position)
                     {
                         let sticker_m = viewport_clicked.ray_intersect(
-                            &viewport_clicked.camera.position_at_pixel(position),
-                            &viewport_clicked.camera.view_direction_at_pixel(position),
+                            viewport_clicked.camera.position_at_pixel(position),
+                            viewport_clicked.camera.view_direction_at_pixel(position),
                         );
 
                         if let Some(sticker) = sticker_m {
                             if button == MouseButton::Middle {
                                 println!(
                                     "sticker: {:?}, face = {:?}, color = {:?}",
-                                    concrete_puzzle
+                                    session
+                                        .concrete_puzzle
                                         .puzzle
                                         .index_to_solved_piece(sticker.piece_ind)
                                         .layers,
@@ -257,8 +278,10 @@ fn main() {
                                 );
                                 println!(
                                     "piece: {:?}",
-                                    concrete_puzzle.puzzle.pieces
-                                        [concrete_puzzle.puzzle.permutation[sticker.piece_ind]]
+                                    session.concrete_puzzle.puzzle.pieces[session
+                                        .concrete_puzzle
+                                        .puzzle
+                                        .permutation[sticker.piece_ind]]
                                 );
                             } else if let Some((_conjugate, Some((_, press_button)))) =
                                 mouse_press_location
@@ -282,16 +305,16 @@ fn main() {
                                     let grips: Vec<_> = keys_down
                                         .iter()
                                         .filter_map(|key| {
-                                            concrete_puzzle.key_layers[axis_index].get(&key).clone()
+                                            session.concrete_puzzle.key_layers[axis_index]
+                                                .get(&key)
+                                                .clone()
                                         })
                                         .collect();
-                                    for grip in if grips.is_empty() {
+                                    session.twist(turn, if grips.is_empty() {
                                         vec![viewport_clicked.default_layers[axis_index].clone()]
                                     } else {
                                         grips.into_iter().cloned().collect()
-                                    } {
-                                        concrete_puzzle.twist(&turn, &grip.clone()[..]);
-                                    }
+                                    });
                                 }
                             }
                         }
@@ -299,9 +322,19 @@ fn main() {
 
                     mouse_press_location = None;
                 }
-                Event::KeyPress { kind, .. } => {
+                Event::KeyPress {
+                    kind, modifiers, ..
+                } => {
                     //println!("pressed {:?}", kind);
                     keys_down.insert(kind);
+
+                    let ctrl = modifiers.ctrl || modifiers.command;
+
+                    match (kind, modifiers.shift, ctrl) {
+                        (Key::Z, false, true) => session.undo(),
+                        (Key::Y, false, true) | (Key::Z, true, true) => session.redo(),
+                        _ => (),
+                    }
                 }
                 Event::KeyRelease { kind, .. } => {
                     //println!("released {:?}", kind);

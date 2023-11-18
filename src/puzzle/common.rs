@@ -1,4 +1,6 @@
 use enum_map::{Enum, EnumMap};
+use rand;
+use rand::distributions::{Distribution, Standard};
 use std::collections::HashSet;
 use std::iter::zip;
 
@@ -12,6 +14,7 @@ where
         + Copy
         + Clone
         + Enum
+        + std::fmt::Debug
         + enum_map::EnumArray<i8>
         + enum_map::EnumArray<Self>,
 {
@@ -39,6 +42,14 @@ where
     const AXIS_HEADS: &'static [Self];
     /// Hamiltonian cycle for symmetry group
     const CYCLE: &'static [(Self, i8)];
+
+    /// Uniform selection
+    fn choose<R: rand::Rng>(rng: &mut R) -> Self {
+        use rand::seq::SliceRandom;
+        *enum_iter::<Self>()[..]
+            .choose(rng)
+            .expect("ray system should not be empty")
+    }
 }
 
 /// A single piece of an abstract laminated puzzle.
@@ -197,6 +208,21 @@ impl<'a, Ray: RaySystem> Puzzle<Ray> {
                     * self.grips.len().pow(j as u32)
             })
             .sum()
+    }
+
+    pub fn scramble(&mut self) {
+        use rand::seq::SliceRandom;
+        use rand::Rng;
+
+        let mut rng = rand::thread_rng();
+        for _ in 0..1000 {
+            let ray = Ray::choose(&mut rng);
+            let grip = self.grips[..]
+                .choose(&mut rng)
+                .expect("ray system should not be empty")
+                .to_vec();
+            self.twist((ray, rng.gen_range(0..ray.order())), &grip[..]);
+        }
     }
 }
 

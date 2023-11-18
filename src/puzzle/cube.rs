@@ -1,4 +1,5 @@
 use enum_map::Enum;
+use enum_map::EnumArray;
 
 use crate::puzzle::common::RaySystem;
 
