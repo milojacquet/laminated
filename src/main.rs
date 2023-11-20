@@ -90,18 +90,17 @@ fn get_viewport_from_pixel<Ray: ConcreteRaySystem>(
 }
 
 fn render_puzzle<Ray: ConcreteRaySystem>(
-    frame_input: &mut FrameInput,
+    screen: &mut RenderTarget,
+    elapsed_time: f64,
     context: &Context,
     concrete_puzzle: &mut ConcretePuzzle<Ray>,
 ) {
-    frame_input
-        .screen()
-        .clear(ClearState::color_and_depth(0.8, 0.8, 0.8, 1.0, 1.0));
+    screen.clear(ClearState::color_and_depth(0.8, 0.8, 0.8, 1.0, 1.0));
 
     let permutation = concrete_puzzle.puzzle.permutation();
 
     for viewport in &mut concrete_puzzle.viewports.iter_mut() {
-        frame_input.screen().render(
+        screen.render(
             &viewport.camera,
             viewport.stickers.iter_mut().map(|sticker| {
                 let puzzle = &concrete_puzzle.puzzle;
@@ -110,7 +109,7 @@ fn render_puzzle<Ray: ConcreteRaySystem>(
                     Ray::ray_to_color(
                         &puzzle.pieces[permutation[sticker.piece_ind]].orientation[sticker.color],
                     ),
-                    frame_input.elapsed_time as f32,
+                    elapsed_time as f32,
                 );
 
                 &sticker.gm
@@ -159,6 +158,7 @@ fn main() {
     let mut keys_down: HashSet<Key> = HashSet::new();
 
     let mut window_size = window.size();
+    let mut status_message: Option<String> = None;
 
     window.render_loop(move |mut frame_input| {
         //println!("new frame");
@@ -181,7 +181,7 @@ fn main() {
             frame_input.device_pixel_ratio,
             |gui_context| {
                 use three_d::egui::*;
-                egui::TopBottomPanel::top("menu_bar").show(gui_context, |ui| {
+                TopBottomPanel::top("menu_bar").show(gui_context, |ui| {
                     menu::bar(ui, |ui| {
                         //use egui::Modifiers::*;
                         /*ui.menu_button("File", |ui| {
@@ -242,15 +242,18 @@ fn main() {
                         });
                     });
                 });
+                TopBottomPanel::bottom("status_bar").show(gui_context, |ui| {
+                    if let Some(message) = &status_message {
+                        ui.label(message.as_str());
+                    } else if session.concrete_puzzle.puzzle.is_solved() {
+                        ui.label("Solved!");
+                    }
+                });
             },
         );
 
-        render_puzzle(&mut frame_input, &context, &mut session.concrete_puzzle);
-
-        frame_input.screen().write(|| gui.render());
-
-        for event in frame_input.events {
-            match event {
+        for event in &frame_input.events {
+            match *event {
                 Event::MousePress {
                     button, position, ..
                 } => {
@@ -293,6 +296,8 @@ fn main() {
                 Event::MouseRelease {
                     button, position, ..
                 } => {
+                    status_message = None;
+
                     if let Some(viewport_clicked) =
                         get_viewport_from_pixel(&session.concrete_puzzle, position)
                     {
@@ -303,7 +308,7 @@ fn main() {
 
                         if let Some(sticker) = sticker_m {
                             if button == MouseButton::Middle {
-                                println!(
+                                /*println!(
                                     "sticker: {:?}, face = {:?}, color = {:?}",
                                     session
                                         .concrete_puzzle
@@ -319,7 +324,21 @@ fn main() {
                                         .concrete_puzzle
                                         .puzzle
                                         .permutation()[sticker.piece_ind]]
-                                );
+                                );*/
+                                status_message = Some(format!(
+                                    "sticker: {:?}, face: {:?}, color: {:?}, piece: {:?}",
+                                    session
+                                        .concrete_puzzle
+                                        .puzzle
+                                        .index_to_solved_piece(sticker.piece_ind)
+                                        .layers,
+                                    sticker.face,
+                                    sticker.color,
+                                    session.concrete_puzzle.puzzle.pieces[session
+                                        .concrete_puzzle
+                                        .puzzle
+                                        .permutation()[sticker.piece_ind]]
+                                ));
                             } else if let Some((_conjugate, Some((_, press_button)))) =
                                 mouse_press_location
                             {
@@ -381,6 +400,17 @@ fn main() {
                 _ => (),
             }
         }
+
+        // these should go above the events loop, otherwise the first turns will lag
+        // maybe not
+        render_puzzle(
+            &mut frame_input.screen(),
+            frame_input.elapsed_time,
+            &context,
+            &mut session.concrete_puzzle,
+        );
+
+        frame_input.screen().write(|| gui.render());
 
         FrameOutput::default()
     });
