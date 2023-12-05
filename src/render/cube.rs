@@ -1,3 +1,4 @@
+use crate::puzzle::cube::{Basis, BasisDiff, Sign};
 use crate::render::common::*;
 use crate::CubeRay;
 use crate::NUMBER_KEYS;
@@ -6,7 +7,6 @@ use std::collections::HashMap;
 use std::f32::consts::PI;
 
 use three_d::*;
-use CubeRay::*;
 
 const SUPER_START: f32 = 0.75;
 
@@ -14,29 +14,29 @@ impl ConcreteRaySystem for CubeRay {
     type Conjugate = ();
 
     fn axis_to_transform((ray, order): (Self, i8), _conjugate: Self::Conjugate) -> Mat4 {
-        match ray {
-            U | D => Mat4::from_angle_z(Rad(PI / 2.0 * (order as f32))),
-            R | L => Mat4::from_angle_x(Rad(PI / 2.0 * (order as f32))),
-            F | B => Mat4::from_angle_y(Rad(-PI / 2.0 * (order as f32))),
+        match ray.0 {
+            Basis::X => Mat4::from_angle_x(Rad(PI / 2.0 * (order as f32))),
+            Basis::Y => Mat4::from_angle_y(Rad(PI / 2.0 * (order as f32))),
+            Basis::Z => Mat4::from_angle_z(Rad(PI / 2.0 * (order as f32))),
         }
     }
 
     fn axis_to_vec(&self, _conjugate: Self::Conjugate) -> Vec3 {
-        match self {
-            U | D => Vec3::new(0.0, 0.0, 1.0),
-            R | L => Vec3::new(1.0, 0.0, 0.0),
-            F | B => Vec3::new(0.0, -1.0, 0.0),
+        match self.0 {
+            Basis::X => Vec3::new(1.0, 0.0, 0.0),
+            Basis::Y => Vec3::new(0.0, 1.0, 0.0),
+            Basis::Z => Vec3::new(0.0, 0.0, 1.0),
         }
     }
 
     fn ray_to_color(&self) -> Srgba {
         match self {
-            U => Srgba::WHITE,
-            F => Srgba::RED,
-            R => Srgba::BLUE,
-            B => Srgba::new_opaque(255, 128, 0),
-            L => Srgba::GREEN,
-            D => Srgba::new_opaque(255, 255, 0),
+            CubeRay(Basis::Y, Sign::Pos) => Srgba::new_opaque(255, 128, 0),
+            CubeRay(Basis::Z, Sign::Pos) => Srgba::WHITE,
+            CubeRay(Basis::X, Sign::Pos) => Srgba::BLUE,
+            CubeRay(Basis::Z, Sign::Neg) => Srgba::new_opaque(255, 255, 0),
+            CubeRay(Basis::X, Sign::Neg) => Srgba::GREEN,
+            CubeRay(Basis::Y, Sign::Neg) => Srgba::RED,
         }
     }
 }
@@ -110,7 +110,7 @@ impl ConcreteRaySystem for CubeRay {
 }*/
 
 pub fn nnn_seeds<'a>(order: i8) -> PuzzleSeed<CubeRay> {
-    use CubeRay::*;
+    use crate::puzzle::cube::name::*;
 
     let mut current_width = 0.0;
 

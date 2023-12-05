@@ -3,8 +3,82 @@ use rand;
 use rand::distributions::{Distribution, Standard};
 use std::collections::HashSet;
 use std::iter::zip;
+use std::ops::{Add, Mul, Neg, Sub};
 
 use crate::util::*;
+
+#[derive(Debug, Enum, Clone, Copy, PartialEq, Eq)]
+pub enum Basis {
+    X,
+    Y,
+    Z,
+}
+
+#[derive(Debug, Enum, Clone, Copy, PartialEq, Eq)]
+pub enum BasisDiff {
+    D0,
+    D1,
+    D2,
+}
+
+impl Add<BasisDiff> for Basis {
+    type Output = Self;
+    fn add(self, diff: BasisDiff) -> Self {
+        match (self, diff) {
+            (_, BasisDiff::D0) => self,
+            (Basis::X, BasisDiff::D1) => Basis::Y,
+            (Basis::Y, BasisDiff::D1) => Basis::Z,
+            (Basis::Z, BasisDiff::D1) => Basis::X,
+            (Basis::X, BasisDiff::D2) => Basis::Z,
+            (Basis::Y, BasisDiff::D2) => Basis::X,
+            (Basis::Z, BasisDiff::D2) => Basis::Y,
+        }
+    }
+}
+
+impl Sub for Basis {
+    type Output = BasisDiff;
+    fn sub(self, basis: Self) -> BasisDiff {
+        match (self, basis) {
+            (Basis::X, Basis::X) => BasisDiff::D0,
+            (Basis::Y, Basis::Y) => BasisDiff::D0,
+            (Basis::Z, Basis::Z) => BasisDiff::D0,
+            (Basis::Y, Basis::X) => BasisDiff::D1,
+            (Basis::Z, Basis::Y) => BasisDiff::D1,
+            (Basis::X, Basis::Z) => BasisDiff::D1,
+            (Basis::Z, Basis::X) => BasisDiff::D2,
+            (Basis::X, Basis::Y) => BasisDiff::D2,
+            (Basis::Y, Basis::Z) => BasisDiff::D2,
+        }
+    }
+}
+
+#[derive(Debug, Enum, Clone, Copy, PartialEq, Eq)]
+pub enum Sign {
+    Pos,
+    Neg,
+}
+
+impl Mul for Sign {
+    type Output = Sign;
+    fn mul(self, sign: Self) -> Self {
+        if self == sign {
+            Sign::Pos
+        } else {
+            Sign::Neg
+        }
+    }
+}
+
+impl Neg for Sign {
+    type Output = Sign;
+    fn neg(self) -> Self {
+        match self {
+            Sign::Pos => Sign::Neg,
+            Sign::Neg => Sign::Pos,
+        }
+    }
+}
 
 pub trait RaySystem
 where

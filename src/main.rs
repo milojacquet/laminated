@@ -119,6 +119,16 @@ fn render_puzzle<Ray: ConcreteRaySystem>(
     }
 }
 
+fn render_axes<Ray: ConcreteRaySystem>(
+    screen: &mut RenderTarget,
+    context: &Context,
+    concrete_puzzle: &ConcretePuzzle<Ray>,
+) {
+    for viewport in &concrete_puzzle.viewports {
+        screen.render(&viewport.camera, &Axes::new(context, 0.1, 1.3), &[]);
+    }
+}
+
 fn shortcut_button(
     ui: &mut egui::Ui,
     gui_context: &egui::Context,
@@ -409,6 +419,11 @@ fn main() {
             &context,
             &mut session.concrete_puzzle,
         );
+        /*render_axes(
+            &mut frame_input.screen(),
+            &context,
+            &session.concrete_puzzle,
+        );*/
 
         frame_input.screen().write(|| gui.render());
 
