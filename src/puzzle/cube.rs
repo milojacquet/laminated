@@ -1,5 +1,6 @@
 use enum_map::Enum;
 use enum_map::EnumArray;
+use std::fmt;
 
 use crate::puzzle::common::RaySystem;
 pub use crate::puzzle::common::{Basis, BasisDiff, Sign};
@@ -67,6 +68,20 @@ impl RaySystem for CubeRay {
             (U, 3), (U, 3), (U, 3), //(F, 3),
         ]
     };
+}
+
+impl fmt::Display for CubeRay {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match self {
+            CubeRay(Basis::X, Sign::Pos) => "R",
+            CubeRay(Basis::Y, Sign::Pos) => "B",
+            CubeRay(Basis::Z, Sign::Pos) => "U",
+            CubeRay(Basis::X, Sign::Neg) => "L",
+            CubeRay(Basis::Y, Sign::Neg) => "F",
+            CubeRay(Basis::Z, Sign::Neg) => "D",
+        };
+        write!(f, "{}", name)
+    }
 }
 
 /// Sorry everyone, I'm using z-up like a normal person

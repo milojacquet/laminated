@@ -4,6 +4,7 @@ use crate::render::common::*;
 use crate::render::create::*;
 use crate::render::cube::nnn_seeds;
 use crate::session::*;
+use itertools::Itertools;
 
 use std::collections::HashSet;
 
@@ -163,7 +164,7 @@ fn main() {
     // It will be None if the mouse has moved farther than TURN_DISTANCE_THRESHOLD.
     // None: the mouse is not pressed.
     // Some((conj, None)): the mouse is being held from a viewport with conjugation conj, and camera orbiting has started.
-    // Some((conj, Some((loc, button)))): the mouse is being held from a viewport with conjugation conj, and camera orbiting has not yet started. the moouse was pressed at loc with button.
+    // Some((conj, Some((loc, button)))): the mouse is being held from a viewport with conjugation conj, and camera orbiting has not yet started. the mouse was pressed at loc with button.
     let mut mouse_press_location: Option<((), Option<(LogicalPoint, MouseButton)>)> = None;
     let mut keys_down: HashSet<Key> = HashSet::new();
 
@@ -335,13 +336,26 @@ fn main() {
                                         .puzzle
                                         .permutation()[sticker.piece_ind]]
                                 );*/
-                                status_message = Some(format!(
+                                /*status_message = Some(format!(
                                     "sticker: {:?}, face: {:?}, color: {:?}, piece: {:?}",
                                     session
                                         .concrete_puzzle
                                         .puzzle
                                         .index_to_solved_piece(sticker.piece_ind)
                                         .layers,
+                                    sticker.face,
+                                    sticker.color,
+                                    session.concrete_puzzle.puzzle.pieces[session
+                                        .concrete_puzzle
+                                        .puzzle
+                                        .permutation()[sticker.piece_ind]]
+                                ));*/
+                                status_message = Some(format!(
+                                    "position: {}, face: {}, color: {}, piece: {}",
+                                    session
+                                        .concrete_puzzle
+                                        .puzzle
+                                        .index_to_solved_piece(sticker.piece_ind),
                                     sticker.face,
                                     sticker.color,
                                     session.concrete_puzzle.puzzle.pieces[session

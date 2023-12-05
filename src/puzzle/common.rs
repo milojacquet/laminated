@@ -1,7 +1,9 @@
 use enum_map::{Enum, EnumMap};
+use itertools::Itertools;
 use rand;
 use rand::distributions::{Distribution, Standard};
 use std::collections::HashSet;
+use std::fmt;
 use std::iter::zip;
 use std::ops::{Add, Mul, Neg, Sub};
 
@@ -189,6 +191,22 @@ impl<Ray: RaySystem> Piece<Ray> {
 
     pub fn oriented_layers(&self) -> EnumMap<Ray, i8> {
         EnumMap::from_fn(|ray| self.layers[self.orientation[ray]])
+    }
+}
+
+impl<Ray: RaySystem + fmt::Display> fmt::Display for Piece<Ray> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut first_iter = true;
+        write!(f, "[")?;
+        for (ray, layer) in &self.layers {
+            if !first_iter {
+                write!(f, ", ")?;
+            }
+            write!(f, "{}: {}", ray, layer)?;
+            first_iter = false;
+        }
+        write!(f, "]")?;
+        Ok(())
     }
 }
 

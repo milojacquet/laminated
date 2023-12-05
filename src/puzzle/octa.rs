@@ -43,11 +43,7 @@ impl RaySystem for OctaRay {
         }*/
         // an axis head
         let axis = axis.get_axis()[0];
-        if axis == OctaRay(Sign::Pos, Sign::Pos, Sign::Pos) {
-            OctaRay(self.1, self.2, self.0)
-        } else {
-            OctaRay(axis.2 * self.1, axis.0 * self.2, axis.1 * self.0)
-        }
+        OctaRay(axis.2 * self.1, axis.0 * self.2, axis.1 * self.0)
     }
 
     fn order(&self) -> i8 {
