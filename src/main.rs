@@ -1,3 +1,4 @@
+use crate::key_label::*;
 use crate::puzzle::common::RaySystem;
 use crate::puzzle::cube::CubeRay;
 use crate::render::common::*;
@@ -10,6 +11,7 @@ use std::collections::HashSet;
 
 use three_d::*;
 
+pub mod key_label;
 pub mod puzzle;
 pub mod render;
 pub mod session;
@@ -254,11 +256,27 @@ fn main() {
                     });
                 });
                 TopBottomPanel::bottom("status_bar").show(gui_context, |ui| {
-                    if let Some(message) = &status_message {
-                        ui.label(message.as_str());
-                    } else if session.concrete_puzzle.puzzle.is_solved() {
-                        ui.label("Solved!");
-                    }
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        // this detects key presses one frame late
+                        for i in (0..NUMBER_KEYS.len()).rev() {
+                            let num_key = NUMBER_KEYS[i];
+                            if session.concrete_puzzle.key_layers[0].contains_key(&num_key) {
+                                ui.add(KeyLabel::new(
+                                    keys_down.contains(&num_key),
+                                    (i + 1).to_string(),
+                                ));
+                            }
+                        }
+                        ui.separator();
+
+                        ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                            if let Some(message) = &status_message {
+                                ui.label(message.as_str());
+                            } else if session.concrete_puzzle.puzzle.is_solved() {
+                                ui.label("Solved!");
+                            }
+                        });
+                    });
                 });
             },
         );
