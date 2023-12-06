@@ -9,6 +9,13 @@ pub struct Session<Ray: ConcreteRaySystem> {
     pub concrete_puzzle: ConcretePuzzle<Ray>,
     pub twists: Vec<((Ray, i8), Vec<Vec<i8>>)>,
     pub undid_twists: Vec<((Ray, i8), Vec<Vec<i8>>)>,
+    // None: the mouse is not pressed.
+    // Some((conj, None)): the mouse is being held from a viewport with conjugation conj, and camera orbiting has started.
+    // Some((conj, Some((loc, button)))): the mouse is being held from a viewport with conjugation conj, and camera orbiting has not yet started. the mouse was pressed at loc with button.
+    pub mouse_press_location: Option<(
+        Ray::Conjugate,
+        Option<(three_d::LogicalPoint, three_d::MouseButton)>,
+    )>,
 }
 
 impl<'a, Ray: ConcreteRaySystem> Session<Ray> {
@@ -18,6 +25,7 @@ impl<'a, Ray: ConcreteRaySystem> Session<Ray> {
             concrete_puzzle,
             twists: vec![],
             undid_twists: vec![],
+            mouse_press_location: None,
         }
     }
 

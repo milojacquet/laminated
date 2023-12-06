@@ -147,16 +147,20 @@ fn shortcut_button(
     ui.add(button)
 }
 
+/// Mutable objects that have to persist through making a new session
+struct PersistentObjects {
+    keys_down: HashSet<Key>,
+    status_message: Option<String>,
+    window_size: (u32, u32),
+    gui: GUI,
+}
+
 /// Does everything in the render loop, and if the puzzle changed, return the new puzzle.
 fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
     frame_input: &mut FrameInput,
     session: &mut Session<Ray>,
-    mouse_press_location: &mut Option<(Ray::Conjugate, Option<(LogicalPoint, MouseButton)>)>,
-    keys_down: &mut HashSet<Key>,
-    status_message: &mut Option<String>,
+    persistent: &mut PersistentObjects,
     context: &Context,
-    window_size: &mut (u32, u32),
-    gui: &mut GUI,
 ) -> Option<SessionEnum> {
     //println!("new frame");
 
@@ -167,13 +171,13 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
         (frame_input.window_height as f32 * frame_input.device_pixel_ratio) as u32,
     );
 
-    if &new_window_size != window_size {
-        *window_size = new_window_size;
-        println!("resized to {:?}", window_size);
-        update_viewports(*window_size, &mut session.concrete_puzzle);
+    if new_window_size != persistent.window_size {
+        persistent.window_size = new_window_size;
+        println!("resized to {:?}", persistent.window_size);
+        update_viewports(persistent.window_size, &mut session.concrete_puzzle);
     }
 
-    gui.update(
+    persistent.gui.update(
         &mut frame_input.events,
         frame_input.accumulated_time,
         frame_input.viewport,
@@ -195,7 +199,7 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                                     new_session = Some(SessionEnum::Cube(
                                         CubePuzzle::Nnn(n),
                                         Session::from_concrete(make_concrete_puzzle(
-                                            *window_size,
+                                            persistent.window_size,
                                             &context,
                                             nnn_seeds(n),
                                         )),
@@ -250,7 +254,7 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                         let num_key = NUMBER_KEYS[i];
                         if session.concrete_puzzle.key_layers[0].contains_key(&num_key) {
                             ui.add(KeyLabel::new(
-                                keys_down.contains(&num_key),
+                                persistent.keys_down.contains(&num_key),
                                 (i + 1).to_string(),
                             ));
                         }
@@ -258,7 +262,7 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                     ui.separator();
 
                     ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
-                        if let Some(message) = &status_message {
+                        if let Some(message) = &persistent.status_message {
                             ui.label(message.as_str());
                         } else if session.concrete_puzzle.puzzle.is_solved() {
                             ui.label("Solved!");
@@ -277,7 +281,7 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                 if let Some(viewport_clicked) =
                     get_viewport_from_pixel(&session.concrete_puzzle, position)
                 {
-                    *mouse_press_location =
+                    session.mouse_press_location =
                         Some((viewport_clicked.conjugate, Some((position, button))));
                 }
             }
@@ -286,21 +290,21 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                 position,
                 delta,
                 ..
-            } => match mouse_press_location {
+            } => match session.mouse_press_location {
                 Some((conjugate, Some((press_position, _)))) => {
                     let distance_moved =
                         f32::hypot(position.x - press_position.x, position.y - press_position.y);
                     if distance_moved > TURN_DISTANCE_THRESHOLD {
                         orbit_cameras(
                             &mut session.concrete_puzzle,
-                            *conjugate,
+                            conjugate,
                             (position.x - press_position.x, position.y - press_position.y),
                         );
-                        *mouse_press_location = Some((*conjugate, None));
+                        session.mouse_press_location = Some((conjugate, None));
                     }
                 }
                 Some((conjugate, None)) => {
-                    orbit_cameras(&mut session.concrete_puzzle, *conjugate, delta);
+                    orbit_cameras(&mut session.concrete_puzzle, conjugate, delta);
                     // change default
                 }
                 None => {
@@ -310,7 +314,7 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
             Event::MouseRelease {
                 button, position, ..
             } => {
-                *status_message = None;
+                persistent.status_message = None;
 
                 if let Some(viewport_clicked) =
                     get_viewport_from_pixel(&session.concrete_puzzle, position)
@@ -339,7 +343,7 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                                     .puzzle
                                     .permutation()[sticker.piece_ind]]
                             );*/
-                            /*status_message = Some(format!(
+                            /*persistent.status_message = Some(format!(
                                 "sticker: {:?}, face: {:?}, color: {:?}, piece: {:?}",
                                 session
                                     .concrete_puzzle
@@ -353,7 +357,7 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                                     .puzzle
                                     .permutation()[sticker.piece_ind]]
                             ));*/
-                            *status_message = Some(format!(
+                            persistent.status_message = Some(format!(
                                 "position: {}, face: {}, color: {}, piece: {}",
                                 session
                                     .concrete_puzzle
@@ -367,9 +371,9 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                                     .permutation()[sticker.piece_ind]]
                             ));
                         } else if let Some((_conjugate, Some((_, press_button)))) =
-                            mouse_press_location
+                            session.mouse_press_location
                         {
-                            if press_button == &button {
+                            if press_button == button {
                                 // TODO revise for conjugate
                                 let turn_direction = match button {
                                     three_d::MouseButton::Left => -1,
@@ -385,7 +389,8 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                                     .expect("rays are always in their axes");
                                 let opposite_axis = (-1i8).pow(axis_index as u32);
                                 let turn = (turn_face, opposite_axis * turn_direction);
-                                let grips: Vec<_> = keys_down
+                                let grips: Vec<_> = persistent
+                                    .keys_down
                                     .iter()
                                     .filter_map(|key| {
                                         session.concrete_puzzle.key_layers[axis_index]
@@ -406,13 +411,13 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                     }
                 }
 
-                *mouse_press_location = None;
+                session.mouse_press_location = None;
             }
             Event::KeyPress {
                 kind, modifiers, ..
             } => {
                 //println!("pressed {:?}", kind);
-                keys_down.insert(kind);
+                persistent.keys_down.insert(kind);
 
                 let ctrl = modifiers.ctrl || modifiers.command;
 
@@ -425,7 +430,7 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
             }
             Event::KeyRelease { kind, .. } => {
                 //println!("released {:?}", kind);
-                keys_down.remove(&kind);
+                persistent.keys_down.remove(&kind);
             }
             _ => (),
         }
@@ -445,7 +450,7 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
         &session.concrete_puzzle,
     );*/
 
-    frame_input.screen().write(|| gui.render());
+    frame_input.screen().write(|| persistent.gui.render());
 
     new_session
 }
@@ -460,37 +465,23 @@ fn main() {
 
     let context = window.gl();
     context.set_cull(Cull::Back);
-    let mut gui = GUI::new(&context);
+
+    let mut persistent = PersistentObjects {
+        keys_down: HashSet::new(),
+        status_message: None,
+        window_size: window.size(),
+        gui: GUI::new(&context),
+    };
 
     //let mut concrete_puzzle = make_concrete_puzzle(window.size(), &context, nnn_seeds(3));
     let mut session =
-        SessionSeed::Cube(CubePuzzle::Nnn(3)).make_session_enum(window.size(), &context);
-
-    // If the mouse is down, the time when it was first pressed.
-    // It will be None if the mouse has moved farther than TURN_DISTANCE_THRESHOLD.
-    // None: the mouse is not pressed.
-    // Some((conj, None)): the mouse is being held from a viewport with conjugation conj, and camera orbiting has started.
-    // Some((conj, Some((loc, button)))): the mouse is being held from a viewport with conjugation conj, and camera orbiting has not yet started. the mouse was pressed at loc with button.
-    let mut mouse_press_location: Option<((), Option<(LogicalPoint, MouseButton)>)> = None;
-    let mut keys_down: HashSet<Key> = HashSet::new();
-
-    let mut window_size = window.size();
-    let mut status_message: Option<String> = None;
+        SessionSeed::Cube(CubePuzzle::Nnn(3)).make_session_enum(persistent.window_size, &context);
 
     window.render_loop(move |mut frame_input| {
         let new_session;
         match &mut session {
             SessionEnum::Cube(_, ref mut session) => {
-                new_session = run_render_loop(
-                    &mut frame_input,
-                    session,
-                    &mut mouse_press_location,
-                    &mut keys_down,
-                    &mut status_message,
-                    &context,
-                    &mut window_size,
-                    &mut gui,
-                );
+                new_session = run_render_loop(&mut frame_input, session, &mut persistent, &context);
             }
         }
 
