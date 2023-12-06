@@ -1,5 +1,6 @@
 use crate::puzzle::common::*;
 use crate::render::common::*;
+use crate::util::enum_map_clone;
 
 use enum_map::EnumMap;
 
@@ -97,8 +98,7 @@ pub fn make_concrete_puzzle<Ray: ConcreteRaySystem>(
                             .transform(&Ray::axis_to_transform(turn, Default::default()))
                             .expect("the axis transform matrices should be invertible");
                     }
-                    // ad hoc clone
-                    let seed_layers_clone = EnumMap::from_fn(|ray: Ray| seed.layers[ray]);
+                    let seed_layers_clone = enum_map_clone(&seed.layers);
                     let piece_ind =
                         puzzle.piece_to_index(&Piece::make_solved_from_layers(seed_layers_clone));
                     let mut new_cpu_mesh = seed.cpu_mesh.clone();

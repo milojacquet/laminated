@@ -1,4 +1,5 @@
 use enum_map::Enum;
+use std::fmt;
 
 use crate::puzzle::common::RaySystem;
 pub use crate::puzzle::common::{Basis, BasisDiff, Sign};
@@ -58,16 +59,18 @@ impl RaySystem for OctaRay {
     ];
 
     #[rustfmt::skip]
-    const CYCLE: &'static [(Self, i8)] = {
-        &[
-            /*(U, 1), (U, 1), (U, 1), (F, 1),
-            (U, 1), (U, 1), (U, 1), (F, 1),
-            (U, 1), (U, 1), (U, 1), (F, 3),
-            (U, 1), (U, 1), (U, 1), (F, 3),
-            (U, 1), (U, 1), (U, 1), (F, 1),
-            (U, 1), (U, 1), (U, 1),*/
-        ]
+    const CYCLE: &'static [(Self, i8)] = {todo!()
     };
+
+    fn name(&self) -> String {
+        todo!()
+    }
+}
+
+impl fmt::Display for OctaRay {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.name())
+    }
 }
 
 #[cfg(test)]

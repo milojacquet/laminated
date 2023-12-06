@@ -3,9 +3,10 @@ use crate::puzzle::common::*;
 use crate::render;
 use crate::render::common::*;
 use crate::CubeRay;
+use enum_map::EnumMap;
 
 pub struct Session<Ray: ConcreteRaySystem> {
-    pub scramble: Vec<usize>,
+    pub scramble: Vec<EnumMap<Ray, Ray>>,
     pub concrete_puzzle: ConcretePuzzle<Ray>,
     pub twists: Vec<((Ray, i8), Vec<Vec<i8>>)>,
     pub undid_twists: Vec<((Ray, i8), Vec<Vec<i8>>)>,
@@ -21,7 +22,7 @@ pub struct Session<Ray: ConcreteRaySystem> {
 impl<'a, Ray: ConcreteRaySystem> Session<Ray> {
     pub fn from_concrete(concrete_puzzle: ConcretePuzzle<Ray>) -> Session<Ray> {
         Session {
-            scramble: concrete_puzzle.puzzle.permutation(),
+            scramble: concrete_puzzle.puzzle.orientations(),
             concrete_puzzle,
             twists: vec![],
             undid_twists: vec![],
@@ -43,7 +44,7 @@ impl<'a, Ray: ConcreteRaySystem> Session<Ray> {
 
     fn scramble_from_concrete(&mut self) {
         self.concrete_puzzle.reset_animations();
-        self.scramble = self.concrete_puzzle.puzzle.permutation();
+        self.scramble = self.concrete_puzzle.puzzle.orientations();
         self.twists = vec![];
         self.undid_twists = vec![];
     }
@@ -90,13 +91,31 @@ impl<'a, Ray: ConcreteRaySystem> Session<Ray> {
             // no undo left
         }
     }
+
+    fn extract_log(&self) -> (Vec<Vec<String>>, Vec<((String, i8), Vec<Vec<i8>>)>) {
+        let scramble_str = self
+            .scramble
+            .iter()
+            .map(|ori| ori.values().map(|ray| ray.name()).collect())
+            .collect();
+
+        let twists_str = self
+            .twists
+            .iter()
+            .map(|((ray, order), grips)| ((ray.name(), *order), grips.clone()))
+            .collect();
+
+        (scramble_str, twists_str)
+    }
 }
 
+#[derive(Debug, Copy, Clone, serde::Serialize, serde::Deserialize)]
 pub enum CubePuzzle {
     Nnn(i8),
 }
 
-pub enum SessionSeed {
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub enum SessionType {
     Cube(CubePuzzle),
 }
 
@@ -104,14 +123,14 @@ pub enum SessionEnum {
     Cube(CubePuzzle, Session<CubeRay>),
 }
 
-impl SessionSeed {
+impl SessionType {
     pub fn make_session_enum(
         self,
         window_size: (u32, u32),
         context: &three_d::Context,
     ) -> SessionEnum {
         match self {
-            SessionSeed::Cube(ps @ CubePuzzle::Nnn(n)) => SessionEnum::Cube(
+            SessionType::Cube(ps @ CubePuzzle::Nnn(n)) => SessionEnum::Cube(
                 ps,
                 Session::from_concrete(make_concrete_puzzle(
                     window_size,
@@ -120,5 +139,41 @@ impl SessionSeed {
                 )),
             ),
         }
+    }
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct SessionLog {
+    pub version: String,
+    pub session_type: SessionType,
+    pub scramble: Vec<Vec<String>>,
+    pub twists: Vec<((String, i8), Vec<Vec<i8>>)>,
+}
+
+impl SessionEnum {
+    pub fn get_type(&self) -> SessionType {
+        match self {
+            Self::Cube(pz, _) => SessionType::Cube(*pz),
+        }
+    }
+
+    pub fn to_log(&self) -> SessionLog {
+        let (scramble, twists) = match self {
+            Self::Cube(_, session) => session.extract_log(),
+        };
+
+        SessionLog {
+            version: env!("CARGO_PKG_VERSION").to_string(),
+            session_type: self.get_type(),
+            scramble,
+            twists,
+        }
+    }
+
+    pub fn save(&self) -> Result<(), eyre::Report> {
+        //println!("{:?}", self.to_log())
+        //serde_json::to_writer()
+        std::fs::write("logs/test.log", serde_json::to_string(&self.to_log())?)?;
+        Ok(())
     }
 }

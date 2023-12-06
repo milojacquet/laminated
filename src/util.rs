@@ -1,4 +1,6 @@
 use enum_map::Enum;
+use enum_map::EnumArray;
+use enum_map::EnumMap;
 
 pub fn enum_iter<E>() -> Vec<E>
 where
@@ -6,4 +8,9 @@ where
 {
     // not actually an iterator. i'm not sure how to make it one
     (0..E::LENGTH).map(|i| E::from_usize(i)).collect()
+}
+
+// ad hoc clone
+pub fn enum_map_clone<K: EnumArray<V>, V: Clone>(enum_map: &EnumMap<K, V>) -> EnumMap<K, V> {
+    EnumMap::from_fn(|key: K| enum_map[key].clone())
 }

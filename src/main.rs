@@ -155,16 +155,22 @@ struct PersistentObjects {
     gui: GUI,
 }
 
+#[derive(Default)]
+struct RenderLoopResponse {
+    new_session: Option<SessionEnum>,
+    save: bool,
+}
+
 /// Does everything in the render loop, and if the puzzle changed, return the new puzzle.
 fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
     frame_input: &mut FrameInput,
     session: &mut Session<Ray>,
     persistent: &mut PersistentObjects,
     context: &Context,
-) -> Option<SessionEnum> {
+) -> RenderLoopResponse {
     //println!("new frame");
 
-    let mut new_session: Option<SessionEnum> = None;
+    let mut response: RenderLoopResponse = Default::default();
 
     let new_window_size = (
         (frame_input.window_width as f32 * frame_input.device_pixel_ratio) as u32,
@@ -186,17 +192,16 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
             use three_d::egui::*;
             TopBottomPanel::top("menu_bar").show(gui_context, |ui| {
                 menu::bar(ui, |ui| {
-                    //use egui::Modifiers::*;
-                    /*ui.menu_button("File", |ui| {
-                        if ui.button("Open").clicked() {
-                            // …
+                    ui.menu_button("File", |ui| {
+                        if ui.button("Save").clicked() {
+                            response.save = true;
                         }
-                    });*/
+                    });
                     ui.menu_button("Puzzle", |ui| {
                         ui.menu_button("Cube", |ui| {
                             for n in 2..=9 {
                                 if ui.button(format!("{0} layers ({0}×{0}×{0})", n)).clicked() {
-                                    new_session = Some(SessionEnum::Cube(
+                                    response.new_session = Some(SessionEnum::Cube(
                                         CubePuzzle::Nnn(n),
                                         Session::from_concrete(make_concrete_puzzle(
                                             persistent.window_size,
@@ -452,7 +457,7 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
 
     frame_input.screen().write(|| persistent.gui.render());
 
-    new_session
+    response
 }
 
 fn main() {
@@ -475,18 +480,24 @@ fn main() {
 
     //let mut concrete_puzzle = make_concrete_puzzle(window.size(), &context, nnn_seeds(3));
     let mut session =
-        SessionSeed::Cube(CubePuzzle::Nnn(3)).make_session_enum(persistent.window_size, &context);
+        SessionType::Cube(CubePuzzle::Nnn(3)).make_session_enum(persistent.window_size, &context);
 
     window.render_loop(move |mut frame_input| {
-        let new_session;
+        let response;
         match &mut session {
             SessionEnum::Cube(_, ref mut session) => {
-                new_session = run_render_loop(&mut frame_input, session, &mut persistent, &context);
+                response = run_render_loop(&mut frame_input, session, &mut persistent, &context);
             }
         }
 
-        if let Some(new_session) = new_session {
+        if let Some(new_session) = response.new_session {
             session = new_session;
+        }
+
+        if response.save {
+            session.save();
+
+            //persistent.status_message = Some("Saved".into())
         }
 
         FrameOutput::default()

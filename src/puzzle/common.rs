@@ -82,6 +82,8 @@ impl Neg for Sign {
     }
 }
 
+/// A set of rays that align with the turns of the puzzle.
+/// Changing the order of them will change the log files.
 pub trait RaySystem
 where
     Self: 'static
@@ -92,7 +94,8 @@ where
         + Enum
         + std::fmt::Debug
         + enum_map::EnumArray<i8>
-        + enum_map::EnumArray<Self>,
+        + enum_map::EnumArray<Self>
+        + fmt::Display,
 {
     /// Returns a list of rays that make up the vector. Should
     /// return the same order for each axis.
@@ -126,6 +129,16 @@ where
             .choose(rng)
             .expect("ray system should not be empty")
     }
+
+    // Short name for ray
+    fn name(&self) -> String;
+
+    fn from_name(name: &str) -> Option<Self> {
+        enum_iter()
+            .iter()
+            .find(|ray: &&Self| ray.name() == name)
+            .copied()
+    }
 }
 
 /// A single piece of an abstract laminated puzzle.
@@ -134,10 +147,10 @@ pub struct Piece<Ray>
 where
     Ray: RaySystem,
 {
-    /// For each ray, the layer index on that ray (solved position).
+    /// For each ray, the layer index on that ray (solved position). It does not change.
     pub layers: EnumMap<Ray, i8>,
     /// For each ray, a tuple of the ray currently occupying
-    /// that direction and its layer parameter.
+    /// that direction and its layer parameter. It changes when the piece moves.
     pub orientation: EnumMap<Ray, Ray>,
 }
 
@@ -211,6 +224,7 @@ impl<Ray: RaySystem + fmt::Display> fmt::Display for Piece<Ray> {
 }
 
 /// Abstract laminated puzzle.
+/// I assume the pieces are always in order of their layers.
 #[derive(Debug)]
 pub struct Puzzle<Ray: RaySystem> {
     pub grips: Vec<Vec<i8>>,
@@ -298,6 +312,13 @@ impl<'a, Ray: RaySystem> Puzzle<Ray> {
             permutation[piece_index] = i;
         }
         permutation
+    }
+
+    pub fn orientations(&self) -> Vec<EnumMap<Ray, Ray>> {
+        self.pieces
+            .iter()
+            .map(|piece| enum_map_clone(&piece.orientation))
+            .collect()
     }
 
     pub fn scramble(&mut self) {

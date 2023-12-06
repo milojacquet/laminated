@@ -68,19 +68,22 @@ impl RaySystem for CubeRay {
             (U, 3), (U, 3), (U, 3), //(F, 3),
         ]
     };
+
+    fn name(&self) -> String {
+        match self {
+            CubeRay(Basis::X, Sign::Pos) => "R".to_string(),
+            CubeRay(Basis::Y, Sign::Pos) => "B".to_string(),
+            CubeRay(Basis::Z, Sign::Pos) => "U".to_string(),
+            CubeRay(Basis::X, Sign::Neg) => "L".to_string(),
+            CubeRay(Basis::Y, Sign::Neg) => "F".to_string(),
+            CubeRay(Basis::Z, Sign::Neg) => "D".to_string(),
+        }
+    }
 }
 
 impl fmt::Display for CubeRay {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match self {
-            CubeRay(Basis::X, Sign::Pos) => "R",
-            CubeRay(Basis::Y, Sign::Pos) => "B",
-            CubeRay(Basis::Z, Sign::Pos) => "U",
-            CubeRay(Basis::X, Sign::Neg) => "L",
-            CubeRay(Basis::Y, Sign::Neg) => "F",
-            CubeRay(Basis::Z, Sign::Neg) => "D",
-        };
-        write!(f, "{}", name)
+        write!(f, "{}", self.name())
     }
 }
 
