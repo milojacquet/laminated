@@ -1,5 +1,8 @@
+use crate::make_concrete_puzzle;
 use crate::puzzle::common::*;
+use crate::render;
 use crate::render::common::*;
+use crate::CubeRay;
 
 pub struct Session<Ray: ConcreteRaySystem> {
     pub scramble: Vec<usize>,
@@ -77,6 +80,37 @@ impl<'a, Ray: ConcreteRaySystem> Session<Ray> {
             self.multi_layer_twist((ray, -order), &grips); // do it again
         } else {
             // no undo left
+        }
+    }
+}
+
+pub enum CubePuzzle {
+    Nnn(i8),
+}
+
+pub enum SessionSeed {
+    Cube(CubePuzzle),
+}
+
+pub enum SessionEnum {
+    Cube(CubePuzzle, Session<CubeRay>),
+}
+
+impl SessionSeed {
+    pub fn make_session_enum(
+        self,
+        window_size: (u32, u32),
+        context: &three_d::Context,
+    ) -> SessionEnum {
+        match self {
+            SessionSeed::Cube(ps @ CubePuzzle::Nnn(n)) => SessionEnum::Cube(
+                ps,
+                Session::from_concrete(make_concrete_puzzle(
+                    window_size,
+                    &context,
+                    render::cube::nnn_seeds(n),
+                )),
+            ),
         }
     }
 }
