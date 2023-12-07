@@ -1,4 +1,4 @@
-use crate::puzzle::cube::{Basis, BasisDiff, Sign};
+use crate::puzzle::cube::{Basis, Sign};
 use crate::render::common::*;
 use crate::CubeRay;
 use crate::NUMBER_KEYS;
@@ -40,74 +40,6 @@ impl ConcreteRaySystem for CubeRay {
         }
     }
 }
-
-/*pub fn weird_puzzle_seeds() -> Vec<ViewportSeed<CubeRay>> {
-    let mut corner_mesh = CpuMesh::square();
-    corner_mesh
-        .transform(
-            &(Mat4::from_translation(vec3(2.0 / 3.0, 2.0 / 3.0, 1.0))
-                * Mat4::from_scale(1.0 / 3.0)),
-        )
-        .expect("the matrix should be invertible i made it");
-    let mut edge_mesh = CpuMesh::square();
-    edge_mesh
-        .transform(
-            &(Mat4::from_translation(vec3(2.0 / 3.0, 0.0, 1.0)) * Mat4::from_scale(1.0 / 3.0)),
-        )
-        .expect("the matrix should be invertible i made it");
-    vec![ViewportSeed {
-        abstract_viewport: AbstractViewport {
-            x: 0.0,
-            y: 0.0,
-            width: 1.0,
-            height: 1.0,
-        },
-        conjugate: (),
-        stickers: vec![
-            StickerSeed {
-                layers: enum_map! {U=>1,R=>1,B=>1,D=>-1,L=>-1,F=>-1,},
-                face: U,
-                color: U,
-                cpu_mesh: corner_mesh,
-            },
-            StickerSeed {
-                layers: enum_map! {U=>1,R=>1,B=>0,D=>-1,L=>-1,F=>0,},
-                face: U,
-                color: U,
-                cpu_mesh: edge_mesh,
-            },
-            StickerSeed {
-                layers: enum_map! {U=>1,R=>0,B=>0,D=>-1,L=>0,F=>0,},
-                face: U,
-                color: R,
-                cpu_mesh: CpuMesh {
-                    positions: Positions::F32(vec![
-                        Vec3::new(0.2, -0.2, 1.0),
-                        Vec3::new(1.0 / 3.0, -1.0 / 3.0, 1.0),
-                        Vec3::new(1.0 / 3.0, 1.0 / 3.0, 1.0),
-                        Vec3::new(0.2, 0.2, 1.0),
-                    ]),
-                    indices: Indices::U8(vec![0, 1, 2, 2, 3, 0]),
-                    ..Default::default()
-                },
-            },
-            StickerSeed {
-                layers: enum_map! {U=>1,R=>0,B=>0,D=>-1,L=>0,F=>0,},
-                face: U,
-                color: U,
-                cpu_mesh: CpuMesh {
-                    positions: Positions::F32(vec![
-                        Vec3::new(0.2, -0.2, 1.0),
-                        Vec3::new(0.2, 0.2, 1.0),
-                        Vec3::new(0.0, 0.0, 1.0),
-                    ]),
-                    indices: Indices::None,
-                    ..Default::default()
-                },
-            },
-        ],
-    }]
-}*/
 
 pub fn nnn_seeds<'a>(order: i8) -> PuzzleSeed<CubeRay> {
     use crate::puzzle::cube::name::*;

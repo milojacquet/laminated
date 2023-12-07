@@ -1,5 +1,4 @@
 use enum_map::Enum;
-use enum_map::EnumArray;
 use std::fmt;
 
 use crate::puzzle::common::RaySystem;
@@ -15,28 +14,6 @@ impl RaySystem for CubeRay {
     }
 
     fn turn_one(&self, axis: Self) -> Self {
-        /*match (axis, self) {
-            (U | D, U) => U,
-            (U | D, D) => D,
-            (U | D, F) => R,
-            (U | D, B) => L,
-            (U | D, R) => B,
-            (U | D, L) => F,
-
-            (F | B, U) => L,
-            (F | B, D) => R,
-            (F | B, F) => F,
-            (F | B, B) => B,
-            (F | B, R) => U,
-            (F | B, L) => D,
-
-            (R | L, U) => F,
-            (R | L, D) => B,
-            (R | L, F) => D,
-            (R | L, B) => U,
-            (R | L, R) => R,
-            (R | L, L) => L,
-        }*/
         match axis.0 - self.0 {
             BasisDiff::D0 => *self,
             BasisDiff::D1 => CubeRay(self.0 + BasisDiff::D2, -self.1),

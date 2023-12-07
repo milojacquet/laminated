@@ -1,13 +1,10 @@
 use crate::key_label::*;
-use crate::puzzle::common::RaySystem;
 use crate::puzzle::cube::CubeRay;
 use crate::render::common::*;
 use crate::render::create::*;
 use crate::render::cube::nnn_seeds;
 use crate::session::*;
-use crate::util::VERSION;
 use eyre::eyre;
-use itertools::Itertools;
 
 use std::collections::HashSet;
 
@@ -19,6 +16,7 @@ pub mod render;
 pub mod session;
 pub mod util;
 
+pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 const TURN_DISTANCE_THRESHOLD: f32 = 3.0;
 const ORBIT_SPEED: f32 = 0.007; // radians per pixel
 const ANIMATION_LENGTH: f32 = 150.0;
@@ -84,7 +82,6 @@ fn get_viewport_from_pixel<Ray: ConcreteRaySystem>(
     let phys_pixel = pixel.into();
     for viewport in &concrete_puzzle.viewports {
         let vp = viewport.viewport;
-        //dbg!(phys_pixel, vp);
         if (vp.x..vp.x + vp.width as i32).contains(&(phys_pixel.x as i32))
             && (vp.y..vp.y + vp.height as i32).contains(&(phys_pixel.y as i32))
         {
@@ -97,7 +94,6 @@ fn get_viewport_from_pixel<Ray: ConcreteRaySystem>(
 fn render_puzzle<Ray: ConcreteRaySystem>(
     screen: &mut RenderTarget,
     elapsed_time: f64,
-    context: &Context,
     concrete_puzzle: &mut ConcretePuzzle<Ray>,
 ) {
     screen.clear(ClearState::color_and_depth(0.8, 0.8, 0.8, 1.0, 1.0));
@@ -110,7 +106,6 @@ fn render_puzzle<Ray: ConcreteRaySystem>(
             viewport.stickers.iter_mut().map(|sticker| {
                 let puzzle = &concrete_puzzle.puzzle;
                 sticker.update_gm(
-                    &context,
                     Ray::ray_to_color(
                         &puzzle.pieces[permutation[sticker.piece_ind]].orientation[sticker.color],
                     ),
@@ -381,39 +376,6 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
 
                     if let Some(sticker) = sticker_m {
                         if button == MouseButton::Middle {
-                            persistent.status_message = None;
-
-                            /*println!(
-                                "sticker: {:?}, face = {:?}, color = {:?}",
-                                session
-                                    .concrete_puzzle
-                                    .puzzle
-                                    .index_to_solved_piece(sticker.piece_ind)
-                                    .layers,
-                                sticker.face,
-                                sticker.color
-                            );
-                            println!(
-                                "piece: {:?}",
-                                session.concrete_puzzle.puzzle.pieces[session
-                                    .concrete_puzzle
-                                    .puzzle
-                                    .permutation()[sticker.piece_ind]]
-                            );*/
-                            /*persistent.status_message = Some(format!(
-                                "sticker: {:?}, face: {:?}, color: {:?}, piece: {:?}",
-                                session
-                                    .concrete_puzzle
-                                    .puzzle
-                                    .index_to_solved_piece(sticker.piece_ind)
-                                    .layers,
-                                sticker.face,
-                                sticker.color,
-                                session.concrete_puzzle.puzzle.pieces[session
-                                    .concrete_puzzle
-                                    .puzzle
-                                    .permutation()[sticker.piece_ind]]
-                            ));*/
                             persistent.status_message = Some(format!(
                                 "position: {}, face: {}, color: {}, piece: {}",
                                 session
@@ -475,7 +437,6 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
             Event::KeyPress {
                 kind, modifiers, ..
             } => {
-                //println!("pressed {:?}", kind);
                 persistent.keys_down.insert(kind);
 
                 let ctrl = modifiers.ctrl || modifiers.command;
@@ -491,7 +452,6 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                 });
             }
             Event::KeyRelease { kind, .. } => {
-                //println!("released {:?}", kind);
                 persistent.keys_down.remove(&kind);
             }
             _ => (),
@@ -503,7 +463,6 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
     render_puzzle(
         &mut frame_input.screen(),
         frame_input.elapsed_time,
-        &context,
         &mut session.concrete_puzzle,
     );
     /*render_axes(
@@ -535,7 +494,6 @@ fn main() {
         gui: GUI::new(&context),
     };
 
-    //let mut concrete_puzzle = make_concrete_puzzle(window.size(), &context, nnn_seeds(3));
     let mut session =
         SessionType::Cube(CubePuzzle::Nnn(3)).make_session_enum(persistent.window_size, &context);
 

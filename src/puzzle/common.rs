@@ -1,8 +1,5 @@
 use enum_map::{Enum, EnumMap};
-use itertools::Itertools;
 use rand;
-use rand::distributions::{Distribution, Standard};
-use std::collections::HashSet;
 use std::fmt;
 use std::iter::zip;
 use std::ops::{Add, Mul, Neg, Sub};
@@ -125,7 +122,8 @@ where
     /// Uniform selection
     fn choose<R: rand::Rng>(rng: &mut R) -> Self {
         use rand::seq::SliceRandom;
-        *enum_iter::<Self>()[..]
+        *enum_iter::<Self>()
+            .collect::<Vec<_>>()
             .choose(rng)
             .expect("ray system should not be empty")
     }
@@ -134,10 +132,7 @@ where
     fn name(&self) -> String;
 
     fn from_name(name: &str) -> Option<Self> {
-        enum_iter()
-            .iter()
-            .find(|ray: &&Self| ray.name() == name)
-            .copied()
+        enum_iter::<Self>().find(|ray: &Self| ray.name() == name)
     }
 }
 
@@ -229,8 +224,6 @@ impl<Ray: RaySystem + fmt::Display> fmt::Display for Piece<Ray> {
 pub struct Puzzle<Ray: RaySystem> {
     pub grips: Vec<Vec<i8>>,
     pub pieces: Vec<Piece<Ray>>,
-    // / number at index i is the index of the piece that occupies position i
-    //pub permutation: Vec<usize>,
 }
 
 impl<'a, Ray: RaySystem> Puzzle<Ray> {
@@ -387,7 +380,7 @@ pub mod ray_system_tests {
 
     fn turns_permutations<Ray: RaySystem + std::fmt::Debug>() {
         for &ray in Ray::AXIS_HEADS {
-            for ray2s in enum_iter::<Ray>().iter().combinations(2) {
+            for ray2s in enum_iter::<Ray>().combinations(2) {
                 assert!(
                     ray2s[0].turn_one(ray) != ray2s[1].turn_one(ray),
                     "{:?} and {:?} turn the same under {:?}",

@@ -155,7 +155,7 @@ pub fn make_concrete_puzzle<Ray: ConcreteRaySystem>(
 
 pub fn update_viewports<Ray: ConcreteRaySystem>(
     window_size: (u32, u32),
-    mut concrete_puzzle: &mut ConcretePuzzle<Ray>,
+    concrete_puzzle: &mut ConcretePuzzle<Ray>,
 ) {
     let top_viewport = make_top_viewport(
         &concrete_puzzle

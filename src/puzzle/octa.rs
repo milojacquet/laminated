@@ -4,7 +4,6 @@ use std::fmt;
 use crate::puzzle::common::RaySystem;
 pub use crate::puzzle::common::{Basis, BasisDiff, Sign};
 
-/// Binary numbering of axes; false if UFR, true if DBL.
 #[derive(Debug, Enum, Clone, Copy, PartialEq, Eq)]
 pub struct OctaRay(Sign, Sign, Sign);
 
@@ -28,20 +27,6 @@ impl RaySystem for OctaRay {
     }
 
     fn turn_one(&self, axis: Self) -> Self {
-        /*match axis {
-            OctaRay(true, true, true) | OctaRay(false, false, false) => {
-                OctaRay(self.1, self.2, self.0)
-            }
-            OctaRay(true, true, false) | OctaRay(false, false, true) => {
-                OctaRay(!self.2, self.0, !self.1)
-            }
-            OctaRay(true, false, true) | OctaRay(false, true, false) => {
-                OctaRay(self.2, !self.0, !self.1)
-            }
-            OctaRay(true, false, false) | OctaRay(false, true, true) => {
-                OctaRay(!self.1, self.2, !self.0)
-            }
-        }*/
         // an axis head
         let axis = axis.get_axis()[0];
         OctaRay(axis.2 * self.1, axis.0 * self.2, axis.1 * self.0)

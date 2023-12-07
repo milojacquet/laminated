@@ -2,9 +2,8 @@ use crate::make_concrete_puzzle;
 use crate::puzzle::common::*;
 use crate::render;
 use crate::render::common::*;
-use crate::util::VERSION;
-use crate::util::{enum_index, enum_iter};
 use crate::CubeRay;
+use crate::VERSION;
 use enum_map::EnumMap;
 use eyre::eyre;
 
@@ -24,20 +23,17 @@ pub struct Session<Ray: ConcreteRaySystem> {
     pub version: String,
 }
 
-fn string_vec_to_enum_map<Ray: ConcreteRaySystem>(
+fn string_vec_to_enum_map<Ray: ConcreteRaySystem + enum_map::Enum>(
     strs: Vec<String>,
 ) -> eyre::Result<EnumMap<Ray, Ray>> {
-    if strs.len() != enum_iter::<Ray>().len() {
+    if strs.len() != Ray::LENGTH {
         return Err(eyre!("Invalid enum length"));
     }
     let rays: Vec<Ray> = strs
         .into_iter()
         .map(|st| Ray::from_name(&st).ok_or_else(|| eyre!("Invalid ray name")))
         .collect::<eyre::Result<_>>()?;
-    /*let ray_arr: <Ray as enum_map::EnumArray<Ray>>::Array =
-    rays.try_into().map_err(|_e| eyre!("Invalid enum length"))?;*/
-    //Ok(EnumMap::from_array(ray_arr))
-    let map = EnumMap::from_fn(|ray| rays[enum_index::<Ray>(ray)]);
+    let map = EnumMap::from_fn(|ray| rays[Ray::into_usize(ray)]);
     Ok(map)
 }
 
@@ -258,14 +254,6 @@ impl SessionEnum {
         self.set_save_path(Some(path.clone()));
         Ok(path.clone())
     }
-
-    /*pub fn save(&mut self) -> eyre::Result<()> {
-        match self.save_path() {
-            Some(save_path) => std::fs::write(save_path, serde_json::to_string(&self.to_log())?)?,
-            None => self.save_as(),
-        }
-        Ok(())
-    }*/
 
     fn from_log(
         log: SessionLog,

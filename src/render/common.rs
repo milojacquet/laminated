@@ -1,5 +1,4 @@
 use crate::puzzle::common::*;
-use crate::puzzle::cube::*;
 use crate::ANIMATION_INIT_V;
 use crate::ANIMATION_LENGTH;
 use enum_map::EnumMap;
@@ -105,7 +104,7 @@ impl<Ray: ConcreteRaySystem> Sticker<Ray> {
         )
     }
 
-    pub fn update_gm(&mut self, context: &Context, color: Srgba, elapsed_time: f32) {
+    pub fn update_gm(&mut self, color: Srgba, elapsed_time: f32) {
         // can this section be written better
         let remove_animation;
         let sticker_mat;
