@@ -321,6 +321,12 @@ impl<'a, Ray: RaySystem> Puzzle<Ray> {
             .collect()
     }
 
+    pub fn set_orientations(&mut self, oris: Vec<EnumMap<Ray, Ray>>) {
+        for (piece, ori) in self.pieces.iter_mut().zip(oris) {
+            piece.orientation = ori;
+        }
+    }
+
     pub fn scramble(&mut self) {
         use rand::seq::SliceRandom;
         use rand::Rng;

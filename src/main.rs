@@ -155,10 +155,27 @@ struct PersistentObjects {
     gui: GUI,
 }
 
+impl PersistentObjects {
+    fn show_or<T, E: std::fmt::Display>(&mut self, result: &Result<T, E>, default: String) {
+        if let Err(err) = result {
+            self.status_message = Some(err.to_string());
+        } else {
+            self.status_message = Some(default);
+        };
+    }
+
+    fn show_err<T, E: std::fmt::Display>(&mut self, result: Result<T, E>) {
+        if let Err(err) = result {
+            self.status_message = Some(err.to_string());
+        };
+    }
+}
+
 #[derive(Default)]
 struct RenderLoopResponse {
     new_session: Option<SessionEnum>,
     save: bool,
+    load: bool,
 }
 
 /// Does everything in the render loop, and if the puzzle changed, return the new puzzle.
@@ -195,6 +212,11 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                     ui.menu_button("File", |ui| {
                         if ui.button("Save").clicked() {
                             response.save = true;
+                            ui.close_menu();
+                        }
+                        if ui.button("Load").clicked() {
+                            response.load = true;
+                            ui.close_menu();
                         }
                     });
                     ui.menu_button("Puzzle", |ui| {
@@ -209,6 +231,7 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                                             nnn_seeds(n),
                                         )),
                                     ));
+                                    ui.close_menu();
                                 }
                             }
                         });
@@ -217,15 +240,21 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                     ui.menu_button("Control", |ui| {
                         if ui.button("Scramble").clicked() {
                             session.scramble();
+                            ui.close_menu();
                         }
                         if ui.button("Reset").clicked() {
                             session.reset();
+                            ui.close_menu();
                         }
                         ui.separator();
                         if shortcut_button(ui, gui_context, "Undo", Modifiers::COMMAND, Key::Z)
                             .clicked()
                         {
-                            session.undo();
+                            if let Err(err) = session.undo() {
+                                persistent.status_message = Some(err.to_string());
+                            } else {
+                                persistent.status_message = None;
+                            };
                         }
                         if shortcut_button(
                             ui,
@@ -236,7 +265,11 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                         )
                         .clicked()
                         {
-                            session.redo();
+                            if let Err(err) = session.redo() {
+                                persistent.status_message = Some(err.to_string());
+                            } else {
+                                persistent.status_message = None;
+                            };
                         }
                         if shortcut_button(
                             ui,
@@ -247,7 +280,11 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                         )
                         .clicked()
                         {
-                            session.do_inverse();
+                            if let Err(err) = session.do_inverse() {
+                                persistent.status_message = Some(err.to_string());
+                            } else {
+                                persistent.status_message = None;
+                            };
                         }
                     });
                 });
@@ -426,12 +463,12 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
 
                 let ctrl = modifiers.ctrl || modifiers.command;
 
-                match (kind, modifiers.shift, ctrl) {
+                persistent.show_err(match (kind, modifiers.shift, ctrl) {
                     (Key::Z, false, true) => session.undo(),
                     (Key::Y, false, true) | (Key::Z, true, true) => session.redo(),
                     (Key::X, false, true) => session.do_inverse(),
-                    _ => (),
-                }
+                    _ => Ok(()),
+                });
             }
             Event::KeyRelease { kind, .. } => {
                 //println!("released {:?}", kind);
@@ -495,9 +532,15 @@ fn main() {
         }
 
         if response.save {
-            session.save();
+            persistent.show_or(&session.save(), "Saved".to_string());
+        }
 
-            //persistent.status_message = Some("Saved".into())
+        if response.load {
+            let load_result = SessionEnum::load("logs/test.log", persistent.window_size, &context);
+            persistent.show_or(&load_result, "Loaded".to_string());
+            if let Ok(new_session) = load_result {
+                session = new_session;
+            }
         }
 
         FrameOutput::default()
