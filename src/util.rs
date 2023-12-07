@@ -2,6 +2,8 @@ use enum_map::Enum;
 use enum_map::EnumArray;
 use enum_map::EnumMap;
 
+pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+
 pub fn enum_iter<E>() -> Vec<E>
 where
     E: Enum,

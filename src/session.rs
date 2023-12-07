@@ -2,10 +2,11 @@ use crate::make_concrete_puzzle;
 use crate::puzzle::common::*;
 use crate::render;
 use crate::render::common::*;
+use crate::util::VERSION;
 use crate::util::{enum_index, enum_iter};
 use crate::CubeRay;
 use enum_map::EnumMap;
-use eyre::{eyre, Report};
+use eyre::eyre;
 
 pub struct Session<Ray: ConcreteRaySystem> {
     pub scramble: Vec<EnumMap<Ray, Ray>>,
@@ -19,6 +20,8 @@ pub struct Session<Ray: ConcreteRaySystem> {
         Ray::Conjugate,
         Option<(three_d::LogicalPoint, three_d::MouseButton)>,
     )>,
+    pub save_path: Option<std::path::PathBuf>,
+    pub version: String,
 }
 
 fn string_vec_to_enum_map<Ray: ConcreteRaySystem>(
@@ -46,6 +49,8 @@ impl<'a, Ray: ConcreteRaySystem> Session<Ray> {
             twists: vec![],
             undid_twists: vec![],
             mouse_press_location: None,
+            save_path: None,
+            version: VERSION.to_string(),
         }
     }
 
@@ -143,18 +148,28 @@ impl<'a, Ray: ConcreteRaySystem> Session<Ray> {
     }
 
     fn process_log(&mut self, log: SessionLog) -> eyre::Result<()> {
-        self.set_orientations(log.scramble)?;
+        self.version = log.version;
+        let suffix = if &self.version == VERSION {
+            "".to_string()
+        } else {
+            format!(" (loading from version {})", self.version)
+        };
+
+        self.set_orientations(log.scramble)
+            .map_err(|err| eyre!(err.to_string() + &suffix))?;
 
         for ((st, order), grips) in log.twists {
             self.twist(
                 (
-                    Ray::from_name(&st).ok_or_else(|| eyre!("Invalid ray name"))?,
+                    Ray::from_name(&st).ok_or_else(|| eyre!("Invalid ray name{suffix}"))?,
                     order,
                 ),
                 grips,
             )
         }
+
         self.concrete_puzzle.reset_animations();
+
         Ok(())
     }
 }
@@ -207,47 +222,74 @@ impl SessionEnum {
         }
     }
 
+    pub fn save_path<'a>(&'a self) -> &'a Option<std::path::PathBuf> {
+        match self {
+            SessionEnum::Cube(_, ref session) => &session.save_path,
+        }
+    }
+
+    pub fn set_save_path(&mut self, val: Option<std::path::PathBuf>) {
+        match self {
+            SessionEnum::Cube(_, ref mut session) => session.save_path = val,
+        };
+    }
+
+    pub fn version<'a>(&'a self) -> &'a String {
+        match self {
+            SessionEnum::Cube(_, ref session) => &session.version,
+        }
+    }
+
     pub fn to_log(&self) -> SessionLog {
         let (scramble, twists) = match self {
             Self::Cube(_, session) => session.extract_log(),
         };
 
         SessionLog {
-            version: env!("CARGO_PKG_VERSION").to_string(),
+            version: VERSION.to_string(),
             session_type: self.get_type(),
             scramble,
             twists,
         }
     }
 
-    pub fn save(&self) -> eyre::Result<()> {
-        //println!("{:?}", self.to_log())
-        //serde_json::to_writer()
-        std::fs::write("logs/test.log", serde_json::to_string(&self.to_log())?)?;
-        Ok(())
+    pub fn save_as(&mut self, path: &std::path::PathBuf) -> eyre::Result<std::path::PathBuf> {
+        std::fs::write(path, serde_json::to_string(&self.to_log())?)?;
+        self.set_save_path(Some(path.clone()));
+        Ok(path.clone())
     }
+
+    /*pub fn save(&mut self) -> eyre::Result<()> {
+        match self.save_path() {
+            Some(save_path) => std::fs::write(save_path, serde_json::to_string(&self.to_log())?)?,
+            None => self.save_as(),
+        }
+        Ok(())
+    }*/
 
     fn from_log(
         log: SessionLog,
         window_size: (u32, u32),
         context: &three_d::Context,
+        path: std::path::PathBuf,
     ) -> eyre::Result<Self> {
         let mut session = log.session_type.make_session_enum(window_size, context);
         match &mut session {
             SessionEnum::Cube(_, ref mut session) => session.process_log(log),
         }?;
+        session.set_save_path(Some(path));
 
         Ok(session)
     }
 
-    pub fn load<P: AsRef<std::path::Path>>(
-        path: P,
+    pub fn load(
+        path: std::path::PathBuf,
         window_size: (u32, u32),
         context: &three_d::Context,
     ) -> eyre::Result<Self> {
-        let file = std::fs::File::open(path)?;
+        let file = std::fs::File::open(path.clone())?;
         let reader = std::io::BufReader::new(file);
         let session_log: SessionLog = serde_json::from_reader(reader)?;
-        Self::from_log(session_log, window_size, context)
+        Self::from_log(session_log, window_size, context, path)
     }
 }

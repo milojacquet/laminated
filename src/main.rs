@@ -5,6 +5,8 @@ use crate::render::common::*;
 use crate::render::create::*;
 use crate::render::cube::nnn_seeds;
 use crate::session::*;
+use crate::util::VERSION;
+use eyre::eyre;
 use itertools::Itertools;
 
 use std::collections::HashSet;
@@ -147,6 +149,12 @@ fn shortcut_button(
     ui.add(button)
 }
 
+fn file_dialog() -> rfd::FileDialog {
+    rfd::FileDialog::new()
+        .add_filter("Log files", &["log"])
+        .add_filter("All files", &["*"])
+}
+
 /// Mutable objects that have to persist through making a new session
 struct PersistentObjects {
     keys_down: HashSet<Key>,
@@ -156,11 +164,14 @@ struct PersistentObjects {
 }
 
 impl PersistentObjects {
-    fn show_or<T, E: std::fmt::Display>(&mut self, result: &Result<T, E>, default: String) {
-        if let Err(err) = result {
-            self.status_message = Some(err.to_string());
-        } else {
-            self.status_message = Some(default);
+    fn show_or<T, E: std::fmt::Display>(
+        &mut self,
+        result: &Result<T, E>,
+        default: impl Fn(&T) -> String,
+    ) {
+        match result {
+            Ok(ok) => self.status_message = Some(default(ok)),
+            Err(err) => self.status_message = Some(err.to_string()),
         };
     }
 
@@ -171,10 +182,15 @@ impl PersistentObjects {
     }
 }
 
+enum Save {
+    SavePath,
+    SaveDefault,
+}
+
 #[derive(Default)]
 struct RenderLoopResponse {
     new_session: Option<SessionEnum>,
-    save: bool,
+    save: Option<Save>,
     load: bool,
 }
 
@@ -206,16 +222,28 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
         frame_input.viewport,
         frame_input.device_pixel_ratio,
         |gui_context| {
-            use three_d::egui::*;
+            use egui::*;
+            #[allow(non_snake_case)]
+            let COMMAND = Modifiers::COMMAND;
+            #[allow(non_snake_case)]
+            let COMMAND_SHIFT = Modifiers::COMMAND | Modifiers::SHIFT;
+
             TopBottomPanel::top("menu_bar").show(gui_context, |ui| {
                 menu::bar(ui, |ui| {
                     ui.menu_button("File", |ui| {
-                        if ui.button("Save").clicked() {
-                            response.save = true;
+                        if shortcut_button(ui, gui_context, "Open...", COMMAND, Key::O).clicked() {
+                            response.load = true;
                             ui.close_menu();
                         }
-                        if ui.button("Load").clicked() {
-                            response.load = true;
+                        ui.separator();
+                        if shortcut_button(ui, gui_context, "Save", COMMAND, Key::S).clicked() {
+                            response.save = Some(Save::SaveDefault);
+                            ui.close_menu();
+                        }
+                        if shortcut_button(ui, gui_context, "Save as...", COMMAND_SHIFT, Key::S)
+                            .clicked()
+                        {
+                            response.save = Some(Save::SavePath);
                             ui.close_menu();
                         }
                     });
@@ -247,23 +275,14 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                             ui.close_menu();
                         }
                         ui.separator();
-                        if shortcut_button(ui, gui_context, "Undo", Modifiers::COMMAND, Key::Z)
-                            .clicked()
-                        {
+                        if shortcut_button(ui, gui_context, "Undo", COMMAND, Key::Z).clicked() {
                             if let Err(err) = session.undo() {
                                 persistent.status_message = Some(err.to_string());
                             } else {
                                 persistent.status_message = None;
                             };
                         }
-                        if shortcut_button(
-                            ui,
-                            gui_context,
-                            "Redo",
-                            Modifiers::COMMAND | Modifiers::SHIFT,
-                            Key::Z,
-                        )
-                        .clicked()
+                        if shortcut_button(ui, gui_context, "Redo", COMMAND_SHIFT, Key::Z).clicked()
                         {
                             if let Err(err) = session.redo() {
                                 persistent.status_message = Some(err.to_string());
@@ -271,14 +290,7 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                                 persistent.status_message = None;
                             };
                         }
-                        if shortcut_button(
-                            ui,
-                            gui_context,
-                            "Do inverse",
-                            Modifiers::COMMAND,
-                            Key::X,
-                        )
-                        .clicked()
+                        if shortcut_button(ui, gui_context, "Do inverse", COMMAND, Key::X).clicked()
                         {
                             if let Err(err) = session.do_inverse() {
                                 persistent.status_message = Some(err.to_string());
@@ -307,6 +319,7 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                         if let Some(message) = &persistent.status_message {
                             ui.label(message.as_str());
                         } else if session.concrete_puzzle.puzzle.is_solved() {
+                            // if the message is None, we display one of the weaker messages
                             ui.label("Solved!");
                         }
                     });
@@ -337,6 +350,8 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                     let distance_moved =
                         f32::hypot(position.x - press_position.x, position.y - press_position.y);
                     if distance_moved > TURN_DISTANCE_THRESHOLD {
+                        persistent.status_message = None;
+
                         orbit_cameras(
                             &mut session.concrete_puzzle,
                             conjugate,
@@ -356,8 +371,6 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
             Event::MouseRelease {
                 button, position, ..
             } => {
-                persistent.status_message = None;
-
                 if let Some(viewport_clicked) =
                     get_viewport_from_pixel(&session.concrete_puzzle, position)
                 {
@@ -368,6 +381,8 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
 
                     if let Some(sticker) = sticker_m {
                         if button == MouseButton::Middle {
+                            persistent.status_message = None;
+
                             /*println!(
                                 "sticker: {:?}, face = {:?}, color = {:?}",
                                 session
@@ -415,6 +430,8 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                         } else if let Some((_conjugate, Some((_, press_button)))) =
                             session.mouse_press_location
                         {
+                            persistent.status_message = None;
+
                             if press_button == button {
                                 // TODO revise for conjugate
                                 let turn_direction = match button {
@@ -467,6 +484,9 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                     (Key::Z, false, true) => session.undo(),
                     (Key::Y, false, true) | (Key::Z, true, true) => session.redo(),
                     (Key::X, false, true) => session.do_inverse(),
+                    (Key::O, false, true) => Ok(response.load = true),
+                    (Key::S, false, true) => Ok(response.save = Some(Save::SaveDefault)),
+                    (Key::S, true, true) => Ok(response.save = Some(Save::SavePath)),
                     _ => Ok(()),
                 });
             }
@@ -531,13 +551,44 @@ fn main() {
             session = new_session;
         }
 
-        if response.save {
-            persistent.show_or(&session.save(), "Saved".to_string());
+        if let Some(save_type) = response.save {
+            let save_path: Result<std::path::PathBuf, eyre::Report> =
+                match (save_type, session.save_path()) {
+                    (Save::SaveDefault, Some(save_path)) => Ok(save_path.clone()),
+                    _ => file_dialog()
+                        .save_file()
+                        .ok_or_else(|| eyre!("No file picked")),
+                };
+
+            persistent.show_or(&save_path.and_then(|path| session.save_as(&path)), |path| {
+                format!("Saved to {}", path.display()).to_string()
+            });
         }
 
         if response.load {
-            let load_result = SessionEnum::load("logs/test.log", persistent.window_size, &context);
-            persistent.show_or(&load_result, "Loaded".to_string());
+            let load_path = file_dialog()
+                .pick_file()
+                .ok_or_else(|| eyre!("No file picked"));
+
+            let load_result = load_path
+                .and_then(|path| SessionEnum::load(path, persistent.window_size, &context));
+            persistent.show_or(&load_result, |session| {
+                let suffix = if session.version() == VERSION {
+                    "".to_string()
+                } else {
+                    format!(" from earlier version {}", session.version())
+                };
+
+                format!(
+                    "Loaded {}{suffix}",
+                    session
+                        .save_path()
+                        .clone()
+                        .expect("the path should have been set")
+                        .display()
+                )
+                .to_string()
+            });
             if let Ok(new_session) = load_result {
                 session = new_session;
             }
