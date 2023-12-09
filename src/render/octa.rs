@@ -9,8 +9,6 @@ use std::f32::consts::PI;
 
 use three_d::*;
 
-const SUPER_START: f32 = 0.75;
-
 impl ConcreteRaySystem for OctaRay {
     type Conjugate = ();
 
@@ -98,46 +96,208 @@ pub fn core_seeds() -> PuzzleSeed<OctaRay> {
     }
 }
 
-/*
-pub fn nnn_seeds<'a>(order: i8) -> PuzzleSeed<CubeRay> {
-    use crate::puzzle::cube::name::*;
+const CENTER_INRAD_RATIO: f32 = 0.6; // ratio between inradius of center and height of trapezoid
 
-    let mut current_width = 0.0;
+fn fto_circrad(order: i8) -> f32 {
+    // placeholder
+    1.0
+}
+
+fn cut_depth(order: i8, cut: i8) -> f32 {
+    // (order - 2 + 2 CIR) width = 2 circrad/3
+    // => width = 2 circrad/(3 (order - 2 + 2 CIR))
+    let half_width = fto_circrad(order) / (3.0 * (order as f32 - 2.0 + 2.0 * CENTER_INRAD_RATIO));
+    return half_width * cut as f32;
+}
+
+/// more convenient version of cut_depth that ranges from 0 to 1
+fn cut_depth_on_axis(order: i8, cut: i8) -> f32 {
+    // (order - 2 + 2 CIR) width = 1/3
+    // => width = 1/(3 (order - 2 + 2 CIR))
+    let half_width = 0.5 / (3.0 * (order as f32 - 2.0 + 2.0 * CENTER_INRAD_RATIO));
+    return 0.5 + half_width * cut as f32;
+}
+
+pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
+    use crate::puzzle::octa::name::*;
+
+    let offsets: HashMap<i8, f32> = {
+        let mut offsets = HashMap::new();
+        let mut current_offset = 0.0;
+        for n in 2..=order + 1 {
+            offsets.insert(n, current_offset);
+            current_offset += fto_circrad(n);
+        }
+        offsets
+    };
 
     let grips: Vec<Vec<i8>> = (-order + 1..=order - 1)
         .step_by(2)
         .map(|k| vec![k, -k])
         .collect();
 
-    let viewports = (1 + (order & 1)..=order - 1)
-        .step_by(2)
-        .map(|n| {
-            // n = outer layer of the puzzle in this viewport
-            // convenience
-            let si = 1.0 / (n + 1) as f32;
-            let cube_scale = (n as f32 + 1.0) / (order as f32);
+    /*
+    The laminated [order]-layer FTO corresponds to a subgroup of the n^4 hypercube.
+    The 4d coordinates of a FTO piece are the layer indices of the axis heads.
+    Each viewport contains pieces whose maximum coordinate is n,
+    and whose minimum coordinate is m.
+    */
+
+    let mut viewports: Vec<ViewportSeed<OctaRay>> = vec![];
+
+    for n in (-order + 3..=order - 1).step_by(2) {
+        for m in (-order + 1..=n - 2).step_by(2) {
+            /*
+            suppose inradius of octahedron is r
+            range of cut depths will be between ± r/3
+            if trapezoid height is h and local order is w, and CENTER_INRAD_RATIO is ρ,
+            r/3 = 2ρ+h(w-2)  =>  r = 6ρ + 3h(w-2) ?????
+
+            octahedron planes: x+y+z = r
+            legal cuts: x+y+z = d where -r/3 < d < r/3
+
+
+            */
+
+            let s_order: i8 = (n - m) / 2 + 1;
+            let circrad = fto_circrad(s_order);
 
             let abstract_viewport = AbstractViewport {
-                x: current_width, //((n - 1) / 2) as f32,
-                y: 0.0,
+                x: *offsets
+                    .get(&((n + order + 1) / 2))
+                    .expect("size should have been measured"),
+                y: *offsets
+                    .get(&((-m + order + 1) / 2))
+                    .expect("size should have been measured"),
                 //width: 1.0 * ((n + 1) as f32) / (order as f32),
-                width: 0.7 * ((n + 1) as f32) / (order as f32) + 0.3,
-                height: 1.0,
+                width: fto_circrad((n + order + 1) / 2),
+                height: fto_circrad((-m + order + 1) / 2),
             };
 
-            current_width += abstract_viewport.width;
+            let cd = |l| cut_depth_on_axis(s_order, l);
 
             let mut stickers = vec![];
 
-            for i in (2 - (n & 1)..=n).step_by(2) {
-                for j in (2 - i..=i).step_by(2) {
-                    //dbg!(n, i, j);
-                    let layers = enum_map! {U=>n,R=>i,B=>j,D=>-n,L=>-i,F=>-j,};
-                    let cv = |x: f32, y: f32| {
-                        Vec3::new((i as f32 + x) * si, (j as f32 + y) * si, 1.0) * cube_scale
-                    };
+            for i in (m..=n).step_by(2) {
+                for j in (m..=m + n - i).step_by(2) {
+                    dbg!("{n} {m} {i} {j}");
+                    let layers: enum_map::EnumMap<OctaRay, i8> =
+                        enum_map! {BU=>n,R=>m,L=>j,D=>i,F=>-n,BL=>-m,BR=>-j,U=>-i};
 
-                    if i == n {
+                    // all pieces are on the BU face (or the BL face in the second invocation)
+
+                    // local layer indices: these pretend that m = -s_order+1 and n = s_order-1
+                    let il = i + s_order - 1 - n;
+                    let jl = j + s_order - 1 - n;
+
+                    if i == m && j == n {
+                        // corner
+                        stickers.push(StickerSeed {
+                            layers,
+                            face: BU,
+                            color: BU,
+                            cpu_mesh: polygon(vec![
+                                Vec3::new(cd(il + 1), 0.0, cd(jl - 1)) * circrad,
+                                Vec3::new(0.0, cd(il + 1), cd(jl - 1)) * circrad,
+                                Vec3::new(0.0, 0.0, 1.0) * circrad,
+                            ]),
+                        });
+                    } else if i == n && j == m {
+                        // another corner
+                        // we don't need to render this one
+                    } else if i == m && j == m {
+                        // BU center
+                        stickers.push(StickerSeed {
+                            layers,
+                            face: BU,
+                            color: BU,
+                            cpu_mesh: polygon(vec![
+                                Vec3::new(1.0 - 2.0 * cd(il + 1), cd(il + 1), cd(il + 1)) * circrad,
+                                Vec3::new(cd(il + 1), 1.0 - 2.0 * cd(il + 1), cd(il + 1)) * circrad,
+                                Vec3::new(1.0, 1.0, 1.0) / 3.0 * circrad,
+                            ]),
+                        });
+                    } else if i == m {
+                        // trapezoid (x-center) near L
+                        stickers.push(StickerSeed {
+                            layers,
+                            face: BU,
+                            color: BU,
+                            cpu_mesh: polygon(vec![
+                                Vec3::new(1.0 - cd(il + 1) - cd(jl - 1), cd(il + 1), cd(jl - 1))
+                                    * circrad,
+                                Vec3::new(1.0 - cd(il + 1) - cd(jl + 1), cd(il + 1), cd(jl + 1))
+                                    * circrad,
+                                Vec3::new(
+                                    (1.0 - cd(jl + 1)) / 2.0,
+                                    (1.0 - cd(jl + 1)) / 2.0,
+                                    cd(jl + 1),
+                                ) * circrad,
+                                Vec3::new(
+                                    (1.0 - cd(jl - 1)) / 2.0,
+                                    (1.0 - cd(jl - 1)) / 2.0,
+                                    cd(jl - 1),
+                                ) * circrad,
+                            ]),
+                        });
+                    } else if j == m {
+                        // trapezoid (x-center) near D
+                        stickers.push(StickerSeed {
+                            layers,
+                            face: BU,
+                            color: BU,
+                            cpu_mesh: polygon(vec![
+                                Vec3::new(1.0 - cd(il + 1) - cd(jl + 1), cd(il + 1), cd(jl + 1))
+                                    * circrad,
+                                Vec3::new(1.0 - cd(il - 1) - cd(jl + 1), cd(il - 1), cd(jl + 1))
+                                    * circrad,
+                                Vec3::new(
+                                    (1.0 - cd(il - 1)) / 2.0,
+                                    cd(il - 1),
+                                    (1.0 - cd(il - 1)) / 2.0,
+                                ) * circrad,
+                                Vec3::new(
+                                    (1.0 - cd(il + 1)) / 2.0,
+                                    cd(il + 1),
+                                    (1.0 - cd(il + 1)) / 2.0,
+                                ) * circrad,
+                            ]),
+                        });
+                    } else if i + j == m + n {
+                        // edge or wing
+                        stickers.push(StickerSeed {
+                            layers,
+                            face: BU,
+                            color: BU,
+                            cpu_mesh: polygon(vec![
+                                Vec3::new(1.0 - cd(il - 1) - cd(jl - 1), cd(il - 1), cd(jl - 1))
+                                    * circrad,
+                                Vec3::new(1.0 - cd(il + 1) - cd(jl - 1), cd(il + 1), cd(jl - 1))
+                                    * circrad,
+                                Vec3::new(1.0 - cd(il - 1) - cd(jl + 1), cd(il - 1), cd(jl + 1))
+                                    * circrad,
+                            ]),
+                        });
+                    } else {
+                        // rhombus
+                        stickers.push(StickerSeed {
+                            layers,
+                            face: BU,
+                            color: BU,
+                            cpu_mesh: polygon(vec![
+                                Vec3::new(1.0 - cd(il - 1) - cd(jl - 1), cd(il - 1), cd(jl - 1))
+                                    * circrad,
+                                Vec3::new(1.0 - cd(il + 1) - cd(jl - 1), cd(il + 1), cd(jl - 1))
+                                    * circrad,
+                                Vec3::new(1.0 - cd(il + 1) - cd(jl + 1), cd(il + 1), cd(jl + 1))
+                                    * circrad,
+                                Vec3::new(1.0 - cd(il - 1) - cd(jl + 1), cd(il - 1), cd(jl + 1))
+                                    * circrad,
+                            ]),
+                        });
+                    }
+
+                    /*if i == n {
                         // corner or edge
                         stickers.push(StickerSeed {
                             layers,
@@ -209,42 +369,18 @@ pub fn nnn_seeds<'a>(order: i8) -> PuzzleSeed<CubeRay> {
                                 cv(SUPER_START, 1.0),
                             ]),
                         });
-                    }
+                    }*/
                 }
             }
-            if order & 1 == 1 {
-                let layers = enum_map! {U=>n,R=>0,B=>0,D=>-n,L=>0,F=>0,};
-                stickers.push(StickerSeed {
-                    layers,
-                    face: U,
-                    color: U,
-                    cpu_mesh: polygon(vec![
-                        Vec3::new(0.0, 0.0, 1.0) * cube_scale,
-                        Vec3::new(SUPER_START * si, -SUPER_START * si, 1.0) * cube_scale,
-                        Vec3::new(SUPER_START * si, SUPER_START * si, 1.0) * cube_scale,
-                    ]),
-                });
-                stickers.push(StickerSeed {
-                    layers,
-                    face: U,
-                    color: R,
-                    cpu_mesh: polygon(vec![
-                        Vec3::new(SUPER_START * si, -SUPER_START * si, 1.0) * cube_scale,
-                        Vec3::new(si, -si, 1.0) * cube_scale,
-                        Vec3::new(si, si, 1.0) * cube_scale,
-                        Vec3::new(SUPER_START * si, SUPER_START * si, 1.0) * cube_scale,
-                    ]),
-                });
-            }
 
-            ViewportSeed {
+            viewports.push(ViewportSeed {
                 abstract_viewport,
                 conjugate: (),
                 stickers,
-                default_layers: vec![vec![n, -n], vec![-n, n]],
-            }
-        })
-        .collect();
+                default_layers: vec![vec![n, -n], vec![m, -m]],
+            });
+        }
+    }
 
     let key_layers = vec![
         HashMap::from_iter(NUMBER_KEYS.into_iter().zip(grips.iter().rev().cloned())),
@@ -256,4 +392,4 @@ pub fn nnn_seeds<'a>(order: i8) -> PuzzleSeed<CubeRay> {
         viewports,
         key_layers,
     }
-}*/
+}

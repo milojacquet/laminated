@@ -73,6 +73,19 @@ impl RaySystem for OctaRay {
     }
 }
 
+pub mod name {
+    use super::*;
+
+    pub const U: OctaRay = OctaRay(Sign::Pos, Sign::Neg, Sign::Pos);
+    pub const R: OctaRay = OctaRay(Sign::Pos, Sign::Neg, Sign::Neg);
+    pub const L: OctaRay = OctaRay(Sign::Neg, Sign::Neg, Sign::Pos);
+    pub const F: OctaRay = OctaRay(Sign::Neg, Sign::Neg, Sign::Neg);
+    pub const BU: OctaRay = OctaRay(Sign::Pos, Sign::Pos, Sign::Pos);
+    pub const BR: OctaRay = OctaRay(Sign::Pos, Sign::Pos, Sign::Neg);
+    pub const BL: OctaRay = OctaRay(Sign::Neg, Sign::Pos, Sign::Pos);
+    pub const D: OctaRay = OctaRay(Sign::Neg, Sign::Pos, Sign::Neg);
+}
+
 impl fmt::Display for OctaRay {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.name())

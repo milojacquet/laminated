@@ -260,6 +260,15 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                                 );
                                 ui.close_menu();
                             }
+                            for n in 2..=5 {
+                                if ui.button(format!("{0} layers", n)).clicked() {
+                                    response.new_session = Some(
+                                        SessionType::Octa(OctaPuzzle::Fto(n))
+                                            .make_session_enum(persistent.window_size, &context),
+                                    );
+                                    ui.close_menu();
+                                }
+                            }
                         });
                     });
 
