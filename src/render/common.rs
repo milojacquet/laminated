@@ -17,7 +17,13 @@ where
 
     fn axis_to_transform(turn: (Self, i8), conjugate: Self::Conjugate) -> Mat4;
 
-    fn axis_to_vec(&self, conjugate: Self::Conjugate) -> Vec3;
+    /// Unit vector that points along a ray.
+    fn ray_to_vec(&self, conjugate: Self::Conjugate) -> Vec3;
+
+    /// Unit vector that points along the ray's axis head.
+    fn axis_to_vec(&self, conjugate: Self::Conjugate) -> Vec3 {
+        self.get_axis()[0].ray_to_vec(conjugate)
+    }
 
     fn ray_to_color(&self) -> Srgba;
 }

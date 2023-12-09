@@ -1,5 +1,6 @@
-use crate::puzzle::cube::CubeRay;
+use crate::puzzle::common::RaySystem;
 use crate::puzzle::cube::{Basis, Sign};
+use crate::puzzle::octa::OctaRay;
 use crate::render::common::*;
 use crate::NUMBER_KEYS;
 use enum_map::enum_map;
@@ -10,37 +11,94 @@ use three_d::*;
 
 const SUPER_START: f32 = 0.75;
 
-impl ConcreteRaySystem for CubeRay {
+impl ConcreteRaySystem for OctaRay {
     type Conjugate = ();
 
-    fn axis_to_transform((ray, order): (Self, i8), _conjugate: Self::Conjugate) -> Mat4 {
-        match ray.0 {
-            Basis::X => Mat4::from_angle_x(Rad(PI / 2.0 * (order as f32))),
-            Basis::Y => Mat4::from_angle_y(Rad(PI / 2.0 * (order as f32))),
-            Basis::Z => Mat4::from_angle_z(Rad(PI / 2.0 * (order as f32))),
-        }
+    fn axis_to_transform((ray, order): (Self, i8), conjugate: Self::Conjugate) -> Mat4 {
+        Mat4::from_axis_angle(
+            ray.axis_to_vec(conjugate),
+            Rad(order as f32 * 2.0 * PI / 3.0),
+        )
     }
 
     fn ray_to_vec(&self, _conjugate: Self::Conjugate) -> Vec3 {
-        self.0.to_vec() * self.1.to_f32()
-    }
-
-    fn axis_to_vec(&self, _conjugate: Self::Conjugate) -> Vec3 {
-        self.0.to_vec()
+        (Basis::X.to_vec() * self.0.to_f32()
+            + Basis::Y.to_vec() * self.1.to_f32()
+            + Basis::Z.to_vec() * self.2.to_f32())
+        .normalize()
     }
 
     fn ray_to_color(&self) -> Srgba {
         match self {
-            CubeRay(Basis::Y, Sign::Pos) => Srgba::new_opaque(255, 128, 0),
-            CubeRay(Basis::Z, Sign::Pos) => Srgba::WHITE,
-            CubeRay(Basis::X, Sign::Pos) => Srgba::BLUE,
-            CubeRay(Basis::Z, Sign::Neg) => Srgba::new_opaque(255, 255, 0),
-            CubeRay(Basis::X, Sign::Neg) => Srgba::GREEN,
-            CubeRay(Basis::Y, Sign::Neg) => Srgba::RED,
+            OctaRay(Sign::Pos, Sign::Neg, Sign::Pos) => Srgba::WHITE,
+            OctaRay(Sign::Pos, Sign::Neg, Sign::Neg) => Srgba::GREEN,
+            OctaRay(Sign::Neg, Sign::Neg, Sign::Pos) => Srgba::RED,
+            OctaRay(Sign::Neg, Sign::Neg, Sign::Neg) => Srgba::new_opaque(0, 128, 0),
+            OctaRay(Sign::Pos, Sign::Pos, Sign::Pos) => Srgba::BLUE,
+            OctaRay(Sign::Pos, Sign::Pos, Sign::Neg) => Srgba::new_opaque(255, 128, 0),
+            OctaRay(Sign::Neg, Sign::Pos, Sign::Pos) => Srgba::new_opaque(128, 0, 255),
+            OctaRay(Sign::Neg, Sign::Pos, Sign::Neg) => Srgba::new_opaque(255, 255, 0),
         }
     }
 }
 
+pub fn core_seeds() -> PuzzleSeed<OctaRay> {
+    #[allow(non_snake_case)]
+    let r_BU = OctaRay::from_name("BU").unwrap();
+    #[allow(non_snake_case)]
+    let r_U = OctaRay::from_name("U").unwrap();
+    let grips: Vec<Vec<i8>> = vec![vec![0, 0]];
+
+    let viewports = vec![{
+        let abstract_viewport = AbstractViewport {
+            x: 0.0,
+            y: 0.0,
+            width: 1.0,
+            height: 1.0,
+        };
+
+        let mut stickers = vec![];
+
+        stickers.push(StickerSeed {
+            layers: enum_map::EnumMap::from_fn(|_ray| 0),
+            face: r_BU,
+            color: r_BU,
+            cpu_mesh: polygon(vec![
+                Vec3::new(1.0, 0.0, 0.0),
+                Vec3::new(0.0, 1.0, 0.0),
+                Vec3::new(1.0, 1.0, 1.0) / 3.0,
+            ]),
+        });
+
+        stickers.push(StickerSeed {
+            layers: enum_map::EnumMap::from_fn(|_ray| 0),
+            face: r_U,
+            color: r_U,
+            cpu_mesh: polygon(vec![
+                Vec3::new(0.0, -1.0, 0.0),
+                Vec3::new(1.0, 0.0, 0.0),
+                Vec3::new(1.0, -1.0, 1.0) / 3.0,
+            ]),
+        });
+
+        ViewportSeed {
+            abstract_viewport,
+            conjugate: (),
+            stickers,
+            default_layers: vec![vec![0, 0]],
+        }
+    }];
+
+    let key_layers = vec![HashMap::from_iter(vec![]), HashMap::from_iter(vec![])];
+
+    PuzzleSeed {
+        grips,
+        viewports,
+        key_layers,
+    }
+}
+
+/*
 pub fn nnn_seeds<'a>(order: i8) -> PuzzleSeed<CubeRay> {
     use crate::puzzle::cube::name::*;
 
@@ -198,4 +256,4 @@ pub fn nnn_seeds<'a>(order: i8) -> PuzzleSeed<CubeRay> {
         viewports,
         key_layers,
     }
-}
+}*/

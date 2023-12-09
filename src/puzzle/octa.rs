@@ -5,7 +5,7 @@ use crate::puzzle::common::RaySystem;
 pub use crate::puzzle::common::{Basis, BasisDiff, Sign};
 
 #[derive(Debug, Enum, Clone, Copy, PartialEq, Eq)]
-pub struct OctaRay(Sign, Sign, Sign);
+pub struct OctaRay(pub Sign, pub Sign, pub Sign);
 
 impl OctaRay {
     fn opposite(&self) -> Self {
@@ -29,7 +29,7 @@ impl RaySystem for OctaRay {
     fn turn_one(&self, axis: Self) -> Self {
         // an axis head
         let axis = axis.get_axis()[0];
-        OctaRay(axis.2 * self.1, axis.0 * self.2, axis.1 * self.0)
+        OctaRay(axis.1 * self.2, axis.2 * self.0, axis.0 * self.1)
     }
 
     fn order(&self) -> i8 {
@@ -44,11 +44,32 @@ impl RaySystem for OctaRay {
     ];
 
     #[rustfmt::skip]
-    const CYCLE: &'static [(Self, i8)] = {todo!()
+    const CYCLE: &'static [(Self, i8)] = {
+        #[allow(non_snake_case)]
+        let r_BU = OctaRay(Sign::Pos, Sign::Pos, Sign::Pos);
+        #[allow(non_snake_case)]
+        let r_R = OctaRay(Sign::Pos, Sign::Neg, Sign::Neg);
+
+        &[
+            (r_BU, 1), (r_BU, 1), (r_R, 1),
+            (r_BU, 1), (r_BU, 1), (r_R, 2),
+            (r_BU, 1), (r_BU, 1), (r_R, 2),
+            (r_BU, 1), (r_BU, 1), //(__, 2),
+        ]
     };
 
     fn name(&self) -> String {
-        todo!()
+        match self {
+            OctaRay(Sign::Pos, Sign::Neg, Sign::Pos) => "U",
+            OctaRay(Sign::Pos, Sign::Neg, Sign::Neg) => "R",
+            OctaRay(Sign::Neg, Sign::Neg, Sign::Pos) => "L",
+            OctaRay(Sign::Neg, Sign::Neg, Sign::Neg) => "F",
+            OctaRay(Sign::Pos, Sign::Pos, Sign::Pos) => "BU",
+            OctaRay(Sign::Pos, Sign::Pos, Sign::Neg) => "BR",
+            OctaRay(Sign::Neg, Sign::Pos, Sign::Pos) => "BL",
+            OctaRay(Sign::Neg, Sign::Pos, Sign::Neg) => "D",
+        }
+        .to_string()
     }
 }
 

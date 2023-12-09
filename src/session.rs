@@ -1,8 +1,9 @@
 use crate::make_concrete_puzzle;
 use crate::puzzle::common::*;
+use crate::puzzle::cube::CubeRay;
+use crate::puzzle::octa::OctaRay;
 use crate::render;
 use crate::render::common::*;
-use crate::CubeRay;
 use crate::VERSION;
 use enum_map::EnumMap;
 use eyre::eyre;
@@ -176,12 +177,19 @@ pub enum CubePuzzle {
 }
 
 #[derive(Debug, Copy, Clone, serde::Serialize, serde::Deserialize)]
+pub enum OctaPuzzle {
+    Core,
+}
+
+#[derive(Debug, Copy, Clone, serde::Serialize, serde::Deserialize)]
 pub enum SessionType {
     Cube(CubePuzzle),
+    Octa(OctaPuzzle),
 }
 
 pub enum SessionEnum {
     Cube(CubePuzzle, Session<CubeRay>),
+    Octa(OctaPuzzle, Session<OctaRay>),
 }
 
 impl SessionType {
@@ -197,6 +205,14 @@ impl SessionType {
                     window_size,
                     &context,
                     render::cube::nnn_seeds(n),
+                )),
+            ),
+            SessionType::Octa(ps @ OctaPuzzle::Core) => SessionEnum::Octa(
+                ps,
+                Session::from_concrete(make_concrete_puzzle(
+                    window_size,
+                    &context,
+                    render::octa::core_seeds(),
                 )),
             ),
         }
@@ -215,30 +231,35 @@ impl SessionEnum {
     pub fn get_type(&self) -> SessionType {
         match self {
             Self::Cube(pz, _) => SessionType::Cube(*pz),
+            Self::Octa(pz, _) => SessionType::Octa(*pz),
         }
     }
 
     pub fn save_path<'a>(&'a self) -> &'a Option<std::path::PathBuf> {
         match self {
             SessionEnum::Cube(_, ref session) => &session.save_path,
+            SessionEnum::Octa(_, ref session) => &session.save_path,
         }
     }
 
     pub fn set_save_path(&mut self, val: Option<std::path::PathBuf>) {
         match self {
             SessionEnum::Cube(_, ref mut session) => session.save_path = val,
+            SessionEnum::Octa(_, ref mut session) => session.save_path = val,
         };
     }
 
     pub fn version<'a>(&'a self) -> &'a String {
         match self {
             SessionEnum::Cube(_, ref session) => &session.version,
+            SessionEnum::Octa(_, ref session) => &session.version,
         }
     }
 
     pub fn to_log(&self) -> SessionLog {
         let (scramble, twists) = match self {
             Self::Cube(_, session) => session.extract_log(),
+            Self::Octa(_, session) => session.extract_log(),
         };
 
         SessionLog {
@@ -264,6 +285,7 @@ impl SessionEnum {
         let mut session = log.session_type.make_session_enum(window_size, context);
         match &mut session {
             SessionEnum::Cube(_, ref mut session) => session.process_log(log),
+            SessionEnum::Octa(_, ref mut session) => session.process_log(log),
         }?;
         session.set_save_path(Some(path));
 

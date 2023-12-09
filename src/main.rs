@@ -1,8 +1,6 @@
 use crate::key_label::*;
-use crate::puzzle::cube::CubeRay;
 use crate::render::common::*;
 use crate::render::create::*;
-use crate::render::cube::nnn_seeds;
 use crate::session::*;
 use eyre::eyre;
 
@@ -246,16 +244,21 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                         ui.menu_button("Cube", |ui| {
                             for n in 2..=9 {
                                 if ui.button(format!("{0} layers ({0}×{0}×{0})", n)).clicked() {
-                                    response.new_session = Some(SessionEnum::Cube(
-                                        CubePuzzle::Nnn(n),
-                                        Session::from_concrete(make_concrete_puzzle(
-                                            persistent.window_size,
-                                            &context,
-                                            nnn_seeds(n),
-                                        )),
-                                    ));
+                                    response.new_session = Some(
+                                        SessionType::Cube(CubePuzzle::Nnn(n))
+                                            .make_session_enum(persistent.window_size, &context),
+                                    );
                                     ui.close_menu();
                                 }
+                            }
+                        });
+                        ui.menu_button("Octahedron", |ui| {
+                            if ui.button(format!("Core (testing)")).clicked() {
+                                response.new_session = Some(
+                                    SessionType::Octa(OctaPuzzle::Core)
+                                        .make_session_enum(persistent.window_size, &context),
+                                );
+                                ui.close_menu();
                             }
                         });
                     });
@@ -501,6 +504,9 @@ fn main() {
         let response;
         match &mut session {
             SessionEnum::Cube(_, ref mut session) => {
+                response = run_render_loop(&mut frame_input, session, &mut persistent, &context);
+            }
+            SessionEnum::Octa(_, ref mut session) => {
                 response = run_render_loop(&mut frame_input, session, &mut persistent, &context);
             }
         }

@@ -3,6 +3,7 @@ use rand;
 use std::fmt;
 use std::iter::zip;
 use std::ops::{Add, Mul, Neg, Sub};
+use three_d::Vec3;
 
 use crate::util::*;
 
@@ -11,6 +12,16 @@ pub enum Basis {
     X,
     Y,
     Z,
+}
+
+impl Basis {
+    pub fn to_vec(&self) -> Vec3 {
+        match self {
+            Basis::X => Vec3::new(1.0, 0.0, 0.0),
+            Basis::Y => Vec3::new(0.0, 1.0, 0.0),
+            Basis::Z => Vec3::new(0.0, 0.0, 1.0),
+        }
+    }
 }
 
 #[derive(Debug, Enum, Clone, Copy, PartialEq, Eq)]
@@ -79,6 +90,15 @@ impl Neg for Sign {
     }
 }
 
+impl Sign {
+    pub fn to_f32(&self) -> f32 {
+        match self {
+            Self::Pos => 1.0,
+            Self::Neg => -1.0,
+        }
+    }
+}
+
 /// A set of rays that align with the turns of the puzzle.
 /// Changing the order of them will change the log files.
 pub trait RaySystem
@@ -97,7 +117,7 @@ where
     /// Returns a list of rays that make up the vector. Should
     /// return the same order for each axis.
     fn get_axis(&self) -> Vec<Self>;
-    /// Turns the ray system one unit about ray's axis and returns the new ray
+    /// Turns the ray system one unit clockwise about ray's axis and returns the new ray
     /// that occupies self's direction.
     /// Should return the same value for any ray with the same axis.
     fn turn_one(&self, ray: Self) -> Self;

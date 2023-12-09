@@ -95,7 +95,7 @@ pub fn make_concrete_puzzle<Ray: ConcreteRaySystem>(
                         seed.face = seed.face.turn(turn);
                         seed.color = seed.color.turn(turn);
                         seed.cpu_mesh
-                            .transform(&Ray::axis_to_transform(turn, Default::default()))
+                            .transform(&Ray::axis_to_transform(turn, viewport_seed.conjugate))
                             .expect("the axis transform matrices should be invertible");
                     }
                     let seed_layers_clone = enum_map_clone(&seed.layers);
