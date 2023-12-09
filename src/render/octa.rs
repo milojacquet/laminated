@@ -180,196 +180,163 @@ pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
 
             for i in (m..=n).step_by(2) {
                 for j in (m..=m + n - i).step_by(2) {
-                    dbg!("{n} {m} {i} {j}");
-                    let layers: enum_map::EnumMap<OctaRay, i8> =
-                        enum_map! {BU=>n,R=>m,L=>j,D=>i,F=>-n,BL=>-m,BR=>-j,U=>-i};
+                    let flip_ray = |flip: bool, ray: OctaRay| {
+                        if flip {
+                            OctaRay(-ray.0, ray.2, ray.1)
+                        } else {
+                            ray
+                        }
+                    };
+                    let flip_vec = |flip: bool, x: f32, y, z| {
+                        if flip {
+                            Vec3::new(-x, z, y)
+                        } else {
+                            Vec3::new(x, y, z)
+                        }
+                    };
 
-                    // all pieces are on the BU face (or the BL face in the second invocation)
+                    for flip in crate::util::enum_iter::<bool>() {
+                        let fr = |ray| flip_ray(flip, ray);
+                        let fv = |x, y, z| flip_vec(flip, x, y, z);
 
-                    // local layer indices: these pretend that m = -s_order+1 and n = s_order-1
-                    let il = i + s_order - 1 - n;
-                    let jl = j + s_order - 1 - n;
+                        let layers: enum_map::EnumMap<OctaRay, i8>;
+                        //layers = enum_map! {BU => n,R => m,L => j,D => i,F => -n,BL => -m,BR => -j,U => -i,};
 
-                    if i == m && j == n {
-                        // corner
-                        stickers.push(StickerSeed {
-                            layers,
-                            face: BU,
-                            color: BU,
-                            cpu_mesh: polygon(vec![
-                                Vec3::new(cd(il + 1), 0.0, cd(jl - 1)) * circrad,
-                                Vec3::new(0.0, cd(il + 1), cd(jl - 1)) * circrad,
-                                Vec3::new(0.0, 0.0, 1.0) * circrad,
-                            ]),
-                        });
-                    } else if i == n && j == m {
-                        // another corner
-                        // we don't need to render this one
-                    } else if i == m && j == m {
-                        // BU center
-                        stickers.push(StickerSeed {
-                            layers,
-                            face: BU,
-                            color: BU,
-                            cpu_mesh: polygon(vec![
-                                Vec3::new(1.0 - 2.0 * cd(il + 1), cd(il + 1), cd(il + 1)) * circrad,
-                                Vec3::new(cd(il + 1), 1.0 - 2.0 * cd(il + 1), cd(il + 1)) * circrad,
-                                Vec3::new(1.0, 1.0, 1.0) / 3.0 * circrad,
-                            ]),
-                        });
-                    } else if i == m {
-                        // trapezoid (x-center) near L
-                        stickers.push(StickerSeed {
-                            layers,
-                            face: BU,
-                            color: BU,
-                            cpu_mesh: polygon(vec![
-                                Vec3::new(1.0 - cd(il + 1) - cd(jl - 1), cd(il + 1), cd(jl - 1))
-                                    * circrad,
-                                Vec3::new(1.0 - cd(il + 1) - cd(jl + 1), cd(il + 1), cd(jl + 1))
-                                    * circrad,
-                                Vec3::new(
-                                    (1.0 - cd(jl + 1)) / 2.0,
-                                    (1.0 - cd(jl + 1)) / 2.0,
-                                    cd(jl + 1),
-                                ) * circrad,
-                                Vec3::new(
-                                    (1.0 - cd(jl - 1)) / 2.0,
-                                    (1.0 - cd(jl - 1)) / 2.0,
-                                    cd(jl - 1),
-                                ) * circrad,
-                            ]),
-                        });
-                    } else if j == m {
-                        // trapezoid (x-center) near D
-                        stickers.push(StickerSeed {
-                            layers,
-                            face: BU,
-                            color: BU,
-                            cpu_mesh: polygon(vec![
-                                Vec3::new(1.0 - cd(il + 1) - cd(jl + 1), cd(il + 1), cd(jl + 1))
-                                    * circrad,
-                                Vec3::new(1.0 - cd(il - 1) - cd(jl + 1), cd(il - 1), cd(jl + 1))
-                                    * circrad,
-                                Vec3::new(
-                                    (1.0 - cd(il - 1)) / 2.0,
-                                    cd(il - 1),
-                                    (1.0 - cd(il - 1)) / 2.0,
-                                ) * circrad,
-                                Vec3::new(
-                                    (1.0 - cd(il + 1)) / 2.0,
-                                    cd(il + 1),
-                                    (1.0 - cd(il + 1)) / 2.0,
-                                ) * circrad,
-                            ]),
-                        });
-                    } else if i + j == m + n {
-                        // edge or wing
-                        stickers.push(StickerSeed {
-                            layers,
-                            face: BU,
-                            color: BU,
-                            cpu_mesh: polygon(vec![
-                                Vec3::new(1.0 - cd(il - 1) - cd(jl - 1), cd(il - 1), cd(jl - 1))
-                                    * circrad,
-                                Vec3::new(1.0 - cd(il + 1) - cd(jl - 1), cd(il + 1), cd(jl - 1))
-                                    * circrad,
-                                Vec3::new(1.0 - cd(il - 1) - cd(jl + 1), cd(il - 1), cd(jl + 1))
-                                    * circrad,
-                            ]),
-                        });
-                    } else {
-                        // rhombus
-                        stickers.push(StickerSeed {
-                            layers,
-                            face: BU,
-                            color: BU,
-                            cpu_mesh: polygon(vec![
-                                Vec3::new(1.0 - cd(il - 1) - cd(jl - 1), cd(il - 1), cd(jl - 1))
-                                    * circrad,
-                                Vec3::new(1.0 - cd(il + 1) - cd(jl - 1), cd(il + 1), cd(jl - 1))
-                                    * circrad,
-                                Vec3::new(1.0 - cd(il + 1) - cd(jl + 1), cd(il + 1), cd(jl + 1))
-                                    * circrad,
-                                Vec3::new(1.0 - cd(il - 1) - cd(jl + 1), cd(il - 1), cd(jl + 1))
-                                    * circrad,
-                            ]),
-                        });
+                        if flip {
+                            layers = enum_map! {BU => n,R => m,L => n+m-j,D => n+m-i,F => -n,BL => -m,BR => -n-m+j,U => -n-m+i,};
+                        } else {
+                            layers = enum_map! {BU => n,R => m,L => j,D => i,F => -n,BL => -m,BR => -j,U => -i,};
+                        }
+                        /*layers = enum_map::EnumMap::from_fn(|ray| match fr(ray){
+                            BU => n,R => m,L => j,D => i,F => -n,BL => -m,BR => -j,U => -i,
+                        }*if flip{1} else {1}/*+if ray.tet_sign()==Sign::Neg{-n-m}else{n+m}*/);*/
+
+                        // all pieces are on the BU face (or the BL face in the second invocation)
+
+                        // local layer indices: these pretend that m = -s_order+1 and n = s_order-1
+                        let il = i + s_order - 1 - n;
+                        let jl = j + s_order - 1 - n;
+
+                        if s_order == 1 {
+                            // core/anticore
+                            // this doesn't need to be rendered because its orientation is determined by the other pieces
+                            stickers.push(StickerSeed {
+                                layers,
+                                face: fr(BU),
+                                color: fr(BU),
+                                cpu_mesh: polygon(vec![
+                                    fv(1.0, 0.0, 0.0) * circrad,
+                                    fv(0.0, 1.0, 0.0) * circrad,
+                                    fv(0.0, 0.0, 1.0) * circrad,
+                                ]),
+                            });
+                        } else if i == m && j == n {
+                            // corner
+                            stickers.push(StickerSeed {
+                                layers,
+                                face: fr(BU),
+                                color: fr(BU),
+                                cpu_mesh: polygon(vec![
+                                    fv(cd(il + 1), 0.0, cd(jl - 1)) * circrad,
+                                    fv(0.0, cd(il + 1), cd(jl - 1)) * circrad,
+                                    fv(0.0, 0.0, 1.0) * circrad,
+                                ]),
+                            });
+                        } else if i == n && j == m {
+                            // another corner
+                            // we don't need to render this one
+                        } else if i == m && j == m {
+                            // BU center
+                            stickers.push(StickerSeed {
+                                layers,
+                                face: fr(BU),
+                                color: fr(BU),
+                                cpu_mesh: polygon(vec![
+                                    fv(1.0 - 2.0 * cd(il + 1), cd(il + 1), cd(il + 1)) * circrad,
+                                    fv(cd(il + 1), 1.0 - 2.0 * cd(il + 1), cd(il + 1)) * circrad,
+                                    fv(1.0, 1.0, 1.0) / 3.0 * circrad,
+                                ]),
+                            });
+                        } else if i == m {
+                            // trapezoid (x-center) near L
+                            stickers.push(StickerSeed {
+                                layers,
+                                face: fr(BU),
+                                color: fr(BU),
+                                cpu_mesh: polygon(vec![
+                                    fv(1.0 - cd(il + 1) - cd(jl - 1), cd(il + 1), cd(jl - 1))
+                                        * circrad,
+                                    fv(1.0 - cd(il + 1) - cd(jl + 1), cd(il + 1), cd(jl + 1))
+                                        * circrad,
+                                    fv(
+                                        (1.0 - cd(jl + 1)) / 2.0,
+                                        (1.0 - cd(jl + 1)) / 2.0,
+                                        cd(jl + 1),
+                                    ) * circrad,
+                                    fv(
+                                        (1.0 - cd(jl - 1)) / 2.0,
+                                        (1.0 - cd(jl - 1)) / 2.0,
+                                        cd(jl - 1),
+                                    ) * circrad,
+                                ]),
+                            });
+                        } else if j == m {
+                            // trapezoid (x-center) near D
+                            stickers.push(StickerSeed {
+                                layers,
+                                face: fr(BU),
+                                color: fr(BU),
+                                cpu_mesh: polygon(vec![
+                                    fv(1.0 - cd(il + 1) - cd(jl + 1), cd(il + 1), cd(jl + 1))
+                                        * circrad,
+                                    fv(1.0 - cd(il - 1) - cd(jl + 1), cd(il - 1), cd(jl + 1))
+                                        * circrad,
+                                    fv(
+                                        (1.0 - cd(il - 1)) / 2.0,
+                                        cd(il - 1),
+                                        (1.0 - cd(il - 1)) / 2.0,
+                                    ) * circrad,
+                                    fv(
+                                        (1.0 - cd(il + 1)) / 2.0,
+                                        cd(il + 1),
+                                        (1.0 - cd(il + 1)) / 2.0,
+                                    ) * circrad,
+                                ]),
+                            });
+                        } else if i + j == m + n {
+                            // edge or wing
+                            stickers.push(StickerSeed {
+                                layers,
+                                face: fr(BU),
+                                color: fr(BU),
+                                cpu_mesh: polygon(vec![
+                                    fv(1.0 - cd(il - 1) - cd(jl - 1), cd(il - 1), cd(jl - 1))
+                                        * circrad,
+                                    fv(1.0 - cd(il + 1) - cd(jl - 1), cd(il + 1), cd(jl - 1))
+                                        * circrad,
+                                    fv(1.0 - cd(il - 1) - cd(jl + 1), cd(il - 1), cd(jl + 1))
+                                        * circrad,
+                                ]),
+                            });
+                        } else {
+                            // rhombus
+                            stickers.push(StickerSeed {
+                                layers,
+                                face: fr(BU),
+                                color: fr(BU),
+                                cpu_mesh: polygon(vec![
+                                    fv(1.0 - cd(il - 1) - cd(jl - 1), cd(il - 1), cd(jl - 1))
+                                        * circrad,
+                                    fv(1.0 - cd(il + 1) - cd(jl - 1), cd(il + 1), cd(jl - 1))
+                                        * circrad,
+                                    fv(1.0 - cd(il + 1) - cd(jl + 1), cd(il + 1), cd(jl + 1))
+                                        * circrad,
+                                    fv(1.0 - cd(il - 1) - cd(jl + 1), cd(il - 1), cd(jl + 1))
+                                        * circrad,
+                                ]),
+                            });
+                        }
                     }
-
-                    /*if i == n {
-                        // corner or edge
-                        stickers.push(StickerSeed {
-                            layers,
-                            face: U,
-                            color: U,
-                            cpu_mesh: polygon(vec![
-                                cv(-1.0, -1.0),
-                                cv(1.0, -1.0),
-                                cv(1.0, 1.0),
-                                cv(-1.0, 1.0),
-                            ]),
-                        });
-                    } else if j == i {
-                        // x-center
-                        stickers.push(StickerSeed {
-                            layers,
-                            face: U,
-                            color: U,
-                            cpu_mesh: polygon(vec![
-                                cv(-1.0, -1.0),
-                                cv(SUPER_START, -1.0),
-                                cv(SUPER_START, SUPER_START),
-                                cv(-1.0, SUPER_START),
-                            ]),
-                        });
-                        stickers.push(StickerSeed {
-                            layers,
-                            face: U,
-                            color: R,
-                            cpu_mesh: polygon(vec![
-                                cv(SUPER_START, -1.0),
-                                cv(1.0, -1.0),
-                                cv(1.0, 1.0),
-                                cv(SUPER_START, SUPER_START),
-                            ]),
-                        });
-                        stickers.push(StickerSeed {
-                            layers,
-                            face: U,
-                            color: B,
-                            cpu_mesh: polygon(vec![
-                                cv(-1.0, SUPER_START),
-                                cv(SUPER_START, SUPER_START),
-                                cv(1.0, 1.0),
-                                cv(-1.0, 1.0),
-                            ]),
-                        });
-                    } else {
-                        // t-center or oblique
-                        stickers.push(StickerSeed {
-                            layers,
-                            face: U,
-                            color: U,
-                            cpu_mesh: polygon(vec![
-                                cv(-1.0, -1.0),
-                                cv(SUPER_START, -1.0),
-                                cv(SUPER_START, 1.0),
-                                cv(-1.0, 1.0),
-                            ]),
-                        });
-                        stickers.push(StickerSeed {
-                            layers,
-                            face: U,
-                            color: R,
-                            cpu_mesh: polygon(vec![
-                                cv(SUPER_START, -1.0),
-                                cv(1.0, -1.0),
-                                cv(1.0, 1.0),
-                                cv(SUPER_START, 1.0),
-                            ]),
-                        });
-                    }*/
                 }
             }
 

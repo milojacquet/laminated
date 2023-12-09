@@ -12,7 +12,7 @@ impl OctaRay {
         OctaRay(-self.0, -self.1, -self.2)
     }
 
-    fn tet_sign(&self) -> Sign {
+    pub fn tet_sign(&self) -> Sign {
         self.0 * self.1 * self.2
     }
 }
