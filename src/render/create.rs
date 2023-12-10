@@ -62,6 +62,12 @@ fn make_viewport(
     }
 }
 
+pub fn correct_angle<A: Angle<Unitless = f32>>(angle: A, height: f32) -> A {
+    // dimensionless fov: Rad::cot(persp.fovy / two)
+
+    A::atan(1.0 / (A::cot(angle / 2.0) / height)) * 2.0
+}
+
 pub fn make_concrete_puzzle<Ray: ConcreteRaySystem>(
     window_size: (u32, u32),
     context: &Context,
@@ -135,7 +141,7 @@ pub fn make_concrete_puzzle<Ray: ConcreteRaySystem>(
                     vec3(5.0, -10.0, 4.0),
                     vec3(0.0, 0.0, 0.0),
                     vec3(0.0, 0.0, 1.0),
-                    degrees(20.0),
+                    correct_angle(degrees(20.0), viewport_seed.abstract_viewport.height),
                     0.1,
                     1000.0,
                 ),
@@ -178,7 +184,7 @@ pub fn update_viewports<Ray: ConcreteRaySystem>(
             vec3(5.0, -10.0, 4.0),
             vec3(0.0, 0.0, 0.0),
             vec3(0.0, 0.0, 1.0),
-            degrees(20.0),
+            correct_angle(degrees(20.0), puzzle_viewport.abstract_viewport.height),
             0.1,
             1000.0,
         )

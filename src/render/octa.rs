@@ -100,17 +100,17 @@ const SUPER_SIDE_RATIO: f32 = 0.6; // ratio of super sticker side to trapezoid s
 const CENTER_INRAD_RATIO: f32 = (1.0 + SUPER_SIDE_RATIO) / 3.0; // ratio between inradius of center and height of trapezoid
 const FULL_SCALE: f32 = 1.0;
 
-fn fto_circrad(order: i8) -> f32 {
+fn fto_inrad(order: i8) -> f32 {
     // assume the cut_width_on_axis is 1 for simplicity
     // it gets divided out anyway
-    //3.0 * (order as f32 - 2.0 + 2.0 * CENTER_INRAD_RATIO)
-    1.0
+    3.0 * (order as f32 - 2.0 + 2.0 * CENTER_INRAD_RATIO)
+    //1.0
 }
 
 fn cut_depth(order: i8, cut: i8) -> f32 {
     // (order - 2 + 2 CIR) width = 2 circrad/3
     // => width = 2 circrad/(3 (order - 2 + 2 CIR))
-    let half_width = fto_circrad(order) / (3.0 * (order as f32 - 2.0 + 2.0 * CENTER_INRAD_RATIO));
+    let half_width = fto_inrad(order) / (3.0 * (order as f32 - 2.0 + 2.0 * CENTER_INRAD_RATIO));
     return half_width * cut as f32;
 }
 
@@ -134,7 +134,7 @@ pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
         let mut current_offset = 0.0;
         for n in 2..=order + 1 {
             offsets.insert(n, current_offset);
-            current_offset += fto_circrad(n);
+            current_offset += fto_inrad(n);
         }
         offsets
     };
@@ -153,8 +153,22 @@ pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
 
     let mut viewports: Vec<ViewportSeed<OctaRay>> = vec![];
 
-    for n in (-order + 3..=order - 1).step_by(2) {
-        for m in (-order + 1..=n - 2).step_by(2) {
+    // for n in (-order + 3..=order - 1).step_by(2) {
+    // for m in (-order + 1..=n - 2).step_by(2) {
+
+    let mut current_x = 0.0;
+
+    for n_plus_m in (-2 * order + 4..=2 * order - 4).step_by(2) {
+        let max_s_order = order - n_plus_m.abs() / 2;
+        let current_width = fto_inrad(max_s_order) / fto_inrad(order);
+        let mut current_y = 0.0;
+
+        for n_minus_m in
+            (((n_plus_m & 2) ^ ((order & 1) * 2)) + 2..=order * 2 - 2 - n_plus_m.abs()).step_by(4)
+        {
+            let n = (n_plus_m + n_minus_m) / 2;
+            let m = (n_plus_m - n_minus_m) / 2;
+
             /*
             suppose inradius of octahedron is r
             range of cut depths will be between ± r/3
@@ -167,21 +181,21 @@ pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
             */
 
             let s_order: i8 = (n - m) / 2 + 1;
-            let circrad = fto_circrad(s_order) / fto_circrad(order) * FULL_SCALE;
+            let circrad = fto_inrad(s_order) / fto_inrad(order) * FULL_SCALE;
             // side length of super sticker
             let sd = cut_width_on_axis(s_order) * FULL_SCALE * SUPER_SIDE_RATIO;
 
+            let current_height = fto_inrad(s_order) / fto_inrad(order);
+
             let abstract_viewport = AbstractViewport {
-                x: *offsets
-                    .get(&((n + order + 1) / 2))
-                    .expect("size should have been measured"),
-                y: *offsets
-                    .get(&((-m + order + 1) / 2))
-                    .expect("size should have been measured"),
+                x: current_x,
+                y: current_y,
                 //width: 1.0 * ((n + 1) as f32) / (order as f32),
-                width: fto_circrad((n + order + 1) / 2),
-                height: fto_circrad((-m + order + 1) / 2),
+                width: current_width,
+                height: current_height,
             };
+
+            //println!("{m} {n} {abstract_viewport:?}");
 
             let cd = |l| cut_depth_on_axis(s_order, l);
 
@@ -452,7 +466,11 @@ pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
                 stickers,
                 default_layers: vec![vec![n, -n], vec![m, -m]],
             });
+
+            current_y += current_height;
         }
+
+        current_x += current_width;
     }
 
     let key_layers = vec![
