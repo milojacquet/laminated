@@ -96,10 +96,14 @@ pub fn core_seeds() -> PuzzleSeed<OctaRay> {
     }
 }
 
-const CENTER_INRAD_RATIO: f32 = 0.6; // ratio between inradius of center and height of trapezoid
+const SUPER_SIDE_RATIO: f32 = 0.6; // ratio of super sticker side to trapezoid short side
+const CENTER_INRAD_RATIO: f32 = (1.0 + SUPER_SIDE_RATIO) / 3.0; // ratio between inradius of center and height of trapezoid
+const FULL_SCALE: f32 = 1.0;
 
 fn fto_circrad(order: i8) -> f32 {
-    // placeholder
+    // assume the cut_width_on_axis is 1 for simplicity
+    // it gets divided out anyway
+    //3.0 * (order as f32 - 2.0 + 2.0 * CENTER_INRAD_RATIO)
     1.0
 }
 
@@ -110,11 +114,15 @@ fn cut_depth(order: i8, cut: i8) -> f32 {
     return half_width * cut as f32;
 }
 
+fn cut_width_on_axis(order: i8) -> f32 {
+    1.0 / (3.0 * (order as f32 - 2.0 + 2.0 * CENTER_INRAD_RATIO))
+}
+
 /// more convenient version of cut_depth that ranges from 0 to 1
 fn cut_depth_on_axis(order: i8, cut: i8) -> f32 {
     // (order - 2 + 2 CIR) width = 1/3
     // => width = 1/(3 (order - 2 + 2 CIR))
-    let half_width = 0.5 / (3.0 * (order as f32 - 2.0 + 2.0 * CENTER_INRAD_RATIO));
+    let half_width = cut_width_on_axis(order) / 2.0;
     return 0.5 + half_width * cut as f32;
 }
 
@@ -156,11 +164,12 @@ pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
             octahedron planes: x+y+z = r
             legal cuts: x+y+z = d where -r/3 < d < r/3
 
-
             */
 
             let s_order: i8 = (n - m) / 2 + 1;
-            let circrad = fto_circrad(s_order);
+            let circrad = fto_circrad(s_order) / fto_circrad(order) * FULL_SCALE;
+            // side length of super sticker
+            let sd = cut_width_on_axis(s_order) * FULL_SCALE * SUPER_SIDE_RATIO;
 
             let abstract_viewport = AbstractViewport {
                 x: *offsets
@@ -252,9 +261,25 @@ pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
                                 face: fr(BU),
                                 color: fr(BU),
                                 cpu_mesh: polygon(vec![
-                                    fv(1.0 - 2.0 * cd(il + 1), cd(il + 1), cd(il + 1)) * circrad,
-                                    fv(cd(il + 1), 1.0 - 2.0 * cd(il + 1), cd(il + 1)) * circrad,
+                                    fv(1.0 - 2.0 * cd(il + 1) + sd, cd(il + 1), cd(il + 1) - sd)
+                                        * circrad,
+                                    fv(1.0 - 2.0 * cd(il + 1) + sd, cd(il + 1) - sd, cd(il + 1))
+                                        * circrad,
+                                    fv(cd(il + 1) - sd, 1.0 - 2.0 * cd(il + 1) + sd, cd(il + 1))
+                                        * circrad,
                                     fv(1.0, 1.0, 1.0) / 3.0 * circrad,
+                                ]),
+                            });
+                            stickers.push(StickerSeed {
+                                layers,
+                                face: fr(BU),
+                                color: fr(BL),
+                                cpu_mesh: polygon(vec![
+                                    fv(1.0 - 2.0 * cd(il + 1) + sd, cd(il + 1) - sd, cd(il + 1))
+                                        * circrad,
+                                    fv(1.0 - 2.0 * cd(il + 1) + sd, cd(il + 1), cd(il + 1) - sd)
+                                        * circrad,
+                                    fv(1.0 - 2.0 * cd(il + 1), cd(il + 1), cd(il + 1)) * circrad,
                                 ]),
                             });
                         } else if i == m {
@@ -266,8 +291,16 @@ pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
                                 cpu_mesh: polygon(vec![
                                     fv(1.0 - cd(il + 1) - cd(jl - 1), cd(il + 1), cd(jl - 1))
                                         * circrad,
-                                    fv(1.0 - cd(il + 1) - cd(jl + 1), cd(il + 1), cd(jl + 1))
-                                        * circrad,
+                                    fv(
+                                        1.0 - cd(il + 1) - cd(jl + 1) + sd,
+                                        cd(il + 1),
+                                        cd(jl + 1) - sd,
+                                    ) * circrad,
+                                    fv(
+                                        1.0 - cd(il + 1) - cd(jl + 1) + sd,
+                                        cd(il + 1) - sd,
+                                        cd(jl + 1),
+                                    ) * circrad,
                                     fv(
                                         (1.0 - cd(jl + 1)) / 2.0,
                                         (1.0 - cd(jl + 1)) / 2.0,
@@ -280,6 +313,25 @@ pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
                                     ) * circrad,
                                 ]),
                             });
+                            stickers.push(StickerSeed {
+                                layers,
+                                face: fr(BU),
+                                color: fr(BL),
+                                cpu_mesh: polygon(vec![
+                                    fv(
+                                        1.0 - cd(il + 1) - cd(jl + 1) + sd,
+                                        cd(il + 1) - sd,
+                                        cd(jl + 1),
+                                    ) * circrad,
+                                    fv(
+                                        1.0 - cd(il + 1) - cd(jl + 1) + sd,
+                                        cd(il + 1),
+                                        cd(jl + 1) - sd,
+                                    ) * circrad,
+                                    fv(1.0 - cd(il + 1) - cd(jl + 1), cd(il + 1), cd(jl + 1))
+                                        * circrad,
+                                ]),
+                            });
                         } else if j == m {
                             // trapezoid (x-center) near D
                             stickers.push(StickerSeed {
@@ -287,8 +339,16 @@ pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
                                 face: fr(BU),
                                 color: fr(BU),
                                 cpu_mesh: polygon(vec![
-                                    fv(1.0 - cd(il + 1) - cd(jl + 1), cd(il + 1), cd(jl + 1))
-                                        * circrad,
+                                    fv(
+                                        1.0 - cd(il + 1) - cd(jl + 1) + sd,
+                                        cd(il + 1),
+                                        cd(jl + 1) - sd,
+                                    ) * circrad,
+                                    fv(
+                                        1.0 - cd(il + 1) - cd(jl + 1) + sd,
+                                        cd(il + 1) - sd,
+                                        cd(jl + 1),
+                                    ) * circrad,
                                     fv(1.0 - cd(il - 1) - cd(jl + 1), cd(il - 1), cd(jl + 1))
                                         * circrad,
                                     fv(
@@ -301,6 +361,25 @@ pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
                                         cd(il + 1),
                                         (1.0 - cd(il + 1)) / 2.0,
                                     ) * circrad,
+                                ]),
+                            });
+                            stickers.push(StickerSeed {
+                                layers,
+                                face: fr(BU),
+                                color: fr(BL),
+                                cpu_mesh: polygon(vec![
+                                    fv(
+                                        1.0 - cd(il + 1) - cd(jl + 1) + sd,
+                                        cd(il + 1) - sd,
+                                        cd(jl + 1),
+                                    ) * circrad,
+                                    fv(
+                                        1.0 - cd(il + 1) - cd(jl + 1) + sd,
+                                        cd(il + 1),
+                                        cd(jl + 1) - sd,
+                                    ) * circrad,
+                                    fv(1.0 - cd(il + 1) - cd(jl + 1), cd(il + 1), cd(jl + 1))
+                                        * circrad,
                                 ]),
                             });
                         } else if i + j == m + n {
@@ -329,9 +408,36 @@ pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
                                         * circrad,
                                     fv(1.0 - cd(il + 1) - cd(jl - 1), cd(il + 1), cd(jl - 1))
                                         * circrad,
-                                    fv(1.0 - cd(il + 1) - cd(jl + 1), cd(il + 1), cd(jl + 1))
-                                        * circrad,
+                                    fv(
+                                        1.0 - cd(il + 1) - cd(jl + 1) + sd,
+                                        cd(il + 1),
+                                        cd(jl + 1) - sd,
+                                    ) * circrad,
+                                    fv(
+                                        1.0 - cd(il + 1) - cd(jl + 1) + sd,
+                                        cd(il + 1) - sd,
+                                        cd(jl + 1),
+                                    ) * circrad,
                                     fv(1.0 - cd(il - 1) - cd(jl + 1), cd(il - 1), cd(jl + 1))
+                                        * circrad,
+                                ]),
+                            });
+                            stickers.push(StickerSeed {
+                                layers,
+                                face: fr(BU),
+                                color: fr(BL),
+                                cpu_mesh: polygon(vec![
+                                    fv(
+                                        1.0 - cd(il + 1) - cd(jl + 1) + sd,
+                                        cd(il + 1) - sd,
+                                        cd(jl + 1),
+                                    ) * circrad,
+                                    fv(
+                                        1.0 - cd(il + 1) - cd(jl + 1) + sd,
+                                        cd(il + 1),
+                                        cd(jl + 1) - sd,
+                                    ) * circrad,
+                                    fv(1.0 - cd(il + 1) - cd(jl + 1), cd(il + 1), cd(jl + 1))
                                         * circrad,
                                 ]),
                             });
