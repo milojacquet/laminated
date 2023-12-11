@@ -98,7 +98,7 @@ pub fn core_seeds() -> PuzzleSeed<OctaRay> {
 
 const SUPER_SIDE_RATIO: f32 = 0.6; // ratio of super sticker side to trapezoid short side
 const CENTER_INRAD_RATIO: f32 = (1.0 + SUPER_SIDE_RATIO) / 3.0; // ratio between inradius of center and height of trapezoid
-const FULL_SCALE: f32 = 1.0;
+const FULL_SCALE: f32 = 1.8;
 
 fn fto_inrad(order: i8) -> f32 {
     // assume the cut_width_on_axis is 1 for simplicity
@@ -183,7 +183,7 @@ pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
             let s_order: i8 = (n - m) / 2 + 1;
             let circrad = fto_inrad(s_order) / fto_inrad(order) * FULL_SCALE;
             // side length of super sticker
-            let sd = cut_width_on_axis(s_order) * FULL_SCALE * SUPER_SIDE_RATIO;
+            let sd = cut_width_on_axis(s_order) * SUPER_SIDE_RATIO;
 
             let current_height = fto_inrad(s_order) / fto_inrad(order);
 
