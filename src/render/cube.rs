@@ -85,7 +85,7 @@ pub fn nnn_seeds<'a>(order: i8) -> PuzzleSeed<CubeRay> {
                             layers,
                             face: U,
                             color: U,
-                            cpu_mesh: polygon(vec![
+                            mesh: polygon(vec![
                                 cv(-1.0, -1.0),
                                 cv(1.0, -1.0),
                                 cv(1.0, 1.0),
@@ -98,7 +98,7 @@ pub fn nnn_seeds<'a>(order: i8) -> PuzzleSeed<CubeRay> {
                             layers,
                             face: U,
                             color: U,
-                            cpu_mesh: polygon(vec![
+                            mesh: polygon(vec![
                                 cv(-1.0, -1.0),
                                 cv(SUPER_START, -1.0),
                                 cv(SUPER_START, SUPER_START),
@@ -109,7 +109,7 @@ pub fn nnn_seeds<'a>(order: i8) -> PuzzleSeed<CubeRay> {
                             layers,
                             face: U,
                             color: R,
-                            cpu_mesh: polygon(vec![
+                            mesh: polygon(vec![
                                 cv(SUPER_START, -1.0),
                                 cv(1.0, -1.0),
                                 cv(1.0, 1.0),
@@ -120,7 +120,7 @@ pub fn nnn_seeds<'a>(order: i8) -> PuzzleSeed<CubeRay> {
                             layers,
                             face: U,
                             color: B,
-                            cpu_mesh: polygon(vec![
+                            mesh: polygon(vec![
                                 cv(-1.0, SUPER_START),
                                 cv(SUPER_START, SUPER_START),
                                 cv(1.0, 1.0),
@@ -133,7 +133,7 @@ pub fn nnn_seeds<'a>(order: i8) -> PuzzleSeed<CubeRay> {
                             layers,
                             face: U,
                             color: U,
-                            cpu_mesh: polygon(vec![
+                            mesh: polygon(vec![
                                 cv(-1.0, -1.0),
                                 cv(SUPER_START, -1.0),
                                 cv(SUPER_START, 1.0),
@@ -144,7 +144,7 @@ pub fn nnn_seeds<'a>(order: i8) -> PuzzleSeed<CubeRay> {
                             layers,
                             face: U,
                             color: R,
-                            cpu_mesh: polygon(vec![
+                            mesh: polygon(vec![
                                 cv(SUPER_START, -1.0),
                                 cv(1.0, -1.0),
                                 cv(1.0, 1.0),
@@ -160,7 +160,7 @@ pub fn nnn_seeds<'a>(order: i8) -> PuzzleSeed<CubeRay> {
                     layers,
                     face: U,
                     color: U,
-                    cpu_mesh: polygon(vec![
+                    mesh: polygon(vec![
                         Vec3::new(0.0, 0.0, 1.0) * cube_scale,
                         Vec3::new(SUPER_START * si, -SUPER_START * si, 1.0) * cube_scale,
                         Vec3::new(SUPER_START * si, SUPER_START * si, 1.0) * cube_scale,
@@ -170,7 +170,7 @@ pub fn nnn_seeds<'a>(order: i8) -> PuzzleSeed<CubeRay> {
                     layers,
                     face: U,
                     color: R,
-                    cpu_mesh: polygon(vec![
+                    mesh: polygon(vec![
                         Vec3::new(SUPER_START * si, -SUPER_START * si, 1.0) * cube_scale,
                         Vec3::new(si, -si, 1.0) * cube_scale,
                         Vec3::new(si, si, 1.0) * cube_scale,

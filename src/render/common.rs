@@ -28,6 +28,29 @@ where
     fn ray_to_color(&self) -> Srgba;
 }
 
+/// Simpler version of three_d::CpuMesh without the enums.
+#[derive(Debug, Clone)]
+pub struct SimpleMesh {
+    pub positions: Vec<Vec3>,
+    pub indices: Vec<u8>,
+}
+
+impl SimpleMesh {
+    pub fn to_mesh(&self) -> CpuMesh {
+        CpuMesh {
+            positions: Positions::F32(self.positions.clone()),
+            indices: Indices::U8(self.indices.clone()),
+            ..Default::default()
+        }
+    }
+
+    pub fn transform(&mut self, transform: &Mat4) {
+        for pos in self.positions.iter_mut() {
+            *pos = (transform * pos.extend(1.0)).truncate();
+        }
+    }
+}
+
 /// The initial data which will be symmetry-expanded into a sticker.
 #[derive(Debug)]
 pub struct StickerSeed<Ray>
@@ -40,7 +63,7 @@ where
     pub face: Ray,
     /// The face that controls the color of the sticker.
     pub color: Ray,
-    pub cpu_mesh: CpuMesh,
+    pub mesh: SimpleMesh,
 }
 
 #[derive(Debug)]
@@ -65,7 +88,7 @@ where
     /// The face that controls the color of the sticker.
     pub color: Ray,
     /// The mesh of the sticker.
-    pub cpu_mesh: CpuMesh,
+    pub mesh: SimpleMesh,
     pub gm: Gm<Mesh, ColorMaterial>,
     pub animation: Option<StickerAnimation>,
 }
@@ -77,37 +100,17 @@ pub fn cubic_interpolate(t: f32) -> f32 {
 
 impl<Ray: ConcreteRaySystem> Sticker<Ray> {
     fn ray_intersect(&self, position: Vec3, direction: Vec3) -> Option<f32> {
-        let positions = self.cpu_mesh.positions.to_f32();
-        let indices = self
-            .cpu_mesh
-            .indices
-            .to_u32()
-            .unwrap_or_else(|| (0..self.cpu_mesh.positions.len() as u32).collect());
-        indices[..]
+        self.mesh.indices[..]
             .chunks_exact(3)
             .map(|inds| {
                 let verts = &inds
                     .iter()
-                    .map(|&i| positions[i as usize])
+                    .map(|&i| self.mesh.positions[i as usize])
                     .collect::<Vec<_>>()[..];
                 ray_triangle_intersect(position, direction, verts)
             })
             .filter_map(|x| x)
             .reduce(f32::min)
-    }
-
-    pub fn create_gm(&mut self, context: &Context) -> Gm<Mesh, ColorMaterial> {
-        Gm::new(
-            Mesh::new(&context, &self.cpu_mesh),
-            ColorMaterial {
-                color: Ray::ray_to_color(&self.color),
-                render_states: RenderStates {
-                    cull: Cull::Back,
-                    ..Default::default()
-                },
-                ..Default::default()
-            },
-        )
     }
 
     pub fn update_gm(&mut self, color: Srgba, elapsed_time: f32) {
@@ -133,6 +136,13 @@ impl<Ray: ConcreteRaySystem> Sticker<Ray> {
 
         self.gm.material.color = color;
         self.gm.set_transformation(sticker_mat);
+    }
+
+    fn make_outlines(&self, context: &Context, camera: &Camera) /*-> impl Iterator<Item = CpuMesh>*/
+    {
+        // assumes sticker is flat
+        //if mesh
+        todo!()
     }
 }
 
@@ -267,16 +277,13 @@ impl<Ray: ConcreteRaySystem> ConcretePuzzle<Ray> {
     }
 }
 
-pub fn polygon(verts: Vec<Vec3>) -> CpuMesh {
-    let indices = Indices::U8(
-        (2..verts.len() as u8)
-            .map(|i| vec![0, i - 1, i])
-            .flatten()
-            .collect(),
-    );
-    CpuMesh {
-        positions: Positions::F32(verts),
+pub fn polygon(verts: Vec<Vec3>) -> SimpleMesh {
+    let indices = (2..verts.len() as u8)
+        .map(|i| vec![0, i - 1, i])
+        .flatten()
+        .collect();
+    SimpleMesh {
+        positions: verts,
         indices,
-        ..Default::default()
     }
 }

@@ -61,7 +61,7 @@ pub fn core_seeds() -> PuzzleSeed<OctaRay> {
             layers: enum_map::EnumMap::from_fn(|_ray| 0),
             face: r_BU,
             color: r_BU,
-            cpu_mesh: polygon(vec![
+            mesh: polygon(vec![
                 Vec3::new(1.0, 0.0, 0.0),
                 Vec3::new(0.0, 1.0, 0.0),
                 Vec3::new(1.0, 1.0, 1.0) / 3.0,
@@ -72,7 +72,7 @@ pub fn core_seeds() -> PuzzleSeed<OctaRay> {
             layers: enum_map::EnumMap::from_fn(|_ray| 0),
             face: r_U,
             color: r_U,
-            cpu_mesh: polygon(vec![
+            mesh: polygon(vec![
                 Vec3::new(0.0, -1.0, 0.0),
                 Vec3::new(1.0, 0.0, 0.0),
                 Vec3::new(1.0, -1.0, 1.0) / 3.0,
@@ -99,7 +99,6 @@ pub fn core_seeds() -> PuzzleSeed<OctaRay> {
 const SUPER_SIDE_RATIO: f32 = 0.6; // ratio of super sticker side to trapezoid short side
 const CENTER_INRAD_RATIO: f32 = (1.0 + SUPER_SIDE_RATIO) / 3.0; // ratio between inradius of center and height of trapezoid
 const FULL_SCALE: f32 = 1.8;
-const EXTENSION_RATIO: f32 = 1.3;
 
 fn fto_inrad(order: i8) -> f32 {
     // assume the cut_width_on_axis is 1 for simplicity
@@ -248,7 +247,7 @@ pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
                                 layers,
                                 face: fr(BU),
                                 color: fr(BU),
-                                cpu_mesh: polygon(vec![
+                                mesh: polygon(vec![
                                     fv(1.0, 0.0, 0.0) * circrad,
                                     fv(0.0, 1.0, 0.0) * circrad,
                                     fv(0.0, 0.0, 1.0) * circrad,
@@ -262,7 +261,7 @@ pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
                                         layers,
                                         face: fr(BU),
                                         color: fr(BU),
-                                        cpu_mesh: polygon(vec![
+                                        mesh: polygon(vec![
                                             fv(cd(il + 1), 0.0, cd(jl - 1)) * circrad,
                                             fv(0.0, cd(il + 1), cd(jl - 1)) * circrad,
                                             fv(0.0, 0.0, 1.0) * circrad,
@@ -274,7 +273,7 @@ pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
                                         layers,
                                         face: fr(BU),
                                         color: fr(BU),
-                                        cpu_mesh: polygon(vec![
+                                        mesh: polygon(vec![
                                             fv(0.0 + sd, 0.0 - sd, 1.0) * circrad,
                                             fv(0.5, 0.0 - sd, 0.5 + sd) * circrad,
                                             fv(0.5, 0.0, 0.5) * circrad,
@@ -289,7 +288,7 @@ pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
                                         layers,
                                         face: fr(BU),
                                         color: fr(BU),
-                                        cpu_mesh: polygon(vec![
+                                        mesh: polygon(vec![
                                             fv(0.5, 0.0 + sd, 0.5 + sd) * circrad,
                                             fv(0.0 + sd, 0.5, 0.5 + sd) * circrad,
                                             fv(0.0 + sd, 0.0 + sd, 1.0) * circrad,
@@ -309,7 +308,7 @@ pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
                                     layers,
                                     face: fr(BU),
                                     color: fr(BU),
-                                    cpu_mesh: polygon(vec![
+                                    mesh: polygon(vec![
                                         fv(0.0 + sd, 0.5 + sd, 0.5) * circrad,
                                         fv(0.0 + sd, 0.5, 0.5 + sd) * circrad,
                                         fv(0.5, 0.0 + sd, 0.5 + sd) * circrad,
@@ -321,7 +320,7 @@ pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
                                     layers,
                                     face: fr(BL), // it's bent
                                     color: fr(BL),
-                                    cpu_mesh: polygon(vec![
+                                    mesh: polygon(vec![
                                         fv(sd, 0.5, 0.5 + sd) * circrad,
                                         fv(sd, 0.5 + sd, 0.5) * circrad,
                                         fv(0.0, 0.5, 0.5) * circrad,
@@ -332,7 +331,7 @@ pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
                                     layers,
                                     face: fr(BU),
                                     color: fr(BU),
-                                    cpu_mesh: polygon(vec![
+                                    mesh: polygon(vec![
                                         fv(
                                             1.0 - 2.0 * cd(il + 1) + sd,
                                             cd(il + 1),
@@ -355,7 +354,7 @@ pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
                                     layers,
                                     face: fr(BU),
                                     color: fr(BL),
-                                    cpu_mesh: polygon(vec![
+                                    mesh: polygon(vec![
                                         fv(
                                             1.0 - 2.0 * cd(il + 1) + sd,
                                             cd(il + 1) - sd,
@@ -377,7 +376,7 @@ pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
                                 layers,
                                 face: fr(BU),
                                 color: fr(BU),
-                                cpu_mesh: polygon(vec![
+                                mesh: polygon(vec![
                                     fv(1.0 - cd(il + 1) - cd(jl - 1), cd(il + 1), cd(jl - 1))
                                         * circrad,
                                     fv(
@@ -406,7 +405,7 @@ pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
                                 layers,
                                 face: fr(BU),
                                 color: fr(BL),
-                                cpu_mesh: polygon(vec![
+                                mesh: polygon(vec![
                                     fv(
                                         1.0 - cd(il + 1) - cd(jl + 1) + sd,
                                         cd(il + 1) - sd,
@@ -427,7 +426,7 @@ pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
                                 layers,
                                 face: fr(BU),
                                 color: fr(BU),
-                                cpu_mesh: polygon(vec![
+                                mesh: polygon(vec![
                                     fv(
                                         1.0 - cd(il + 1) - cd(jl + 1) + sd,
                                         cd(il + 1),
@@ -456,7 +455,7 @@ pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
                                 layers,
                                 face: fr(BU),
                                 color: fr(BL),
-                                cpu_mesh: polygon(vec![
+                                mesh: polygon(vec![
                                     fv(
                                         1.0 - cd(il + 1) - cd(jl + 1) + sd,
                                         cd(il + 1) - sd,
@@ -477,7 +476,7 @@ pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
                                 layers,
                                 face: fr(BU),
                                 color: fr(BU),
-                                cpu_mesh: polygon(vec![
+                                mesh: polygon(vec![
                                     fv(1.0 - cd(il - 1) - cd(jl - 1), cd(il - 1), cd(jl - 1))
                                         * circrad,
                                     fv(1.0 - cd(il + 1) - cd(jl - 1), cd(il + 1), cd(jl - 1))
@@ -492,7 +491,7 @@ pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
                                 layers,
                                 face: fr(BU),
                                 color: fr(BU),
-                                cpu_mesh: polygon(vec![
+                                mesh: polygon(vec![
                                     fv(1.0 - cd(il - 1) - cd(jl - 1), cd(il - 1), cd(jl - 1))
                                         * circrad,
                                     fv(1.0 - cd(il + 1) - cd(jl - 1), cd(il + 1), cd(jl - 1))
@@ -515,7 +514,7 @@ pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
                                 layers,
                                 face: fr(BU),
                                 color: fr(BL),
-                                cpu_mesh: polygon(vec![
+                                mesh: polygon(vec![
                                     fv(
                                         1.0 - cd(il + 1) - cd(jl + 1) + sd,
                                         cd(il + 1) - sd,

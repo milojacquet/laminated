@@ -68,6 +68,26 @@ pub fn correct_angle<A: Angle<Unitless = f32>>(angle: A, height: f32) -> A {
     A::atan(1.0 / (A::cot(angle / 2.0) / height)) * 2.0
 }
 
+pub fn create_sticker_gm<Ray: ConcreteRaySystem>(
+    context: &Context,
+    mesh: &SimpleMesh,
+    color: Ray,
+) -> Gm<Mesh, ColorMaterial> {
+    let mut cpu_mesh = mesh.to_mesh();
+    cpu_mesh.compute_normals();
+    Gm::new(
+        Mesh::new(&context, &cpu_mesh),
+        ColorMaterial {
+            color: Ray::ray_to_color(&color),
+            render_states: RenderStates {
+                cull: Cull::Back,
+                ..Default::default()
+            },
+            ..Default::default()
+        },
+    )
+}
+
 pub fn make_concrete_puzzle<Ray: ConcreteRaySystem>(
     window_size: (u32, u32),
     context: &Context,
@@ -100,33 +120,20 @@ pub fn make_concrete_puzzle<Ray: ConcreteRaySystem>(
                         });
                         seed.face = seed.face.turn(turn);
                         seed.color = seed.color.turn(turn);
-                        seed.cpu_mesh
-                            .transform(&Ray::axis_to_transform(turn, viewport_seed.conjugate))
-                            .expect("the axis transform matrices should be invertible");
+                        seed.mesh
+                            .transform(&Ray::axis_to_transform(turn, viewport_seed.conjugate));
                     }
                     let seed_layers_clone = enum_map_clone(&seed.layers);
                     let piece_ind =
                         puzzle.piece_to_index(&Piece::make_solved_from_layers(seed_layers_clone));
-                    let mut new_cpu_mesh = seed.cpu_mesh.clone();
 
-                    new_cpu_mesh.compute_normals();
-                    let gm = Gm::new(
-                        Mesh::new(context, &new_cpu_mesh),
-                        ColorMaterial {
-                            color: Ray::ray_to_color(&seed.color),
-                            render_states: RenderStates {
-                                cull: Cull::Back,
-                                ..Default::default()
-                            },
-                            ..Default::default()
-                        },
-                    );
+                    let gm = create_sticker_gm(context, &seed.mesh, seed.color);
 
                     stickers.push(Sticker {
                         piece_ind,
                         face: seed.face.clone(),
                         color: seed.color.clone(),
-                        cpu_mesh: new_cpu_mesh,
+                        mesh: seed.mesh.clone(),
                         gm,
                         animation: None,
                     });
