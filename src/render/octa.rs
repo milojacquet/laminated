@@ -99,6 +99,7 @@ pub fn core_seeds() -> PuzzleSeed<OctaRay> {
 const SUPER_SIDE_RATIO: f32 = 0.6; // ratio of super sticker side to trapezoid short side
 const CENTER_INRAD_RATIO: f32 = (1.0 + SUPER_SIDE_RATIO) / 3.0; // ratio between inradius of center and height of trapezoid
 const FULL_SCALE: f32 = 1.8;
+const EXTENSION_RATIO: f32 = 1.3;
 
 fn fto_inrad(order: i8) -> f32 {
     // assume the cut_width_on_axis is 1 for simplicity
@@ -128,16 +129,6 @@ fn cut_depth_on_axis(order: i8, cut: i8) -> f32 {
 
 pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
     use crate::puzzle::octa::name::*;
-
-    let offsets: HashMap<i8, f32> = {
-        let mut offsets = HashMap::new();
-        let mut current_offset = 0.0;
-        for n in 2..=order + 1 {
-            offsets.insert(n, current_offset);
-            current_offset += fto_inrad(n);
-        }
-        offsets
-    };
 
     let grips: Vec<Vec<i8>> = (-order + 1..=order - 1)
         .step_by(2)
@@ -225,6 +216,16 @@ pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
                         let layers: enum_map::EnumMap<OctaRay, i8>;
                         //layers = enum_map! {BU => n,R => m,L => j,D => i,F => -n,BL => -m,BR => -j,U => -i,};
 
+                        // None: not extending
+                        // Some(true): extending this face
+                        // Some(false): extending the other face
+                        let extend_opt: Option<bool>;
+                        if n_plus_m.abs() != 2 * order - 4 || order == 2 {
+                            extend_opt = None;
+                        } else {
+                            extend_opt = Some((n_plus_m == -2 * order + 4) ^ flip);
+                        }
+
                         if flip {
                             layers = enum_map! {BU => n,R => m,L => n+m-j,D => n+m-i,F => -n,BL => -m,BR => -n-m+j,U => -n-m+i,};
                         } else {
@@ -255,47 +256,121 @@ pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
                             });
                         } else if i == m && j == n {
                             // corner
-                            stickers.push(StickerSeed {
-                                layers,
-                                face: fr(BU),
-                                color: fr(BU),
-                                cpu_mesh: polygon(vec![
-                                    fv(cd(il + 1), 0.0, cd(jl - 1)) * circrad,
-                                    fv(0.0, cd(il + 1), cd(jl - 1)) * circrad,
-                                    fv(0.0, 0.0, 1.0) * circrad,
-                                ]),
-                            });
+                            match extend_opt {
+                                None => {
+                                    stickers.push(StickerSeed {
+                                        layers,
+                                        face: fr(BU),
+                                        color: fr(BU),
+                                        cpu_mesh: polygon(vec![
+                                            fv(cd(il + 1), 0.0, cd(jl - 1)) * circrad,
+                                            fv(0.0, cd(il + 1), cd(jl - 1)) * circrad,
+                                            fv(0.0, 0.0, 1.0) * circrad,
+                                        ]),
+                                    });
+                                }
+                                Some(false) => {
+                                    stickers.push(StickerSeed {
+                                        layers,
+                                        face: fr(BU),
+                                        color: fr(BU),
+                                        cpu_mesh: polygon(vec![
+                                            fv(0.0 + sd, 0.0 - sd, 1.0) * circrad,
+                                            fv(0.5, 0.0 - sd, 0.5 + sd) * circrad,
+                                            fv(0.5, 0.0, 0.5) * circrad,
+                                            fv(0.0, 0.5, 0.5) * circrad,
+                                            fv(0.0 - sd, 0.5, 0.5 + sd) * circrad,
+                                            fv(0.0 - sd, 0.0 + sd, 1.0) * circrad,
+                                        ]),
+                                    });
+                                }
+                                Some(true) => {
+                                    stickers.push(StickerSeed {
+                                        layers,
+                                        face: fr(BU),
+                                        color: fr(BU),
+                                        cpu_mesh: polygon(vec![
+                                            fv(0.5, 0.0 + sd, 0.5 + sd) * circrad,
+                                            fv(0.0 + sd, 0.5, 0.5 + sd) * circrad,
+                                            fv(0.0 + sd, 0.0 + sd, 1.0) * circrad,
+                                        ]),
+                                    });
+                                }
+                            }
                         } else if i == n && j == m {
                             // another corner
                             // we don't need to render this one
                         } else if i == m && j == m {
                             // BU center
-                            stickers.push(StickerSeed {
-                                layers,
-                                face: fr(BU),
-                                color: fr(BU),
-                                cpu_mesh: polygon(vec![
-                                    fv(1.0 - 2.0 * cd(il + 1) + sd, cd(il + 1), cd(il + 1) - sd)
-                                        * circrad,
-                                    fv(1.0 - 2.0 * cd(il + 1) + sd, cd(il + 1) - sd, cd(il + 1))
-                                        * circrad,
-                                    fv(cd(il + 1) - sd, 1.0 - 2.0 * cd(il + 1) + sd, cd(il + 1))
-                                        * circrad,
-                                    fv(1.0, 1.0, 1.0) / 3.0 * circrad,
-                                ]),
-                            });
-                            stickers.push(StickerSeed {
-                                layers,
-                                face: fr(BU),
-                                color: fr(BL),
-                                cpu_mesh: polygon(vec![
-                                    fv(1.0 - 2.0 * cd(il + 1) + sd, cd(il + 1) - sd, cd(il + 1))
-                                        * circrad,
-                                    fv(1.0 - 2.0 * cd(il + 1) + sd, cd(il + 1), cd(il + 1) - sd)
-                                        * circrad,
-                                    fv(1.0 - 2.0 * cd(il + 1), cd(il + 1), cd(il + 1)) * circrad,
-                                ]),
-                            });
+                            if extend_opt == Some(true) {
+                                // cd(il+1) == 0.5
+
+                                stickers.push(StickerSeed {
+                                    layers,
+                                    face: fr(BU),
+                                    color: fr(BU),
+                                    cpu_mesh: polygon(vec![
+                                        fv(0.0 + sd, 0.5 + sd, 0.5) * circrad,
+                                        fv(0.0 + sd, 0.5, 0.5 + sd) * circrad,
+                                        fv(0.5, 0.0 + sd, 0.5 + sd) * circrad,
+                                        fv(1.0 + 2.0 * sd, 1.0 + 2.0 * sd, 1.0 + 2.0 * sd) / 3.0
+                                            * circrad,
+                                    ]),
+                                });
+                                stickers.push(StickerSeed {
+                                    layers,
+                                    face: fr(BL), // it's bent
+                                    color: fr(BL),
+                                    cpu_mesh: polygon(vec![
+                                        fv(sd, 0.5, 0.5 + sd) * circrad,
+                                        fv(sd, 0.5 + sd, 0.5) * circrad,
+                                        fv(0.0, 0.5, 0.5) * circrad,
+                                    ]),
+                                });
+                            } else {
+                                stickers.push(StickerSeed {
+                                    layers,
+                                    face: fr(BU),
+                                    color: fr(BU),
+                                    cpu_mesh: polygon(vec![
+                                        fv(
+                                            1.0 - 2.0 * cd(il + 1) + sd,
+                                            cd(il + 1),
+                                            cd(il + 1) - sd,
+                                        ) * circrad,
+                                        fv(
+                                            1.0 - 2.0 * cd(il + 1) + sd,
+                                            cd(il + 1) - sd,
+                                            cd(il + 1),
+                                        ) * circrad,
+                                        fv(
+                                            cd(il + 1) - sd,
+                                            1.0 - 2.0 * cd(il + 1) + sd,
+                                            cd(il + 1),
+                                        ) * circrad,
+                                        fv(1.0, 1.0, 1.0) / 3.0 * circrad,
+                                    ]),
+                                });
+                                stickers.push(StickerSeed {
+                                    layers,
+                                    face: fr(BU),
+                                    color: fr(BL),
+                                    cpu_mesh: polygon(vec![
+                                        fv(
+                                            1.0 - 2.0 * cd(il + 1) + sd,
+                                            cd(il + 1) - sd,
+                                            cd(il + 1),
+                                        ) * circrad,
+                                        fv(
+                                            1.0 - 2.0 * cd(il + 1) + sd,
+                                            cd(il + 1),
+                                            cd(il + 1) - sd,
+                                        ) * circrad,
+                                        fv(1.0 - 2.0 * cd(il + 1), cd(il + 1), cd(il + 1))
+                                            * circrad,
+                                    ]),
+                                });
+                            }
                         } else if i == m {
                             // trapezoid (x-center) near L
                             stickers.push(StickerSeed {
