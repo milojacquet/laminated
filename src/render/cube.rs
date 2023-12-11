@@ -85,12 +85,12 @@ pub fn nnn_seeds<'a>(order: i8) -> PuzzleSeed<CubeRay> {
                             layers,
                             face: U,
                             color: U,
-                            mesh: polygon(vec![
+                            vertices: vec![
                                 cv(-1.0, -1.0),
                                 cv(1.0, -1.0),
                                 cv(1.0, 1.0),
                                 cv(-1.0, 1.0),
-                            ]),
+                            ],
                         });
                     } else if j == i {
                         // x-center
@@ -98,34 +98,34 @@ pub fn nnn_seeds<'a>(order: i8) -> PuzzleSeed<CubeRay> {
                             layers,
                             face: U,
                             color: U,
-                            mesh: polygon(vec![
+                            vertices: vec![
                                 cv(-1.0, -1.0),
                                 cv(SUPER_START, -1.0),
                                 cv(SUPER_START, SUPER_START),
                                 cv(-1.0, SUPER_START),
-                            ]),
+                            ],
                         });
                         stickers.push(StickerSeed {
                             layers,
                             face: U,
                             color: R,
-                            mesh: polygon(vec![
+                            vertices: vec![
                                 cv(SUPER_START, -1.0),
                                 cv(1.0, -1.0),
                                 cv(1.0, 1.0),
                                 cv(SUPER_START, SUPER_START),
-                            ]),
+                            ],
                         });
                         stickers.push(StickerSeed {
                             layers,
                             face: U,
                             color: B,
-                            mesh: polygon(vec![
+                            vertices: vec![
                                 cv(-1.0, SUPER_START),
                                 cv(SUPER_START, SUPER_START),
                                 cv(1.0, 1.0),
                                 cv(-1.0, 1.0),
-                            ]),
+                            ],
                         });
                     } else {
                         // t-center or oblique
@@ -133,23 +133,23 @@ pub fn nnn_seeds<'a>(order: i8) -> PuzzleSeed<CubeRay> {
                             layers,
                             face: U,
                             color: U,
-                            mesh: polygon(vec![
+                            vertices: vec![
                                 cv(-1.0, -1.0),
                                 cv(SUPER_START, -1.0),
                                 cv(SUPER_START, 1.0),
                                 cv(-1.0, 1.0),
-                            ]),
+                            ],
                         });
                         stickers.push(StickerSeed {
                             layers,
                             face: U,
                             color: R,
-                            mesh: polygon(vec![
+                            vertices: vec![
                                 cv(SUPER_START, -1.0),
                                 cv(1.0, -1.0),
                                 cv(1.0, 1.0),
                                 cv(SUPER_START, 1.0),
-                            ]),
+                            ],
                         });
                     }
                 }
@@ -160,22 +160,22 @@ pub fn nnn_seeds<'a>(order: i8) -> PuzzleSeed<CubeRay> {
                     layers,
                     face: U,
                     color: U,
-                    mesh: polygon(vec![
+                    vertices: vec![
                         Vec3::new(0.0, 0.0, 1.0) * cube_scale,
                         Vec3::new(SUPER_START * si, -SUPER_START * si, 1.0) * cube_scale,
                         Vec3::new(SUPER_START * si, SUPER_START * si, 1.0) * cube_scale,
-                    ]),
+                    ],
                 });
                 stickers.push(StickerSeed {
                     layers,
                     face: U,
                     color: R,
-                    mesh: polygon(vec![
+                    vertices: vec![
                         Vec3::new(SUPER_START * si, -SUPER_START * si, 1.0) * cube_scale,
                         Vec3::new(si, -si, 1.0) * cube_scale,
                         Vec3::new(si, si, 1.0) * cube_scale,
                         Vec3::new(SUPER_START * si, SUPER_START * si, 1.0) * cube_scale,
-                    ]),
+                    ],
                 });
             }
 

@@ -70,10 +70,20 @@ pub fn correct_angle<A: Angle<Unitless = f32>>(angle: A, height: f32) -> A {
 
 pub fn create_sticker_gm<Ray: ConcreteRaySystem>(
     context: &Context,
-    mesh: &SimpleMesh,
+    vertices: &Vec<Vec3>,
     color: Ray,
 ) -> Gm<Mesh, ColorMaterial> {
-    let mut cpu_mesh = mesh.to_mesh();
+    let mut cpu_mesh = CpuMesh {
+        positions: Positions::F32(vertices.clone()),
+        indices: Indices::U8(
+            polygon_inds(vertices.len())
+                .into_iter()
+                .flatten()
+                .map(|e| e as u8)
+                .collect(),
+        ),
+        ..Default::default()
+    };
     cpu_mesh.compute_normals();
     Gm::new(
         Mesh::new(&context, &cpu_mesh),
@@ -120,20 +130,23 @@ pub fn make_concrete_puzzle<Ray: ConcreteRaySystem>(
                         });
                         seed.face = seed.face.turn(turn);
                         seed.color = seed.color.turn(turn);
-                        seed.mesh
-                            .transform(&Ray::axis_to_transform(turn, viewport_seed.conjugate));
+
+                        let mat = Ray::axis_to_transform(turn, viewport_seed.conjugate);
+                        for vert in seed.vertices.iter_mut() {
+                            *vert = (mat * vert.extend(1.0)).truncate();
+                        }
                     }
                     let seed_layers_clone = enum_map_clone(&seed.layers);
                     let piece_ind =
                         puzzle.piece_to_index(&Piece::make_solved_from_layers(seed_layers_clone));
 
-                    let gm = create_sticker_gm(context, &seed.mesh, seed.color);
+                    let gm = create_sticker_gm(context, &seed.vertices, seed.color);
 
                     stickers.push(Sticker {
                         piece_ind,
                         face: seed.face.clone(),
                         color: seed.color.clone(),
-                        mesh: seed.mesh.clone(),
+                        vertices: seed.vertices.clone(),
                         gm,
                         animation: None,
                     });

@@ -61,22 +61,22 @@ pub fn core_seeds() -> PuzzleSeed<OctaRay> {
             layers: enum_map::EnumMap::from_fn(|_ray| 0),
             face: r_BU,
             color: r_BU,
-            mesh: polygon(vec![
+            vertices: vec![
                 Vec3::new(1.0, 0.0, 0.0),
                 Vec3::new(0.0, 1.0, 0.0),
                 Vec3::new(1.0, 1.0, 1.0) / 3.0,
-            ]),
+            ],
         });
 
         stickers.push(StickerSeed {
             layers: enum_map::EnumMap::from_fn(|_ray| 0),
             face: r_U,
             color: r_U,
-            mesh: polygon(vec![
+            vertices: vec![
                 Vec3::new(0.0, -1.0, 0.0),
                 Vec3::new(1.0, 0.0, 0.0),
                 Vec3::new(1.0, -1.0, 1.0) / 3.0,
-            ]),
+            ],
         });
 
         ViewportSeed {
@@ -247,11 +247,11 @@ pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
                                 layers,
                                 face: fr(BU),
                                 color: fr(BU),
-                                mesh: polygon(vec![
+                                vertices: vec![
                                     fv(1.0, 0.0, 0.0) * circrad,
                                     fv(0.0, 1.0, 0.0) * circrad,
                                     fv(0.0, 0.0, 1.0) * circrad,
-                                ]),
+                                ],
                             });
                         } else if i == m && j == n {
                             // corner
@@ -261,11 +261,11 @@ pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
                                         layers,
                                         face: fr(BU),
                                         color: fr(BU),
-                                        mesh: polygon(vec![
+                                        vertices: vec![
                                             fv(cd(il + 1), 0.0, cd(jl - 1)) * circrad,
                                             fv(0.0, cd(il + 1), cd(jl - 1)) * circrad,
                                             fv(0.0, 0.0, 1.0) * circrad,
-                                        ]),
+                                        ],
                                     });
                                 }
                                 Some(false) => {
@@ -273,14 +273,14 @@ pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
                                         layers,
                                         face: fr(BU),
                                         color: fr(BU),
-                                        mesh: polygon(vec![
+                                        vertices: vec![
                                             fv(0.0 + sd, 0.0 - sd, 1.0) * circrad,
                                             fv(0.5, 0.0 - sd, 0.5 + sd) * circrad,
                                             fv(0.5, 0.0, 0.5) * circrad,
                                             fv(0.0, 0.5, 0.5) * circrad,
                                             fv(0.0 - sd, 0.5, 0.5 + sd) * circrad,
                                             fv(0.0 - sd, 0.0 + sd, 1.0) * circrad,
-                                        ]),
+                                        ],
                                     });
                                 }
                                 Some(true) => {
@@ -288,11 +288,11 @@ pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
                                         layers,
                                         face: fr(BU),
                                         color: fr(BU),
-                                        mesh: polygon(vec![
+                                        vertices: vec![
                                             fv(0.5, 0.0 + sd, 0.5 + sd) * circrad,
                                             fv(0.0 + sd, 0.5, 0.5 + sd) * circrad,
                                             fv(0.0 + sd, 0.0 + sd, 1.0) * circrad,
-                                        ]),
+                                        ],
                                     });
                                 }
                             }
@@ -308,30 +308,30 @@ pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
                                     layers,
                                     face: fr(BU),
                                     color: fr(BU),
-                                    mesh: polygon(vec![
+                                    vertices: vec![
                                         fv(0.0 + sd, 0.5 + sd, 0.5) * circrad,
                                         fv(0.0 + sd, 0.5, 0.5 + sd) * circrad,
                                         fv(0.5, 0.0 + sd, 0.5 + sd) * circrad,
                                         fv(1.0 + 2.0 * sd, 1.0 + 2.0 * sd, 1.0 + 2.0 * sd) / 3.0
                                             * circrad,
-                                    ]),
+                                    ],
                                 });
                                 stickers.push(StickerSeed {
                                     layers,
                                     face: fr(BL), // it's bent
                                     color: fr(BL),
-                                    mesh: polygon(vec![
+                                    vertices: vec![
                                         fv(sd, 0.5, 0.5 + sd) * circrad,
                                         fv(sd, 0.5 + sd, 0.5) * circrad,
                                         fv(0.0, 0.5, 0.5) * circrad,
-                                    ]),
+                                    ],
                                 });
                             } else {
                                 stickers.push(StickerSeed {
                                     layers,
                                     face: fr(BU),
                                     color: fr(BU),
-                                    mesh: polygon(vec![
+                                    vertices: vec![
                                         fv(
                                             1.0 - 2.0 * cd(il + 1) + sd,
                                             cd(il + 1),
@@ -348,13 +348,13 @@ pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
                                             cd(il + 1),
                                         ) * circrad,
                                         fv(1.0, 1.0, 1.0) / 3.0 * circrad,
-                                    ]),
+                                    ],
                                 });
                                 stickers.push(StickerSeed {
                                     layers,
                                     face: fr(BU),
                                     color: fr(BL),
-                                    mesh: polygon(vec![
+                                    vertices: vec![
                                         fv(
                                             1.0 - 2.0 * cd(il + 1) + sd,
                                             cd(il + 1) - sd,
@@ -367,7 +367,7 @@ pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
                                         ) * circrad,
                                         fv(1.0 - 2.0 * cd(il + 1), cd(il + 1), cd(il + 1))
                                             * circrad,
-                                    ]),
+                                    ],
                                 });
                             }
                         } else if i == m {
@@ -376,7 +376,7 @@ pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
                                 layers,
                                 face: fr(BU),
                                 color: fr(BU),
-                                mesh: polygon(vec![
+                                vertices: vec![
                                     fv(1.0 - cd(il + 1) - cd(jl - 1), cd(il + 1), cd(jl - 1))
                                         * circrad,
                                     fv(
@@ -399,13 +399,13 @@ pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
                                         (1.0 - cd(jl - 1)) / 2.0,
                                         cd(jl - 1),
                                     ) * circrad,
-                                ]),
+                                ],
                             });
                             stickers.push(StickerSeed {
                                 layers,
                                 face: fr(BU),
                                 color: fr(BL),
-                                mesh: polygon(vec![
+                                vertices: vec![
                                     fv(
                                         1.0 - cd(il + 1) - cd(jl + 1) + sd,
                                         cd(il + 1) - sd,
@@ -418,7 +418,7 @@ pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
                                     ) * circrad,
                                     fv(1.0 - cd(il + 1) - cd(jl + 1), cd(il + 1), cd(jl + 1))
                                         * circrad,
-                                ]),
+                                ],
                             });
                         } else if j == m {
                             // trapezoid (x-center) near D
@@ -426,7 +426,7 @@ pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
                                 layers,
                                 face: fr(BU),
                                 color: fr(BU),
-                                mesh: polygon(vec![
+                                vertices: vec![
                                     fv(
                                         1.0 - cd(il + 1) - cd(jl + 1) + sd,
                                         cd(il + 1),
@@ -449,13 +449,13 @@ pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
                                         cd(il + 1),
                                         (1.0 - cd(il + 1)) / 2.0,
                                     ) * circrad,
-                                ]),
+                                ],
                             });
                             stickers.push(StickerSeed {
                                 layers,
                                 face: fr(BU),
                                 color: fr(BL),
-                                mesh: polygon(vec![
+                                vertices: vec![
                                     fv(
                                         1.0 - cd(il + 1) - cd(jl + 1) + sd,
                                         cd(il + 1) - sd,
@@ -468,7 +468,7 @@ pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
                                     ) * circrad,
                                     fv(1.0 - cd(il + 1) - cd(jl + 1), cd(il + 1), cd(jl + 1))
                                         * circrad,
-                                ]),
+                                ],
                             });
                         } else if i + j == m + n {
                             // edge or wing
@@ -476,14 +476,14 @@ pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
                                 layers,
                                 face: fr(BU),
                                 color: fr(BU),
-                                mesh: polygon(vec![
+                                vertices: vec![
                                     fv(1.0 - cd(il - 1) - cd(jl - 1), cd(il - 1), cd(jl - 1))
                                         * circrad,
                                     fv(1.0 - cd(il + 1) - cd(jl - 1), cd(il + 1), cd(jl - 1))
                                         * circrad,
                                     fv(1.0 - cd(il - 1) - cd(jl + 1), cd(il - 1), cd(jl + 1))
                                         * circrad,
-                                ]),
+                                ],
                             });
                         } else {
                             // rhombus
@@ -491,7 +491,7 @@ pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
                                 layers,
                                 face: fr(BU),
                                 color: fr(BU),
-                                mesh: polygon(vec![
+                                vertices: vec![
                                     fv(1.0 - cd(il - 1) - cd(jl - 1), cd(il - 1), cd(jl - 1))
                                         * circrad,
                                     fv(1.0 - cd(il + 1) - cd(jl - 1), cd(il + 1), cd(jl - 1))
@@ -508,13 +508,13 @@ pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
                                     ) * circrad,
                                     fv(1.0 - cd(il - 1) - cd(jl + 1), cd(il - 1), cd(jl + 1))
                                         * circrad,
-                                ]),
+                                ],
                             });
                             stickers.push(StickerSeed {
                                 layers,
                                 face: fr(BU),
                                 color: fr(BL),
-                                mesh: polygon(vec![
+                                vertices: vec![
                                     fv(
                                         1.0 - cd(il + 1) - cd(jl + 1) + sd,
                                         cd(il + 1) - sd,
@@ -527,7 +527,7 @@ pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
                                     ) * circrad,
                                     fv(1.0 - cd(il + 1) - cd(jl + 1), cd(il + 1), cd(jl + 1))
                                         * circrad,
-                                ]),
+                                ],
                             });
                         }
                     }

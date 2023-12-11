@@ -63,7 +63,8 @@ where
     pub face: Ray,
     /// The face that controls the color of the sticker.
     pub color: Ray,
-    pub mesh: SimpleMesh,
+    /// The vertices of the polygon that makes up the sticker.
+    pub vertices: Vec<Vec3>,
 }
 
 #[derive(Debug)]
@@ -87,8 +88,8 @@ where
     pub face: Ray,
     /// The face that controls the color of the sticker.
     pub color: Ray,
-    /// The mesh of the sticker.
-    pub mesh: SimpleMesh,
+    /// The vertices of the polygon that makes up the sticker.
+    pub vertices: Vec<Vec3>,
     pub gm: Gm<Mesh, ColorMaterial>,
     pub animation: Option<StickerAnimation>,
 }
@@ -100,13 +101,10 @@ pub fn cubic_interpolate(t: f32) -> f32 {
 
 impl<Ray: ConcreteRaySystem> Sticker<Ray> {
     fn ray_intersect(&self, position: Vec3, direction: Vec3) -> Option<f32> {
-        self.mesh.indices[..]
-            .chunks_exact(3)
+        polygon_inds(self.vertices.len())
+            .iter()
             .map(|inds| {
-                let verts = &inds
-                    .iter()
-                    .map(|&i| self.mesh.positions[i as usize])
-                    .collect::<Vec<_>>()[..];
+                let verts = &inds.iter().map(|&i| self.vertices[i]).collect::<Vec<_>>()[..];
                 ray_triangle_intersect(position, direction, verts)
             })
             .filter_map(|x| x)
@@ -141,7 +139,19 @@ impl<Ray: ConcreteRaySystem> Sticker<Ray> {
     fn make_outlines(&self, context: &Context, camera: &Camera) /*-> impl Iterator<Item = CpuMesh>*/
     {
         // assumes sticker is flat
-        //if mesh
+        // no outlines should be generated for back faces
+        /*if (self.mesh.positions[self.mesh.indices[0] as usize]
+            - self.mesh.positions[self.mesh.indices[1] as usize])
+            .cross(
+                self.mesh.positions[self.mesh.indices[0] as usize]
+                    - self.mesh.positions[self.mesh.indices[2] as usize],
+            )
+            .dot(camera.view_direction())
+            < 0.0
+        {
+            return std::iter::empty();
+        }*/
+
         todo!()
     }
 }
@@ -277,13 +287,6 @@ impl<Ray: ConcreteRaySystem> ConcretePuzzle<Ray> {
     }
 }
 
-pub fn polygon(verts: Vec<Vec3>) -> SimpleMesh {
-    let indices = (2..verts.len() as u8)
-        .map(|i| vec![0, i - 1, i])
-        .flatten()
-        .collect();
-    SimpleMesh {
-        positions: verts,
-        indices,
-    }
+pub fn polygon_inds(verts: usize) -> Vec<[usize; 3]> {
+    (2..verts).map(|i| [0, i - 1, i]).collect()
 }
