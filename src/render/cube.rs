@@ -6,7 +6,9 @@ use enum_map::enum_map;
 use std::collections::HashMap;
 use std::f32::consts::PI;
 
-use three_d::*;
+use crate::util::{Mat4, Vec3};
+use cgmath::Rad;
+use three_d::Srgba;
 
 const SUPER_START: f32 = 0.75;
 

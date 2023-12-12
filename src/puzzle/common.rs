@@ -3,7 +3,6 @@ use rand;
 use std::fmt;
 use std::iter::zip;
 use std::ops::{Add, Mul, Neg, Sub};
-use three_d::Vec3;
 
 use crate::util::*;
 

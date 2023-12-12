@@ -5,6 +5,7 @@ use enum_map::EnumMap;
 use std::cmp;
 use std::collections::HashMap;
 
+use crate::util::{Mat4, Vec3};
 use std::f32::consts::PI;
 use three_d::*;
 
