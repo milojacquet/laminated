@@ -53,142 +53,136 @@ pub fn nnn_seeds<'a>(order: i8) -> PuzzleSeed<CubeRay> {
         .map(|k| vec![k, -k])
         .collect();
 
-    let viewports = (1 + (order & 1)..=order - 1)
-        .step_by(2)
-        .map(|n| {
-            // n = outer layer of the puzzle in this viewport
-            // convenience
-            let si = 1.0 / (n + 1) as f32;
-            let cube_scale = (n as f32 + 1.0) / (order as f32);
+    let mut viewports: Vec<ViewportSeed<CubeRay>> = vec![];
 
-            let abstract_viewport = AbstractViewport {
-                x: current_width, //((n - 1) / 2) as f32,
-                y: 0.0,
-                //width: 1.0 * ((n + 1) as f32) / (order as f32),
-                width: 0.7 * ((n + 1) as f32) / (order as f32) + 0.3,
-                height: 1.0,
-            };
+    for n in (1 + (order & 1)..=order - 1).step_by(2) {
+        // n = outer layer of the puzzle in this viewport
+        // convenience
+        let si = 1.0 / (n + 1) as f32;
+        let cube_scale = (n as f32 + 1.0) / (order as f32);
 
-            current_width += abstract_viewport.width;
+        let abstract_viewport = AbstractViewport {
+            x: current_width, //((n - 1) / 2) as f32,
+            y: 0.0,
+            //width: 1.0 * ((n + 1) as f32) / (order as f32),
+            width: 0.7 * ((n + 1) as f32) / (order as f32) + 0.3,
+            height: 1.0,
+        };
 
-            let mut stickers = vec![];
+        current_width += abstract_viewport.width;
 
-            for i in (2 - (n & 1)..=n).step_by(2) {
-                for j in (2 - i..=i).step_by(2) {
-                    //dbg!(n, i, j);
-                    let layers = enum_map! {U=>n,R=>i,B=>j,D=>-n,L=>-i,F=>-j,};
-                    let cv = |x: f32, y: f32| {
-                        Vec3::new((i as f32 + x) * si, (j as f32 + y) * si, 1.0) * cube_scale
-                    };
+        let mut stickers = vec![];
 
-                    if i == n {
-                        // corner or edge
-                        stickers.push(StickerSeed {
-                            layers,
-                            face: U,
-                            color: U,
-                            vertices: vec![
-                                cv(-1.0, -1.0),
-                                cv(1.0, -1.0),
-                                cv(1.0, 1.0),
-                                cv(-1.0, 1.0),
-                            ],
-                        });
-                    } else if j == i {
-                        // x-center
-                        stickers.push(StickerSeed {
-                            layers,
-                            face: U,
-                            color: U,
-                            vertices: vec![
-                                cv(-1.0, -1.0),
-                                cv(SUPER_START, -1.0),
-                                cv(SUPER_START, SUPER_START),
-                                cv(-1.0, SUPER_START),
-                            ],
-                        });
-                        stickers.push(StickerSeed {
-                            layers,
-                            face: U,
-                            color: R,
-                            vertices: vec![
-                                cv(SUPER_START, -1.0),
-                                cv(1.0, -1.0),
-                                cv(1.0, 1.0),
-                                cv(SUPER_START, SUPER_START),
-                            ],
-                        });
-                        stickers.push(StickerSeed {
-                            layers,
-                            face: U,
-                            color: B,
-                            vertices: vec![
-                                cv(-1.0, SUPER_START),
-                                cv(SUPER_START, SUPER_START),
-                                cv(1.0, 1.0),
-                                cv(-1.0, 1.0),
-                            ],
-                        });
-                    } else {
-                        // t-center or oblique
-                        stickers.push(StickerSeed {
-                            layers,
-                            face: U,
-                            color: U,
-                            vertices: vec![
-                                cv(-1.0, -1.0),
-                                cv(SUPER_START, -1.0),
-                                cv(SUPER_START, 1.0),
-                                cv(-1.0, 1.0),
-                            ],
-                        });
-                        stickers.push(StickerSeed {
-                            layers,
-                            face: U,
-                            color: R,
-                            vertices: vec![
-                                cv(SUPER_START, -1.0),
-                                cv(1.0, -1.0),
-                                cv(1.0, 1.0),
-                                cv(SUPER_START, 1.0),
-                            ],
-                        });
-                    }
+        for i in (2 - (n & 1)..=n).step_by(2) {
+            for j in (2 - i..=i).step_by(2) {
+                //dbg!(n, i, j);
+                let layers = enum_map! {U=>n,R=>i,B=>j,D=>-n,L=>-i,F=>-j,};
+                let cv = |x: f32, y: f32| {
+                    Vec3::new((i as f32 + x) * si, (j as f32 + y) * si, 1.0) * cube_scale
+                };
+
+                if i == n {
+                    // corner or edge
+                    stickers.push(StickerSeed {
+                        layers,
+                        face: U,
+                        color: U,
+                        vertices: vec![cv(-1.0, -1.0), cv(1.0, -1.0), cv(1.0, 1.0), cv(-1.0, 1.0)],
+                    });
+                } else if j == i {
+                    // x-center
+                    stickers.push(StickerSeed {
+                        layers,
+                        face: U,
+                        color: U,
+                        vertices: vec![
+                            cv(-1.0, -1.0),
+                            cv(SUPER_START, -1.0),
+                            cv(SUPER_START, SUPER_START),
+                            cv(-1.0, SUPER_START),
+                        ],
+                    });
+                    stickers.push(StickerSeed {
+                        layers,
+                        face: U,
+                        color: R,
+                        vertices: vec![
+                            cv(SUPER_START, -1.0),
+                            cv(1.0, -1.0),
+                            cv(1.0, 1.0),
+                            cv(SUPER_START, SUPER_START),
+                        ],
+                    });
+                    stickers.push(StickerSeed {
+                        layers,
+                        face: U,
+                        color: B,
+                        vertices: vec![
+                            cv(-1.0, SUPER_START),
+                            cv(SUPER_START, SUPER_START),
+                            cv(1.0, 1.0),
+                            cv(-1.0, 1.0),
+                        ],
+                    });
+                } else {
+                    // t-center or oblique
+                    stickers.push(StickerSeed {
+                        layers,
+                        face: U,
+                        color: U,
+                        vertices: vec![
+                            cv(-1.0, -1.0),
+                            cv(SUPER_START, -1.0),
+                            cv(SUPER_START, 1.0),
+                            cv(-1.0, 1.0),
+                        ],
+                    });
+                    stickers.push(StickerSeed {
+                        layers,
+                        face: U,
+                        color: R,
+                        vertices: vec![
+                            cv(SUPER_START, -1.0),
+                            cv(1.0, -1.0),
+                            cv(1.0, 1.0),
+                            cv(SUPER_START, 1.0),
+                        ],
+                    });
                 }
             }
-            if order & 1 == 1 {
-                let layers = enum_map! {U=>n,R=>0,B=>0,D=>-n,L=>0,F=>0,};
-                stickers.push(StickerSeed {
-                    layers,
-                    face: U,
-                    color: U,
-                    vertices: vec![
-                        Vec3::new(0.0, 0.0, 1.0) * cube_scale,
-                        Vec3::new(SUPER_START * si, -SUPER_START * si, 1.0) * cube_scale,
-                        Vec3::new(SUPER_START * si, SUPER_START * si, 1.0) * cube_scale,
-                    ],
-                });
-                stickers.push(StickerSeed {
-                    layers,
-                    face: U,
-                    color: R,
-                    vertices: vec![
-                        Vec3::new(SUPER_START * si, -SUPER_START * si, 1.0) * cube_scale,
-                        Vec3::new(si, -si, 1.0) * cube_scale,
-                        Vec3::new(si, si, 1.0) * cube_scale,
-                        Vec3::new(SUPER_START * si, SUPER_START * si, 1.0) * cube_scale,
-                    ],
-                });
-            }
+        }
+        if order & 1 == 1 {
+            let layers = enum_map! {U=>n,R=>0,B=>0,D=>-n,L=>0,F=>0,};
+            stickers.push(StickerSeed {
+                layers,
+                face: U,
+                color: U,
+                vertices: vec![
+                    Vec3::new(0.0, 0.0, 1.0) * cube_scale,
+                    Vec3::new(SUPER_START * si, -SUPER_START * si, 1.0) * cube_scale,
+                    Vec3::new(SUPER_START * si, SUPER_START * si, 1.0) * cube_scale,
+                ],
+            });
+            stickers.push(StickerSeed {
+                layers,
+                face: U,
+                color: R,
+                vertices: vec![
+                    Vec3::new(SUPER_START * si, -SUPER_START * si, 1.0) * cube_scale,
+                    Vec3::new(si, -si, 1.0) * cube_scale,
+                    Vec3::new(si, si, 1.0) * cube_scale,
+                    Vec3::new(SUPER_START * si, SUPER_START * si, 1.0) * cube_scale,
+                ],
+            });
+        }
 
-            ViewportSeed {
-                abstract_viewport,
-                conjugate: (),
-                stickers,
-                default_layers: vec![vec![n, -n], vec![-n, n]],
-            }
-        })
-        .collect();
+        viewports.push(ViewportSeed {
+            abstract_viewport,
+            conjugate: (),
+            stickers,
+            default_layers: vec![vec![n, -n], vec![-n, n]],
+        });
+    }
 
     let key_layers = vec![
         HashMap::from_iter(NUMBER_KEYS.into_iter().zip(grips.iter().rev().cloned())),
