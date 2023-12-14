@@ -151,6 +151,7 @@ fn file_dialog() -> rfd::FileDialog {
 /// Mutable objects that have to persist through making a new session
 struct PersistentObjects {
     keys_down: HashSet<Key>,
+    keys_clicked: HashSet<Key>,
     status_message: Option<String>,
     window_size: (u32, u32),
     gui: GUI,
@@ -314,11 +315,21 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                     // this detects key presses one frame late
                     for i in (0..NUMBER_KEYS.len()).rev() {
                         let num_key = NUMBER_KEYS[i];
+                        let status = if persistent.keys_clicked.contains(&num_key) {
+                            KeyLabelStatus::Clicked
+                        } else if persistent.keys_down.contains(&num_key) {
+                            KeyLabelStatus::Pressed
+                        } else {
+                            KeyLabelStatus::Unpressed
+                        };
                         if session.concrete_puzzle.key_layers[0].contains_key(&num_key) {
-                            ui.add(KeyLabel::new(
-                                persistent.keys_down.contains(&num_key),
-                                (i + 1).to_string(),
-                            ));
+                            if ui.add(KeyLabel::new(status, (i + 1).to_string())).clicked() {
+                                if persistent.keys_clicked.contains(&num_key) {
+                                    persistent.keys_clicked.remove(&num_key);
+                                } else {
+                                    persistent.keys_clicked.insert(num_key);
+                                }
+                            };
                         }
                     }
                     ui.separator();
@@ -425,7 +436,7 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                                 let turn = (turn_face, opposite_axis * turn_direction);
                                 let grips: Vec<_> = persistent
                                     .keys_down
-                                    .iter()
+                                    .union(&persistent.keys_clicked)
                                     .filter_map(|key| {
                                         session.concrete_puzzle.key_layers[axis_index]
                                             .get(&key)
@@ -502,6 +513,7 @@ fn main() {
 
     let mut persistent = PersistentObjects {
         keys_down: HashSet::new(),
+        keys_clicked: HashSet::new(),
         status_message: None,
         window_size: window.size(),
         gui: GUI::new(&context),
