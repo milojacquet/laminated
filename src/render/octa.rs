@@ -1,3 +1,4 @@
+use crate::preferences::Preferences;
 use crate::puzzle::common::RaySystem;
 use crate::puzzle::cube::{Basis, Sign};
 use crate::puzzle::octa::OctaRay;
@@ -27,17 +28,8 @@ impl ConcreteRaySystem for OctaRay {
         .normalize()
     }
 
-    fn ray_to_color(&self) -> color::Color {
-        match self {
-            OctaRay(Sign::Pos, Sign::Neg, Sign::Pos) => color::WHITE,
-            OctaRay(Sign::Pos, Sign::Neg, Sign::Neg) => color::GREEN,
-            OctaRay(Sign::Neg, Sign::Neg, Sign::Pos) => color::RED,
-            OctaRay(Sign::Neg, Sign::Neg, Sign::Neg) => color::DARK_GREEN,
-            OctaRay(Sign::Pos, Sign::Pos, Sign::Pos) => color::BLUE,
-            OctaRay(Sign::Pos, Sign::Pos, Sign::Neg) => color::ORANGE,
-            OctaRay(Sign::Neg, Sign::Pos, Sign::Pos) => color::PURPLE,
-            OctaRay(Sign::Neg, Sign::Pos, Sign::Neg) => color::YELLOW,
-        }
+    fn ray_to_color(prefs: &Preferences) -> enum_map::EnumMap<Self, color::Color> {
+        prefs.colors.octa
     }
 }
 

@@ -1,3 +1,4 @@
+use crate::util::color::Color;
 use enum_map::{Enum, EnumMap};
 use rand;
 use std::fmt;
@@ -111,6 +112,7 @@ where
         + std::fmt::Debug
         + enum_map::EnumArray<i8>
         + enum_map::EnumArray<Self>
+        + enum_map::EnumArray<Color>
         + fmt::Display,
 {
     /// Returns a list of rays that make up the vector. Should

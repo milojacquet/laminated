@@ -1,4 +1,5 @@
 use crate::key_label::*;
+use crate::preferences::Preferences;
 use crate::render::common::*;
 use crate::render::create::*;
 use crate::session::*;
@@ -94,6 +95,7 @@ fn render_puzzle<Ray: ConcreteRaySystem>(
     screen: &mut RenderTarget,
     elapsed_time: f64,
     concrete_puzzle: &mut ConcretePuzzle<Ray>,
+    prefs: &Preferences,
 ) {
     screen.clear(ClearState::color_and_depth(0.8, 0.8, 0.8, 1.0, 1.0));
 
@@ -105,10 +107,9 @@ fn render_puzzle<Ray: ConcreteRaySystem>(
             viewport.stickers.iter_mut().map(|sticker| {
                 let puzzle = &concrete_puzzle.puzzle;
                 sticker.update_gm(
-                    Ray::ray_to_color(
-                        &puzzle.pieces[permutation[sticker.piece_ind]].orientation[sticker.color],
-                    )
-                    .to_srgba(),
+                    Ray::ray_to_color(&prefs)
+                        [puzzle.pieces[permutation[sticker.piece_ind]].orientation[sticker.color]]
+                        .to_srgba(),
                     elapsed_time as f32,
                 );
 
@@ -157,6 +158,7 @@ struct PersistentObjects {
     status_message: Option<String>,
     window_size: (u32, u32),
     gui: GUI,
+    prefs: Preferences,
 }
 
 impl PersistentObjects {
@@ -248,8 +250,11 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                             for n in 2..=9 {
                                 if ui.button(format!("{0} layers ({0}×{0}×{0})", n)).clicked() {
                                     response.new_session = Some(
-                                        SessionType::Cube(CubePuzzle::Nnn(n))
-                                            .make_session_enum(persistent.window_size, &context),
+                                        SessionType::Cube(CubePuzzle::Nnn(n)).make_session_enum(
+                                            persistent.window_size,
+                                            &context,
+                                            &persistent.prefs,
+                                        ),
                                     );
                                     ui.close_menu();
                                 }
@@ -267,8 +272,11 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                             for n in 2..=5 {
                                 if ui.button(format!("{0} layers", n)).clicked() {
                                     response.new_session = Some(
-                                        SessionType::Octa(OctaPuzzle::Fto(n))
-                                            .make_session_enum(persistent.window_size, &context),
+                                        SessionType::Octa(OctaPuzzle::Fto(n)).make_session_enum(
+                                            persistent.window_size,
+                                            &context,
+                                            &persistent.prefs,
+                                        ),
                                     );
                                     ui.close_menu();
                                 }
@@ -490,6 +498,7 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
         &mut frame_input.screen(),
         frame_input.elapsed_time,
         &mut session.concrete_puzzle,
+        &persistent.prefs,
     );
     /*render_axes(
         &mut frame_input.screen(),
@@ -519,10 +528,14 @@ fn main() {
         status_message: None,
         window_size: window.size(),
         gui: GUI::new(&context),
+        prefs: Default::default(),
     };
 
-    let mut session =
-        SessionType::Cube(CubePuzzle::Nnn(3)).make_session_enum(persistent.window_size, &context);
+    let mut session = SessionType::Cube(CubePuzzle::Nnn(3)).make_session_enum(
+        persistent.window_size,
+        &context,
+        &persistent.prefs,
+    );
 
     window.render_loop(move |mut frame_input| {
         let response;
@@ -558,8 +571,9 @@ fn main() {
                 .pick_file()
                 .ok_or_else(|| eyre!("No file picked"));
 
-            let load_result = load_path
-                .and_then(|path| SessionEnum::load(path, persistent.window_size, &context));
+            let load_result = load_path.and_then(|path| {
+                SessionEnum::load(path, persistent.window_size, &context, &persistent.prefs)
+            });
             persistent.show_or(&load_result, |session| {
                 let suffix = if session.version() == VERSION {
                     "".to_string()

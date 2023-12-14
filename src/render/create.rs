@@ -1,3 +1,4 @@
+use crate::preferences::Preferences;
 use crate::puzzle::common::*;
 use crate::render::common::*;
 use crate::util::enum_map_clone;
@@ -72,6 +73,7 @@ pub fn create_sticker_gm<Ray: ConcreteRaySystem>(
     context: &Context,
     vertices: &Vec<Vec3>,
     color: Ray,
+    prefs: &Preferences,
 ) -> Gm<Mesh, ColorMaterial> {
     let mut cpu_mesh = CpuMesh {
         positions: Positions::F32(vertices.clone()),
@@ -88,7 +90,7 @@ pub fn create_sticker_gm<Ray: ConcreteRaySystem>(
     Gm::new(
         Mesh::new(&context, &cpu_mesh),
         ColorMaterial {
-            color: Ray::ray_to_color(&color).to_srgba(),
+            color: Ray::ray_to_color(&prefs)[color].to_srgba(),
             render_states: RenderStates {
                 cull: Cull::Back,
                 ..Default::default()
@@ -102,6 +104,7 @@ pub fn make_concrete_puzzle<Ray: ConcreteRaySystem>(
     window_size: (u32, u32),
     context: &Context,
     mut puzzle_seed: PuzzleSeed<Ray>,
+    prefs: &Preferences,
 ) -> ConcretePuzzle<Ray> {
     let puzzle: Puzzle<Ray> = Puzzle::make_solved(puzzle_seed.grips);
 
@@ -140,7 +143,7 @@ pub fn make_concrete_puzzle<Ray: ConcreteRaySystem>(
                     let piece_ind =
                         puzzle.piece_to_index(&Piece::make_solved_from_layers(seed_layers_clone));
 
-                    let gm = create_sticker_gm(context, &seed.vertices, seed.color);
+                    let gm = create_sticker_gm(context, &seed.vertices, seed.color, prefs);
 
                     stickers.push(Sticker {
                         piece_ind,

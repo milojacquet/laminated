@@ -4,6 +4,7 @@ use crate::puzzle::cube::CubeRay;
 use crate::puzzle::octa::OctaRay;
 use crate::render;
 use crate::render::common::*;
+use crate::Preferences;
 use crate::VERSION;
 use enum_map::EnumMap;
 use eyre::eyre;
@@ -198,6 +199,7 @@ impl SessionType {
         self,
         window_size: (u32, u32),
         context: &three_d::Context,
+        prefs: &Preferences,
     ) -> SessionEnum {
         match self {
             SessionType::Cube(ps @ CubePuzzle::Nnn(n)) => SessionEnum::Cube(
@@ -206,6 +208,7 @@ impl SessionType {
                     window_size,
                     &context,
                     render::cube::nnn_seeds(n),
+                    prefs,
                 )),
             ),
             SessionType::Octa(ps @ OctaPuzzle::Core) => SessionEnum::Octa(
@@ -214,6 +217,7 @@ impl SessionType {
                     window_size,
                     &context,
                     render::octa::core_seeds(),
+                    prefs,
                 )),
             ),
             SessionType::Octa(ps @ OctaPuzzle::Fto(n)) => SessionEnum::Octa(
@@ -222,6 +226,7 @@ impl SessionType {
                     window_size,
                     &context,
                     render::octa::fto_seeds(n),
+                    prefs,
                 )),
             ),
         }
@@ -290,8 +295,11 @@ impl SessionEnum {
         window_size: (u32, u32),
         context: &three_d::Context,
         path: std::path::PathBuf,
+        prefs: &Preferences,
     ) -> eyre::Result<Self> {
-        let mut session = log.session_type.make_session_enum(window_size, context);
+        let mut session = log
+            .session_type
+            .make_session_enum(window_size, context, prefs);
         match &mut session {
             SessionEnum::Cube(_, ref mut session) => session.process_log(log),
             SessionEnum::Octa(_, ref mut session) => session.process_log(log),
@@ -305,10 +313,11 @@ impl SessionEnum {
         path: std::path::PathBuf,
         window_size: (u32, u32),
         context: &three_d::Context,
+        prefs: &Preferences,
     ) -> eyre::Result<Self> {
         let file = std::fs::File::open(path.clone())?;
         let reader = std::io::BufReader::new(file);
         let session_log: SessionLog = serde_json::from_reader(reader)?;
-        Self::from_log(session_log, window_size, context, path)
+        Self::from_log(session_log, window_size, context, path, prefs)
     }
 }

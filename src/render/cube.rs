@@ -6,6 +6,7 @@ use enum_map::enum_map;
 use std::collections::HashMap;
 use std::f32::consts::PI;
 
+use crate::preferences::Preferences;
 use crate::util::{color, Mat4, Vec3};
 use cgmath::Rad;
 
@@ -30,15 +31,8 @@ impl ConcreteRaySystem for CubeRay {
         self.0.to_vec()
     }
 
-    fn ray_to_color(&self) -> color::Color {
-        match self {
-            CubeRay(Basis::Y, Sign::Pos) => color::ORANGE,
-            CubeRay(Basis::Z, Sign::Pos) => color::WHITE,
-            CubeRay(Basis::X, Sign::Pos) => color::BLUE,
-            CubeRay(Basis::Z, Sign::Neg) => color::YELLOW,
-            CubeRay(Basis::X, Sign::Neg) => color::GREEN,
-            CubeRay(Basis::Y, Sign::Neg) => color::RED,
-        }
+    fn ray_to_color(prefs: &Preferences) -> enum_map::EnumMap<Self, color::Color> {
+        prefs.colors.cube
     }
 }
 
