@@ -7,9 +7,8 @@ use enum_map::enum_map;
 use std::collections::HashMap;
 use std::f32::consts::PI;
 
-use crate::util::{Mat4, Vec3};
+use crate::util::{color, Mat4, Vec3};
 use cgmath::{InnerSpace, Rad};
-use three_d::Srgba;
 
 impl ConcreteRaySystem for OctaRay {
     type Conjugate = ();
@@ -28,16 +27,16 @@ impl ConcreteRaySystem for OctaRay {
         .normalize()
     }
 
-    fn ray_to_color(&self) -> Srgba {
+    fn ray_to_color(&self) -> color::Color {
         match self {
-            OctaRay(Sign::Pos, Sign::Neg, Sign::Pos) => Srgba::WHITE,
-            OctaRay(Sign::Pos, Sign::Neg, Sign::Neg) => Srgba::GREEN,
-            OctaRay(Sign::Neg, Sign::Neg, Sign::Pos) => Srgba::RED,
-            OctaRay(Sign::Neg, Sign::Neg, Sign::Neg) => Srgba::new_opaque(0, 128, 0),
-            OctaRay(Sign::Pos, Sign::Pos, Sign::Pos) => Srgba::BLUE,
-            OctaRay(Sign::Pos, Sign::Pos, Sign::Neg) => Srgba::new_opaque(255, 128, 0),
-            OctaRay(Sign::Neg, Sign::Pos, Sign::Pos) => Srgba::new_opaque(128, 0, 255),
-            OctaRay(Sign::Neg, Sign::Pos, Sign::Neg) => Srgba::new_opaque(255, 255, 0),
+            OctaRay(Sign::Pos, Sign::Neg, Sign::Pos) => color::WHITE,
+            OctaRay(Sign::Pos, Sign::Neg, Sign::Neg) => color::GREEN,
+            OctaRay(Sign::Neg, Sign::Neg, Sign::Pos) => color::RED,
+            OctaRay(Sign::Neg, Sign::Neg, Sign::Neg) => color::DARK_GREEN,
+            OctaRay(Sign::Pos, Sign::Pos, Sign::Pos) => color::BLUE,
+            OctaRay(Sign::Pos, Sign::Pos, Sign::Neg) => color::ORANGE,
+            OctaRay(Sign::Neg, Sign::Pos, Sign::Pos) => color::PURPLE,
+            OctaRay(Sign::Neg, Sign::Pos, Sign::Neg) => color::YELLOW,
         }
     }
 }

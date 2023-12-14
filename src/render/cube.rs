@@ -6,9 +6,8 @@ use enum_map::enum_map;
 use std::collections::HashMap;
 use std::f32::consts::PI;
 
-use crate::util::{Mat4, Vec3};
+use crate::util::{color, Mat4, Vec3};
 use cgmath::Rad;
-use three_d::Srgba;
 
 const SUPER_START: f32 = 0.75;
 
@@ -31,14 +30,14 @@ impl ConcreteRaySystem for CubeRay {
         self.0.to_vec()
     }
 
-    fn ray_to_color(&self) -> Srgba {
+    fn ray_to_color(&self) -> color::Color {
         match self {
-            CubeRay(Basis::Y, Sign::Pos) => Srgba::new_opaque(255, 128, 0),
-            CubeRay(Basis::Z, Sign::Pos) => Srgba::WHITE,
-            CubeRay(Basis::X, Sign::Pos) => Srgba::BLUE,
-            CubeRay(Basis::Z, Sign::Neg) => Srgba::new_opaque(255, 255, 0),
-            CubeRay(Basis::X, Sign::Neg) => Srgba::GREEN,
-            CubeRay(Basis::Y, Sign::Neg) => Srgba::RED,
+            CubeRay(Basis::Y, Sign::Pos) => color::ORANGE,
+            CubeRay(Basis::Z, Sign::Pos) => color::WHITE,
+            CubeRay(Basis::X, Sign::Pos) => color::BLUE,
+            CubeRay(Basis::Z, Sign::Neg) => color::YELLOW,
+            CubeRay(Basis::X, Sign::Neg) => color::GREEN,
+            CubeRay(Basis::Y, Sign::Neg) => color::RED,
         }
     }
 }

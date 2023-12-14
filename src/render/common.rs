@@ -5,7 +5,7 @@ use enum_map::EnumMap;
 use std::cmp;
 use std::collections::HashMap;
 
-use crate::util::{Mat4, Vec3};
+use crate::util::{color, Mat4, Vec3};
 use std::f32::consts::PI;
 use three_d::*;
 
@@ -26,7 +26,7 @@ where
         self.get_axis()[0].ray_to_vec(conjugate)
     }
 
-    fn ray_to_color(&self) -> Srgba;
+    fn ray_to_color(&self) -> color::Color;
 }
 
 /// Simpler version of three_d::CpuMesh without the enums.
