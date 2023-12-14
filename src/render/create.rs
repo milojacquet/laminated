@@ -88,7 +88,7 @@ pub fn create_sticker_gm<Ray: ConcreteRaySystem>(
     Gm::new(
         Mesh::new(&context, &cpu_mesh),
         ColorMaterial {
-            color: Ray::ray_to_color(&color),
+            color: Ray::ray_to_color(&color).to_srgba(),
             render_states: RenderStates {
                 cull: Cull::Back,
                 ..Default::default()

@@ -17,21 +17,76 @@ pub fn enum_map_clone<K: EnumArray<V>, V: Clone>(enum_map: &EnumMap<K, V>) -> En
     EnumMap::from_fn(|key: K| enum_map[key].clone())
 }
 
-pub mod color {
-    use three_d::Srgba;
+pub mod enum_map_serde {
+    use enum_map::EnumArray;
+    use enum_map::EnumMap;
+    use serde::ser::SerializeTuple;
+    use serde::Deserialize;
+    use serde::Deserializer;
+    use serde::Serialize;
+    use serde::Serializer;
 
-    pub type Color = Srgba;
-
-    const fn hex(color: u32) -> Color {
-        Srgba::new_opaque((color >> 16) as u8, (color >> 8) as u8, color as u8)
+    pub fn serialize<S, K, V>(map: &EnumMap<K, V>, ser: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+        K: EnumArray<V>,
+        V: Serialize,
+    {
+        let mut tup = ser.serialize_tuple(K::LENGTH)?;
+        for el in map.values() {
+            tup.serialize_element(el)?;
+        }
+        todo!()
     }
 
-    pub const WHITE: Color = hex(0xffffff);
-    pub const GREEN: Color = hex(0x1eef1e);
-    pub const RED: Color = hex(0xed1b1b);
-    pub const BLUE: Color = hex(0x387eff);
-    pub const ORANGE: Color = hex(0xff821c);
-    pub const YELLOW: Color = hex(0xffd414);
-    pub const PURPLE: Color = hex(0x663399);
-    pub const DARK_GREEN: Color = hex(0x1a891a);
+    pub fn deserialize<'de, D, K, V>(de: D) -> Result<EnumMap<K, V>, D::Error>
+    where
+        D: Deserializer<'de>,
+        K: enum_map::EnumArray<V>,
+        V: serde::Deserialize<'de> + Clone,
+    {
+        //let arr: [V; K::LENGTH] = Deserialize::deserialize(de)?;
+        let arr: Vec<V> = Deserialize::deserialize(de)?;
+
+        /*arr.try_into()
+        .map_err(|_e| D::Error::custom("bad enum map"))
+        .map(EnumMap::from_array)*/
+        Ok(EnumMap::from_fn(|i| arr[K::into_usize(i)].clone()))
+    }
+}
+
+pub mod color {
+    use serde::Deserialize;
+    use serde::Serialize;
+    use three_d::Srgba;
+
+    #[derive(Debug, Copy, Clone, Serialize, Deserialize, PartialEq)]
+    pub struct Color {
+        pub r: u8,
+        pub g: u8,
+        pub b: u8,
+    }
+
+    impl Color {
+        pub const fn hex(color: u32) -> Color {
+            Color {
+                r: (color >> 16) as u8,
+                g: (color >> 8) as u8,
+                b: color as u8,
+            }
+        }
+
+        pub fn to_srgba(&self) -> Srgba {
+            Srgba::new_opaque(self.r, self.g, self.b)
+        }
+    }
+
+    pub const WHITE: Color = Color::hex(0xffffff);
+    pub const GREEN: Color = Color::hex(0x1eef1e);
+    pub const RED: Color = Color::hex(0xed1b1b);
+    pub const BLUE: Color = Color::hex(0x387eff);
+    pub const ORANGE: Color = Color::hex(0xff821c);
+    pub const YELLOW: Color = Color::hex(0xffd414);
+    pub const PURPLE: Color = Color::hex(0x663399);
+    pub const DARK_GREEN: Color = Color::hex(0x1a891a);
 }

@@ -9,6 +9,7 @@ use std::collections::HashSet;
 use three_d::*;
 
 pub mod key_label;
+pub mod preferences;
 pub mod puzzle;
 pub mod render;
 pub mod session;
@@ -106,7 +107,8 @@ fn render_puzzle<Ray: ConcreteRaySystem>(
                 sticker.update_gm(
                     Ray::ray_to_color(
                         &puzzle.pieces[permutation[sticker.piece_ind]].orientation[sticker.color],
-                    ),
+                    )
+                    .to_srgba(),
                     elapsed_time as f32,
                 );
 
