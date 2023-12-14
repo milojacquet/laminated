@@ -29,9 +29,9 @@ pub mod color {
     pub const WHITE: Color = hex(0xffffff);
     pub const GREEN: Color = hex(0x1eef1e);
     pub const RED: Color = hex(0xed1b1b);
-    pub const DARK_GREEN: Color = hex(0x1a891a);
     pub const BLUE: Color = hex(0x387eff);
     pub const ORANGE: Color = hex(0xff821c);
-    pub const PURPLE: Color = hex(0x663399);
     pub const YELLOW: Color = hex(0xffd414);
+    pub const PURPLE: Color = hex(0x663399);
+    pub const DARK_GREEN: Color = hex(0x1a891a);
 }
