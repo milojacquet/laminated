@@ -614,27 +614,29 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                                         session.concrete_puzzle.key_layers[0].contains_key(&key)
                                     });
 
-                                    session.twist(
-                                        turn,
-                                        if default_mode {
-                                            vec![viewport_clicked.key_layers[axis_index]
-                                                .get(&NUMBER_KEYS[0])
-                                                .expect("viewport grips should have a binding for first key")
-                                                .clone()]
+                                    let grips;
+                                    if default_mode {
+                                        // rustfmt? hewwo?
+                                        grips = vec![viewport_clicked.key_layers[axis_index]
+                                            .get(&NUMBER_KEYS[0])
+                                            .expect("viewport grips should have a binding for first key")
+                                            .clone()];
+                                    } else {
+                                        let key_layers = if persistent.prefs.viewport_keys {
+                                            &viewport_clicked.key_layers
                                         } else {
-                                            // rustfmt? hewwo?
-                                            let key_layers = if persistent.prefs.viewport_keys {
-                                                &viewport_clicked.key_layers
-                                            } else {
-                                                &session.concrete_puzzle.key_layers
-                                            };
-                                            let grips: Vec<_> = keys
-                                                .filter_map(|key| key_layers[axis_index].get(&key).clone())
-                                                .collect();
+                                            &session.concrete_puzzle.key_layers
+                                        };
+                                        let grips_: Vec<_> = keys
+                                            .filter_map(|key| {
+                                                key_layers[axis_index].get(&key).clone()
+                                            })
+                                            .collect();
 
-                                            grips.into_iter().cloned().collect()
-                                        },
-                                    );
+                                        grips = grips_.into_iter().cloned().collect();
+                                    }
+
+                                    session.twist(turn, grips);
                                 }
                             }
                         }
