@@ -79,6 +79,24 @@ pub mod color {
         pub fn to_srgba(&self) -> Srgba {
             Srgba::new_opaque(self.r, self.g, self.b)
         }
+
+        pub fn as_array(&self) -> [u8; 3] {
+            [self.r, self.g, self.b]
+        }
+
+        pub fn as_array_mut(&mut self) -> [&mut u8; 3] {
+            [&mut self.r, &mut self.g, &mut self.b]
+        }
+    }
+
+    impl From<[u8; 3]> for Color {
+        fn from(val: [u8; 3]) -> Color {
+            Color {
+                r: val[0],
+                g: val[1],
+                b: val[2],
+            }
+        }
     }
 
     pub const WHITE: Color = Color::hex(0xffffff);

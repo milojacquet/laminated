@@ -28,8 +28,12 @@ impl ConcreteRaySystem for OctaRay {
         .normalize()
     }
 
-    fn ray_to_color(prefs: &Preferences) -> enum_map::EnumMap<Self, color::Color> {
-        prefs.colors.octa
+    fn ray_to_color(prefs: &Preferences) -> &enum_map::EnumMap<Self, color::Color> {
+        &prefs.colors.octa
+    }
+
+    fn ray_to_color_mut(prefs: &mut Preferences) -> &mut enum_map::EnumMap<Self, color::Color> {
+        &mut prefs.colors.octa
     }
 }
 

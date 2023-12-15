@@ -31,8 +31,12 @@ impl ConcreteRaySystem for CubeRay {
         self.0.to_vec()
     }
 
-    fn ray_to_color(prefs: &Preferences) -> enum_map::EnumMap<Self, color::Color> {
-        prefs.colors.cube
+    fn ray_to_color(prefs: &Preferences) -> &enum_map::EnumMap<Self, color::Color> {
+        &prefs.colors.cube
+    }
+
+    fn ray_to_color_mut(prefs: &mut Preferences) -> &mut enum_map::EnumMap<Self, color::Color> {
+        &mut prefs.colors.cube
     }
 }
 

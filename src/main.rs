@@ -1,8 +1,12 @@
 use crate::key_label::*;
 use crate::preferences::Preferences;
+use crate::puzzle::common::RaySystem;
+use crate::puzzle::cube::CubeRay;
+use crate::puzzle::octa::OctaRay;
 use crate::render::common::*;
 use crate::render::create::*;
 use crate::session::*;
+use crate::util::enum_iter;
 use eyre::eyre;
 
 use std::collections::HashSet;
@@ -151,6 +155,33 @@ fn file_dialog() -> rfd::FileDialog {
         .add_filter("All files", &["*"])
 }
 
+fn color_picker_grid<Ray: ConcreteRaySystem>(
+    name: &'static str,
+    ui: &mut egui::Ui,
+    prefs: &mut Preferences,
+    color_picker_open: &mut bool,
+) {
+    use egui::*;
+
+    ui.label(name);
+    Grid::new(format!("{name}_color_grid"))
+        .min_col_width(0.0)
+        .show(ui, |ui| {
+            for ray in enum_iter::<Ray>() {
+                ui.label(ray.name());
+                let mut color = Ray::ray_to_color(prefs)[ray].as_array();
+                let color_picker = ui.color_edit_button_srgb(&mut color);
+                if color_picker.changed() {
+                    Ray::ray_to_color_mut(prefs)[ray] = color.into();
+                    *color_picker_open = true;
+                } else if color_picker.clicked_elsewhere() {
+                    *color_picker_open = false
+                }
+                ui.end_row();
+            }
+        });
+}
+
 /// Mutable objects that have to persist through making a new session
 struct PersistentObjects {
     keys_down: HashSet<Key>,
@@ -159,6 +190,8 @@ struct PersistentObjects {
     window_size: (u32, u32),
     gui: GUI,
     prefs: Preferences,
+    settings_open: bool,
+    color_picker_open: bool,
 }
 
 impl PersistentObjects {
@@ -318,8 +351,13 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                             };
                         }
                     });
+
+                    if ui.button("Settings").clicked() {
+                        persistent.settings_open = !persistent.settings_open;
+                    }
                 });
             });
+
             TopBottomPanel::bottom("status_bar").show(gui_context, |ui| {
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     // this detects key presses one frame late
@@ -354,6 +392,25 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                     });
                 });
             });
+
+            if persistent.settings_open {
+                SidePanel::left("Settings").show(gui_context, |ui| {
+                    ui.collapsing("Colors", |ui| {
+                        color_picker_grid::<CubeRay>(
+                            "Cube",
+                            ui,
+                            &mut persistent.prefs,
+                            &mut persistent.color_picker_open,
+                        );
+                        color_picker_grid::<OctaRay>(
+                            "Octahedron",
+                            ui,
+                            &mut persistent.prefs,
+                            &mut persistent.color_picker_open,
+                        );
+                    });
+                });
+            }
         },
     );
 
@@ -374,86 +431,93 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                 position,
                 delta,
                 ..
-            } => match session.mouse_press_location {
-                Some((conjugate, Some((press_position, _)))) => {
-                    let distance_moved =
-                        f32::hypot(position.x - press_position.x, position.y - press_position.y);
-                    if distance_moved > TURN_DISTANCE_THRESHOLD {
-                        persistent.status_message = None;
+            } => {
+                if !persistent.color_picker_open {
+                    match session.mouse_press_location {
+                        Some((conjugate, Some((press_position, _)))) => {
+                            let distance_moved = f32::hypot(
+                                position.x - press_position.x,
+                                position.y - press_position.y,
+                            );
+                            if distance_moved > TURN_DISTANCE_THRESHOLD {
+                                persistent.status_message = None;
 
-                        orbit_cameras(
-                            &mut session.concrete_puzzle,
-                            conjugate,
-                            (position.x - press_position.x, position.y - press_position.y),
-                        );
-                        session.mouse_press_location = Some((conjugate, None));
+                                orbit_cameras(
+                                    &mut session.concrete_puzzle,
+                                    conjugate,
+                                    (position.x - press_position.x, position.y - press_position.y),
+                                );
+                                session.mouse_press_location = Some((conjugate, None));
+                            }
+                        }
+                        Some((conjugate, None)) => {
+                            orbit_cameras(&mut session.concrete_puzzle, conjugate, delta);
+                            // change default
+                        }
+                        None => {
+                            // do not orbit the camera
+                        }
                     }
                 }
-                Some((conjugate, None)) => {
-                    orbit_cameras(&mut session.concrete_puzzle, conjugate, delta);
-                    // change default
-                }
-                None => {
-                    // do not orbit the camera
-                }
-            },
+            }
             Event::MouseRelease {
                 button, position, ..
             } => {
-                if let Some(viewport_clicked) =
-                    get_viewport_from_pixel(&session.concrete_puzzle, position)
-                {
-                    let sticker_m = viewport_clicked.ray_intersect(
-                        viewport_clicked.camera.position_at_pixel(position),
-                        viewport_clicked.camera.view_direction_at_pixel(position),
-                    );
+                if !persistent.color_picker_open {
+                    if let Some(viewport_clicked) =
+                        get_viewport_from_pixel(&session.concrete_puzzle, position)
+                    {
+                        let sticker_m = viewport_clicked.ray_intersect(
+                            viewport_clicked.camera.position_at_pixel(position),
+                            viewport_clicked.camera.view_direction_at_pixel(position),
+                        );
 
-                    if let Some(sticker) = sticker_m {
-                        if button == MouseButton::Middle {
-                            persistent.status_message = Some(format!(
-                                "position: {}, face: {}, color: {}, piece: {}",
-                                session
-                                    .concrete_puzzle
-                                    .puzzle
-                                    .index_to_solved_piece(sticker.piece_ind),
-                                sticker.face,
-                                sticker.color,
-                                session.concrete_puzzle.puzzle.pieces[session
-                                    .concrete_puzzle
-                                    .puzzle
-                                    .permutation()[sticker.piece_ind]]
-                            ));
-                        } else if let Some((_conjugate, Some((_, press_button)))) =
-                            session.mouse_press_location
-                        {
-                            persistent.status_message = None;
+                        if let Some(sticker) = sticker_m {
+                            if button == MouseButton::Middle {
+                                persistent.status_message = Some(format!(
+                                    "position: {}, face: {}, color: {}, piece: {}",
+                                    session
+                                        .concrete_puzzle
+                                        .puzzle
+                                        .index_to_solved_piece(sticker.piece_ind),
+                                    sticker.face,
+                                    sticker.color,
+                                    session.concrete_puzzle.puzzle.pieces[session
+                                        .concrete_puzzle
+                                        .puzzle
+                                        .permutation()[sticker.piece_ind]]
+                                ));
+                            } else if let Some((_conjugate, Some((_, press_button)))) =
+                                session.mouse_press_location
+                            {
+                                persistent.status_message = None;
 
-                            if press_button == button {
-                                // TODO revise for conjugate
-                                let turn_direction = match button {
-                                    three_d::MouseButton::Left => -1,
-                                    three_d::MouseButton::Right => 1,
-                                    _ => 0, // should never happen
-                                };
+                                if press_button == button {
+                                    // TODO revise for conjugate
+                                    let turn_direction = match button {
+                                        three_d::MouseButton::Left => -1,
+                                        three_d::MouseButton::Right => 1,
+                                        _ => 0, // should never happen
+                                    };
 
-                                let turn_face = sticker.face;
-                                let axis_index = turn_face
-                                    .get_axis()
-                                    .iter()
-                                    .position(|&r| r == turn_face)
-                                    .expect("rays are always in their axes");
-                                let opposite_axis = (-1i8).pow(axis_index as u32);
-                                let turn = (turn_face, opposite_axis * turn_direction);
-                                let grips: Vec<_> = persistent
-                                    .keys_down
-                                    .union(&persistent.keys_clicked)
-                                    .filter_map(|key| {
-                                        session.concrete_puzzle.key_layers[axis_index]
-                                            .get(&key)
-                                            .clone()
-                                    })
-                                    .collect();
-                                session.twist(
+                                    let turn_face = sticker.face;
+                                    let axis_index = turn_face
+                                        .get_axis()
+                                        .iter()
+                                        .position(|&r| r == turn_face)
+                                        .expect("rays are always in their axes");
+                                    let opposite_axis = (-1i8).pow(axis_index as u32);
+                                    let turn = (turn_face, opposite_axis * turn_direction);
+                                    let grips: Vec<_> = persistent
+                                        .keys_down
+                                        .union(&persistent.keys_clicked)
+                                        .filter_map(|key| {
+                                            session.concrete_puzzle.key_layers[axis_index]
+                                                .get(&key)
+                                                .clone()
+                                        })
+                                        .collect();
+                                    session.twist(
                                     turn,
                                     if grips.is_empty() {
                                         vec![viewport_clicked.default_layers[axis_index].clone()]
@@ -461,12 +525,13 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                                         grips.into_iter().cloned().collect()
                                     },
                                 );
+                                }
                             }
                         }
                     }
-                }
 
-                session.mouse_press_location = None;
+                    session.mouse_press_location = None;
+                }
             }
             Event::KeyPress {
                 kind, modifiers, ..
@@ -529,6 +594,8 @@ fn main() {
         window_size: window.size(),
         gui: GUI::new(&context),
         prefs: Default::default(),
+        settings_open: false,
+        color_picker_open: false,
     };
 
     let mut session = SessionType::Cube(CubePuzzle::Nnn(3)).make_session_enum(
