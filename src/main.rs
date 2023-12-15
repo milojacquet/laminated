@@ -182,7 +182,6 @@ fn color_picker_grid<Ray: ConcreteRaySystem>(
         .min_col_width(0.0)
         .show(ui, |ui| {
             for ray in enum_iter::<Ray>() {
-                ui.label(ray.name());
                 let mut color = Ray::ray_to_color(prefs)[ray].as_array();
                 reset_button_small(
                     ui,
@@ -196,6 +195,7 @@ fn color_picker_grid<Ray: ConcreteRaySystem>(
                 } else if color_picker.clicked_elsewhere() {
                     *color_picker_open = false
                 }
+                ui.label(ray.name());
                 ui.end_row();
             }
         });
@@ -470,10 +470,10 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                         });
 
                         ui.collapsing("Controls", |ui| {
-                            ui.horizontal(|ui| {
-                                ui.label("Per-viewport layer keys");
-                                ui.checkbox(&mut persistent.prefs.viewport_keys, "");
-                            });
+                            ui.checkbox(
+                                &mut persistent.prefs.viewport_keys,
+                                "Per-viewport layer keys",
+                            );
                         });
 
                         ui.separator();
