@@ -20,3 +20,5 @@ Cargo.lock
 
 
 logs/
+preferences.json
+PerfViewData*

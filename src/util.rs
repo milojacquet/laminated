@@ -36,7 +36,7 @@ pub mod enum_map_serde {
         for el in map.values() {
             tup.serialize_element(el)?;
         }
-        todo!()
+        tup.end()
     }
 
     pub fn deserialize<'de, D, K, V>(de: D) -> Result<EnumMap<K, V>, D::Error>

@@ -155,6 +155,20 @@ fn file_dialog() -> rfd::FileDialog {
         .add_filter("All files", &["*"])
 }
 
+pub fn reset_button_small<T: PartialEq>(
+    ui: &mut egui::Ui,
+    value: &mut T,
+    reset_value: T,
+) -> egui::Response {
+    let r = ui
+        .add_enabled(*value != reset_value, egui::Button::new("⟲"))
+        .on_hover_text("Reset");
+    if r.clicked() {
+        *value = reset_value;
+    }
+    r
+}
+
 fn color_picker_grid<Ray: ConcreteRaySystem>(
     name: &'static str,
     ui: &mut egui::Ui,
@@ -170,6 +184,11 @@ fn color_picker_grid<Ray: ConcreteRaySystem>(
             for ray in enum_iter::<Ray>() {
                 ui.label(ray.name());
                 let mut color = Ray::ray_to_color(prefs)[ray].as_array();
+                reset_button_small(
+                    ui,
+                    &mut Ray::ray_to_color_mut(prefs)[ray],
+                    Ray::ray_to_color(&Default::default())[ray],
+                );
                 let color_picker = ui.color_edit_button_srgb(&mut color);
                 if color_picker.changed() {
                     Ray::ray_to_color_mut(prefs)[ray] = color.into();
@@ -211,6 +230,38 @@ impl PersistentObjects {
             self.status_message = Some(err.to_string());
         };
     }
+
+    fn show_only_err<T, E: std::fmt::Display>(&mut self, result: Result<T, E>) {
+        if let Err(err) = result {
+            self.status_message = Some(err.to_string());
+        } else {
+            self.status_message = None
+        };
+    }
+
+    fn save_prefs(&mut self) {
+        match self.prefs.save() {
+            Ok(()) => {
+                self.status_message = Some("Saved preferences".to_string());
+            }
+            Err(err) => {
+                self.status_message =
+                    Some(format!("Error saving preferences: {}", err.to_string()));
+            }
+        }
+    }
+
+    fn load_prefs(&mut self) {
+        match Preferences::load() {
+            Ok(prefs) => {
+                self.prefs = prefs;
+            }
+            Err(err) => {
+                self.status_message =
+                    Some(format!("Error loading preferences: {}", err.to_string()));
+            }
+        }
+    }
 }
 
 enum Save {
@@ -218,11 +269,14 @@ enum Save {
     SaveDefault,
 }
 
+/// A response that gets sent out of the render loop and into the main loop.
 #[derive(Default)]
 struct RenderLoopResponse {
     new_session: Option<SessionEnum>,
     save: Option<Save>,
     load: bool,
+    save_prefs: bool,
+    load_prefs: bool,
 }
 
 /// Does everything in the render loop, and if the puzzle changed, return the new puzzle.
@@ -328,6 +382,7 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                         }
                         ui.separator();
                         if shortcut_button(ui, gui_context, "Undo", COMMAND, Key::Z).clicked() {
+                            // cannot borrow persistent so can't use show_only_err
                             if let Err(err) = session.undo() {
                                 persistent.status_message = Some(err.to_string());
                             } else {
@@ -409,6 +464,18 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                             &mut persistent.color_picker_open,
                         );
                     });
+
+                    if ui.button("Save preferences").clicked() {
+                        response.save_prefs = true;
+                    }
+
+                    if ui.button("Reload preferences").clicked() {
+                        response.load_prefs = true;
+                    }
+
+                    if ui.button("Reset preferences").clicked() {
+                        persistent.prefs = Default::default();
+                    }
                 });
             }
         },
@@ -598,6 +665,8 @@ fn main() {
         color_picker_open: false,
     };
 
+    persistent.load_prefs();
+
     let mut session = SessionType::Cube(CubePuzzle::Nnn(3)).make_session_enum(
         persistent.window_size,
         &context,
@@ -661,6 +730,14 @@ fn main() {
             if let Ok(new_session) = load_result {
                 session = new_session;
             }
+        }
+
+        if response.save_prefs {
+            persistent.save_prefs();
+        }
+
+        if response.load_prefs {
+            persistent.load_prefs();
         }
 
         FrameOutput::default()

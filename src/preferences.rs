@@ -7,6 +7,8 @@ use enum_map::EnumMap;
 use serde::Deserialize;
 use serde::Serialize;
 
+const PREFS_PATH: &'static str = "./preferences.json";
+
 fn color_cube_default() -> EnumMap<CubeRay, Color> {
     use crate::puzzle::cube::*;
 
@@ -58,4 +60,23 @@ impl Default for ColorPreferences {
 pub struct Preferences {
     #[serde(default)]
     pub colors: ColorPreferences,
+}
+
+impl Preferences {
+    pub fn save(&self) -> eyre::Result<()> {
+        std::fs::write(PREFS_PATH, serde_json::to_string(self)?)?;
+        Ok(())
+    }
+
+    pub fn load() -> eyre::Result<Self> {
+        let path = std::path::PathBuf::from(PREFS_PATH);
+        let file;
+        if path.exists() {
+            file = std::fs::File::open(path)?;
+        } else {
+            return Ok(Default::default());
+        }
+        let reader = std::io::BufReader::new(file);
+        Ok(serde_json::from_reader(reader)?)
+    }
 }
