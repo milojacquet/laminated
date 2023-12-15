@@ -201,6 +201,16 @@ fn color_picker_grid<Ray: ConcreteRaySystem>(
         });
 }
 
+// polyfill from egui 0.24.1
+fn selected_button(button: egui::Button, ui: &egui::Ui, selected: bool) -> egui::Button {
+    if selected {
+        let selection = ui.visuals().selection;
+        button.fill(selection.bg_fill).stroke(selection.stroke)
+    } else {
+        button
+    }
+}
+
 /// Mutable objects that have to persist through making a new session
 struct PersistentObjects {
     keys_down: HashSet<Key>,
@@ -407,7 +417,14 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                         }
                     });
 
-                    if ui.button("Settings").clicked() {
+                    if ui
+                        .add(selected_button(
+                            Button::new("Settings"),
+                            ui,
+                            persistent.settings_open,
+                        ))
+                        .clicked()
+                    {
                         persistent.settings_open = !persistent.settings_open;
                     }
                 });
