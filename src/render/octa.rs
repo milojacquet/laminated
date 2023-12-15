@@ -37,7 +37,7 @@ impl ConcreteRaySystem for OctaRay {
     }
 }
 
-pub fn core_seeds() -> PuzzleSeed<OctaRay> {
+/*pub fn core_seeds() -> PuzzleSeed<OctaRay> {
     #[allow(non_snake_case)]
     let r_BU = OctaRay::from_name("BU").unwrap();
     #[allow(non_snake_case)]
@@ -91,7 +91,7 @@ pub fn core_seeds() -> PuzzleSeed<OctaRay> {
         viewports,
         key_layers,
     }
-}
+}*/
 
 const SUPER_SIDE_RATIO: f32 = 0.6; // ratio of super sticker side to trapezoid short side
 const CENTER_INRAD_RATIO: f32 = (1.0 + SUPER_SIDE_RATIO) / 3.0; // ratio between inradius of center and height of trapezoid
@@ -531,11 +531,22 @@ pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
                 }
             }
 
+            let key_layers = vec![
+                HashMap::from_iter((m..=n).rev().step_by(2).map(|nn| {
+                    let layer = (n - nn) / 2;
+                    (NUMBER_KEYS[layer as usize], vec![nn, -nn])
+                })),
+                HashMap::from_iter((m..=n).step_by(2).map(|nn| {
+                    let layer = (-m + nn) / 2;
+                    (NUMBER_KEYS[layer as usize], vec![nn, -nn])
+                })),
+            ];
+
             viewports.push(ViewportSeed {
                 abstract_viewport,
                 conjugate: (),
                 stickers,
-                default_layers: vec![vec![n, -n], vec![m, -m]],
+                key_layers,
             });
 
             current_y += current_height;

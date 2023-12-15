@@ -60,6 +60,7 @@ impl Default for ColorPreferences {
 pub struct Preferences {
     #[serde(default)]
     pub colors: ColorPreferences,
+    pub viewport_keys: bool,
 }
 
 impl Preferences {

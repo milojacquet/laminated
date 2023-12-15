@@ -213,7 +213,7 @@ where
     pub camera: Camera,
     pub conjugate: Ray::Conjugate,
     pub stickers: Vec<Sticker<Ray>>,
-    pub default_layers: Vec<Vec<i8>>,
+    pub key_layers: Vec<HashMap<Key, Vec<i8>>>,
 }
 
 pub struct ViewportSeed<Ray>
@@ -223,7 +223,8 @@ where
     pub abstract_viewport: AbstractViewport,
     pub conjugate: Ray::Conjugate,
     pub stickers: Vec<StickerSeed<Ray>>,
-    pub default_layers: Vec<Vec<i8>>,
+    // This one only applies to the puzzle in this viewport, if the appropriate setting is chosen.
+    pub key_layers: Vec<HashMap<Key, Vec<i8>>>,
 }
 
 impl<Ray: ConcreteRaySystem> PuzzleViewport<Ray> {

@@ -465,6 +465,15 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                         );
                     });
 
+                    ui.collapsing("Controls", |ui| {
+                        ui.horizontal(|ui| {
+                            ui.label("Per-viewport layer keys");
+                            ui.checkbox(&mut persistent.prefs.viewport_keys, "");
+                        });
+                    });
+
+                    ui.separator();
+
                     if ui.button("Save preferences").clicked() {
                         response.save_prefs = true;
                     }
@@ -575,23 +584,36 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                                         .expect("rays are always in their axes");
                                     let opposite_axis = (-1i8).pow(axis_index as u32);
                                     let turn = (turn_face, opposite_axis * turn_direction);
-                                    let grips: Vec<_> = persistent
-                                        .keys_down
-                                        .union(&persistent.keys_clicked)
-                                        .filter_map(|key| {
-                                            session.concrete_puzzle.key_layers[axis_index]
-                                                .get(&key)
-                                                .clone()
-                                        })
-                                        .collect();
+
+                                    let keys = persistent.keys_down.union(&persistent.keys_clicked);
+
+                                    // if an invalid key is pressed on a puzzle while in viewport key mode,
+                                    // there should be no turn instead of doing the default turn
+                                    let default_mode = !keys.clone().any(|key| {
+                                        session.concrete_puzzle.key_layers[0].contains_key(&key)
+                                    });
+
                                     session.twist(
-                                    turn,
-                                    if grips.is_empty() {
-                                        vec![viewport_clicked.default_layers[axis_index].clone()]
-                                    } else {
-                                        grips.into_iter().cloned().collect()
-                                    },
-                                );
+                                        turn,
+                                        if default_mode {
+                                            vec![viewport_clicked.key_layers[axis_index]
+                                                .get(&NUMBER_KEYS[0])
+                                                .expect("viewport grips should have a binding for first key")
+                                                .clone()]
+                                        } else {
+                                            // rustfmt? hewwo?
+                                            let key_layers = if persistent.prefs.viewport_keys {
+                                                &viewport_clicked.key_layers
+                                            } else {
+                                                &session.concrete_puzzle.key_layers
+                                            };
+                                            let grips: Vec<_> = keys
+                                                .filter_map(|key| key_layers[axis_index].get(&key).clone())
+                                                .collect();
+
+                                            grips.into_iter().cloned().collect()
+                                        },
+                                    );
                                 }
                             }
                         }

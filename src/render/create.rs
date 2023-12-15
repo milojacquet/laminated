@@ -170,7 +170,7 @@ pub fn make_concrete_puzzle<Ray: ConcreteRaySystem>(
                 ),
                 conjugate: viewport_seed.conjugate,
                 stickers,
-                default_layers: viewport_seed.default_layers.clone(),
+                key_layers: viewport_seed.key_layers.clone(),
             }
         })
         .collect();

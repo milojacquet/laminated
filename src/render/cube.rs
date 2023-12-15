@@ -173,11 +173,22 @@ pub fn nnn_seeds<'a>(order: i8) -> PuzzleSeed<CubeRay> {
             });
         }
 
+        let key_layers = vec![
+            HashMap::from_iter((-n..=n).rev().step_by(2).map(|nn| {
+                let layer = (n - nn) / 2;
+                (NUMBER_KEYS[layer as usize], vec![nn, -nn])
+            })),
+            HashMap::from_iter((-n..=n).step_by(2).map(|nn| {
+                let layer = (n + nn) / 2;
+                (NUMBER_KEYS[layer as usize], vec![nn, -nn])
+            })),
+        ];
+
         viewports.push(ViewportSeed {
             abstract_viewport,
             conjugate: (),
             stickers,
-            default_layers: vec![vec![n, -n], vec![-n, n]],
+            key_layers,
         });
     }
 

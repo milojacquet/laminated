@@ -179,7 +179,7 @@ pub enum CubePuzzle {
 
 #[derive(Debug, Copy, Clone, serde::Serialize, serde::Deserialize)]
 pub enum OctaPuzzle {
-    Core,
+    //Core,
     Fto(i8),
 }
 
@@ -211,7 +211,7 @@ impl SessionType {
                     prefs,
                 )),
             ),
-            SessionType::Octa(ps @ OctaPuzzle::Core) => SessionEnum::Octa(
+            /*SessionType::Octa(ps @ OctaPuzzle::Core) => SessionEnum::Octa(
                 ps,
                 Session::from_concrete(make_concrete_puzzle(
                     window_size,
@@ -219,7 +219,7 @@ impl SessionType {
                     render::octa::core_seeds(),
                     prefs,
                 )),
-            ),
+            ),*/
             SessionType::Octa(ps @ OctaPuzzle::Fto(n)) => SessionEnum::Octa(
                 ps,
                 Session::from_concrete(make_concrete_puzzle(
