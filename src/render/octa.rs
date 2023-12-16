@@ -1,7 +1,6 @@
 use crate::preferences::ConcretePuzzlePreferences;
 use crate::preferences::Preferences;
-use crate::puzzle::common::RaySystem;
-use crate::puzzle::cube::{Basis, Sign};
+use crate::puzzle::cube::Basis;
 use crate::puzzle::octa::OctaRay;
 use crate::render::common::*;
 use crate::NUMBER_KEYS;
@@ -105,13 +104,6 @@ fn fto_inrad(order: i8) -> f32 {
     //1.0
 }
 
-fn cut_depth(order: i8, cut: i8) -> f32 {
-    // (order - 2 + 2 CIR) width = 2 circrad/3
-    // => width = 2 circrad/(3 (order - 2 + 2 CIR))
-    let half_width = fto_inrad(order) / (3.0 * (order as f32 - 2.0 + 2.0 * CENTER_INRAD_RATIO));
-    return half_width * cut as f32;
-}
-
 fn cut_width_on_axis(order: i8) -> f32 {
     1.0 / (3.0 * (order as f32 - 2.0 + 2.0 * CENTER_INRAD_RATIO))
 }
@@ -121,10 +113,10 @@ fn cut_depth_on_axis(order: i8, cut: i8) -> f32 {
     // (order - 2 + 2 CIR) width = 1/3
     // => width = 1/(3 (order - 2 + 2 CIR))
     let half_width = cut_width_on_axis(order) / 2.0;
-    return 0.5 + half_width * cut as f32;
+    0.5 + half_width * cut as f32
 }
 
-pub fn fto_seeds<'a>(order: i8, prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<OctaRay> {
+pub fn fto_seeds(order: i8, prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<OctaRay> {
     use crate::puzzle::octa::name::*;
 
     let grips: Vec<Vec<i8>> = (-order + 1..=order - 1)
@@ -178,12 +170,9 @@ pub fn fto_seeds<'a>(order: i8, prefs: &ConcretePuzzlePreferences) -> PuzzleSeed
             let abstract_viewport = AbstractViewport {
                 x: current_x,
                 y: current_y,
-                //width: 1.0 * ((n + 1) as f32) / (order as f32),
                 width: current_width,
                 height: current_height,
             };
-
-            //println!("{m} {n} {abstract_viewport:?}");
 
             let cd = |l| cut_depth_on_axis(s_order, l);
 
@@ -210,27 +199,25 @@ pub fn fto_seeds<'a>(order: i8, prefs: &ConcretePuzzlePreferences) -> PuzzleSeed
                         let fr = |ray| flip_ray(flip, ray);
                         let fv = |x, y, z| flip_vec(flip, x, y, z);
 
-                        let layers: enum_map::EnumMap<OctaRay, i8>;
                         //layers = enum_map! {BU => n,R => m,L => j,D => i,F => -n,BL => -m,BR => -j,U => -i,};
 
                         // None: not extending
                         // Some(true): extending this face
                         // Some(false): extending the other face
-                        let extend_opt: Option<bool>;
-                        if !prefs.octa_extend || n_plus_m.abs() != 2 * order - 4 || order == 2 {
-                            extend_opt = None;
+                        let extend_opt: Option<bool> = if !prefs.octa_extend
+                            || n_plus_m.abs() != 2 * order - 4
+                            || order == 2
+                        {
+                            None
                         } else {
-                            extend_opt = Some((n_plus_m == -2 * order + 4) ^ flip);
-                        }
+                            Some((n_plus_m == -2 * order + 4) ^ flip)
+                        };
 
-                        if flip {
-                            layers = enum_map! {BU => n,R => m,L => n+m-j,D => n+m-i,F => -n,BL => -m,BR => -n-m+j,U => -n-m+i,};
+                        let layers: enum_map::EnumMap<OctaRay, i8> = if flip {
+                            enum_map! {BU => n,R => m,L => n+m-j,D => n+m-i,F => -n,BL => -m,BR => -n-m+j,U => -n-m+i,}
                         } else {
-                            layers = enum_map! {BU => n,R => m,L => j,D => i,F => -n,BL => -m,BR => -j,U => -i,};
-                        }
-                        /*layers = enum_map::EnumMap::from_fn(|ray| match fr(ray){
-                            BU => n,R => m,L => j,D => i,F => -n,BL => -m,BR => -j,U => -i,
-                        }*if flip{1} else {1}/*+if ray.tet_sign()==Sign::Neg{-n-m}else{n+m}*/);*/
+                            enum_map! {BU => n,R => m,L => j,D => i,F => -n,BL => -m,BR => -j,U => -i,}
+                        };
 
                         // all pieces are on the BU face (or the BL face in the second invocation)
 

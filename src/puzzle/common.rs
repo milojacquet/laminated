@@ -247,7 +247,7 @@ pub struct Puzzle<Ray: RaySystem> {
     pub pieces: Vec<Piece<Ray>>,
 }
 
-impl<'a, Ray: RaySystem> Puzzle<Ray> {
+impl<Ray: RaySystem> Puzzle<Ray> {
     pub fn piece_count(&self) -> usize {
         self.grips.len().pow(Ray::AXIS_HEADS.len() as u32)
     }
@@ -297,7 +297,7 @@ impl<'a, Ray: RaySystem> Puzzle<Ray> {
             .map(|(j, &r)| {
                 self.grips
                     .iter()
-                    .position(|gr| &&piece.grip_on_axis(r)[..] == gr)
+                    .position(|gr| &piece.grip_on_axis(r)[..] == gr)
                     .expect("grips should all exist because the piece should be valid")
                     * self.grips.len().pow(j as u32)
             })
@@ -312,7 +312,7 @@ impl<'a, Ray: RaySystem> Puzzle<Ray> {
             .map(|(j, &r)| {
                 self.grips
                     .iter()
-                    .position(|gr| &&piece.grip_on_axis_solved(r)[..] == gr)
+                    .position(|gr| &piece.grip_on_axis_solved(r)[..] == gr)
                     .expect("grips should all exist because the piece should be valid")
                     * self.grips.len().pow(j as u32)
             })

@@ -4,7 +4,7 @@ use std::fmt;
 use crate::puzzle::common::RaySystem;
 pub use crate::puzzle::common::{Basis, BasisDiff, Sign};
 
-/// +X: R, +Y: U, +Z: F
+/// +X: R, +Y: B, +Z: U
 #[derive(Debug, Enum, Clone, Copy, PartialEq, Eq)]
 pub struct CubeRay(pub Basis, pub Sign);
 

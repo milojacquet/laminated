@@ -82,9 +82,9 @@ pub fn create_sticker_gm<Ray: ConcreteRaySystem>(
     };
     cpu_mesh.compute_normals();
     Gm::new(
-        Mesh::new(&context, &cpu_mesh),
+        Mesh::new(context, &cpu_mesh),
         ColorMaterial {
-            color: Ray::ray_to_color(&prefs)[color].to_srgba(),
+            color: Ray::ray_to_color(prefs)[color].to_srgba(),
             render_states: RenderStates {
                 cull: Cull::Back,
                 ..Default::default()
@@ -141,8 +141,8 @@ pub fn make_concrete_puzzle<Ray: ConcreteRaySystem>(
 
                     stickers.push(Sticker {
                         piece_ind,
-                        face: seed.face.clone(),
-                        color: seed.color.clone(),
+                        face: seed.face,
+                        color: seed.color,
                         vertices: seed.vertices.clone(),
                         gm,
                         animation: None,
@@ -151,7 +151,7 @@ pub fn make_concrete_puzzle<Ray: ConcreteRaySystem>(
             }
 
             PuzzleViewport {
-                abstract_viewport: viewport_seed.abstract_viewport.clone(),
+                abstract_viewport: viewport_seed.abstract_viewport,
                 viewport,
                 /*camera: Camera::new_perspective(
                     viewport,

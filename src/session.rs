@@ -41,7 +41,7 @@ fn string_vec_to_enum_map<Ray: ConcreteRaySystem + enum_map::Enum>(
     Ok(map)
 }
 
-impl<'a, Ray: ConcreteRaySystem> Session<Ray> {
+impl<Ray: ConcreteRaySystem> Session<Ray> {
     pub fn from_concrete(concrete_puzzle: ConcretePuzzle<Ray>) -> Session<Ray> {
         Session {
             scramble: concrete_puzzle.puzzle.orientations(),
@@ -168,7 +168,7 @@ impl<'a, Ray: ConcreteRaySystem> Session<Ray> {
 
     fn process_log(&mut self, log: SessionLog) -> eyre::Result<()> {
         self.version = log.version;
-        let suffix = if &self.version == VERSION {
+        let suffix = if self.version == VERSION {
             "".to_string()
         } else {
             format!(" (loading from version {})", self.version)
@@ -238,7 +238,7 @@ impl SessionType {
                 ps,
                 Session::from_concrete(make_concrete_puzzle(
                     window_size,
-                    &context,
+                    context,
                     render::cube::nnn_seeds(n, &prefs.concrete),
                     prefs,
                 )),
@@ -256,7 +256,7 @@ impl SessionType {
                 ps,
                 Session::from_concrete(make_concrete_puzzle(
                     window_size,
-                    &context,
+                    context,
                     render::octa::fto_seeds(n, &prefs.concrete),
                     prefs,
                 )),
@@ -281,7 +281,7 @@ impl SessionEnum {
         }
     }
 
-    pub fn save_path<'a>(&'a self) -> &'a Option<std::path::PathBuf> {
+    pub fn save_path(&self) -> &Option<std::path::PathBuf> {
         match self {
             SessionEnum::Cube(_, ref session) => &session.save_path,
             SessionEnum::Octa(_, ref session) => &session.save_path,
@@ -295,7 +295,7 @@ impl SessionEnum {
         };
     }
 
-    pub fn version<'a>(&'a self) -> &'a String {
+    pub fn version(&self) -> &String {
         match self {
             SessionEnum::Cube(_, ref session) => &session.version,
             SessionEnum::Octa(_, ref session) => &session.version,

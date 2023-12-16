@@ -108,11 +108,10 @@ impl<Ray: ConcreteRaySystem> Sticker<Ray> {
     fn ray_intersect(&self, position: Vec3, direction: Vec3) -> Option<f32> {
         polygon_inds(self.vertices.len())
             .iter()
-            .map(|inds| {
+            .filter_map(|inds| {
                 let verts = &inds.iter().map(|&i| self.vertices[i]).collect::<Vec<_>>()[..];
                 ray_triangle_intersect(position, direction, verts)
             })
-            .filter_map(|x| x)
             .reduce(f32::min)
     }
 
@@ -139,25 +138,6 @@ impl<Ray: ConcreteRaySystem> Sticker<Ray> {
 
         self.gm.material.color = color;
         self.gm.set_transformation(sticker_mat);
-    }
-
-    fn make_outlines(&self, context: &Context, camera: &Camera) /*-> impl Iterator<Item = CpuMesh>*/
-    {
-        // assumes sticker is flat
-        // no outlines should be generated for back faces
-        /*if (self.mesh.positions[self.mesh.indices[0] as usize]
-            - self.mesh.positions[self.mesh.indices[1] as usize])
-            .cross(
-                self.mesh.positions[self.mesh.indices[0] as usize]
-                    - self.mesh.positions[self.mesh.indices[2] as usize],
-            )
-            .dot(camera.view_direction())
-            < 0.0
-        {
-            return std::iter::empty();
-        }*/
-
-        todo!()
     }
 }
 

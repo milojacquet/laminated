@@ -67,12 +67,24 @@ impl Default for ConcretePuzzlePreferences {
     }
 }
 
-#[derive(Serialize, Deserialize, Default)]
+#[derive(Serialize, Deserialize)]
 pub struct Preferences {
     #[serde(default)]
     pub colors: ColorPreferences,
     pub viewport_keys: bool,
     pub concrete: ConcretePuzzlePreferences,
+    pub animation_speed: f32,
+}
+
+impl Default for Preferences {
+    fn default() -> Self {
+        Preferences {
+            colors: Default::default(),
+            viewport_keys: false,
+            concrete: Default::default(),
+            animation_speed: 150.0,
+        }
+    }
 }
 
 impl Preferences {
@@ -83,12 +95,12 @@ impl Preferences {
 
     pub fn load() -> eyre::Result<Self> {
         let path = std::path::PathBuf::from(PREFS_PATH);
-        let file;
-        if path.exists() {
-            file = std::fs::File::open(path)?;
+
+        let file = if path.exists() {
+            std::fs::File::open(path)?
         } else {
             return Ok(Default::default());
-        }
+        };
         let reader = std::io::BufReader::new(file);
         Ok(serde_json::from_reader(reader)?)
     }
