@@ -84,7 +84,7 @@ pub mod color {
             [self.r, self.g, self.b]
         }
 
-        pub fn as_array_mut(&mut self) -> [&mut u8; 3] {
+        pub fn as_mut_array(&mut self) -> [&mut u8; 3] {
             [&mut self.r, &mut self.g, &mut self.b]
         }
     }

@@ -126,7 +126,6 @@ fn color_picker_grid<Ray: ConcreteRaySystem>(
     name: &'static str,
     ui: &mut egui::Ui,
     prefs: &mut Preferences,
-    color_picker_open: &mut bool,
 ) {
     use egui::*;
 
@@ -135,19 +134,15 @@ fn color_picker_grid<Ray: ConcreteRaySystem>(
         .min_col_width(0.0)
         .show(ui, |ui| {
             for ray in enum_iter::<Ray>() {
-                let mut color = Ray::ray_to_color(prefs)[ray].as_array();
                 reset_button_small(
                     ui,
                     &mut Ray::ray_to_color_mut(prefs)[ray],
                     Ray::ray_to_color(&Default::default())[ray],
                 );
-                let color_picker = ui.color_edit_button_srgb(&mut color);
-                if color_picker.changed() {
-                    Ray::ray_to_color_mut(prefs)[ray] = color.into();
-                    //*color_picker_open = true;
-                } else if color_picker.clicked_elsewhere() {
-                    *color_picker_open = false
-                }
+                // i can't make a mutable view &mut [u8; 3] of a Color so i have to do this
+                let mut color = Ray::ray_to_color_mut(prefs)[ray].as_array();
+                ui.color_edit_button_srgb(&mut color);
+                Ray::ray_to_color_mut(prefs)[ray] = color.into();
                 ui.label(ray.name());
                 ui.end_row();
             }
@@ -173,7 +168,6 @@ struct PersistentObjects {
     gui: GUI,
     prefs: Preferences,
     settings_open: bool,
-    color_picker_open: bool,
 }
 
 impl PersistentObjects {
@@ -426,18 +420,8 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                 let settings_panel = SidePanel::left("Settings").frame(frame);
                 settings_panel.show(gui_context, |ui| {
                     ui.collapsing("Colors", |ui| {
-                        color_picker_grid::<CubeRay>(
-                            "Cube",
-                            ui,
-                            &mut persistent.prefs,
-                            &mut persistent.color_picker_open,
-                        );
-                        color_picker_grid::<OctaRay>(
-                            "Octahedron",
-                            ui,
-                            &mut persistent.prefs,
-                            &mut persistent.color_picker_open,
-                        );
+                        color_picker_grid::<CubeRay>("Cube", ui, &mut persistent.prefs);
+                        color_picker_grid::<OctaRay>("Octahedron", ui, &mut persistent.prefs);
                     });
 
                     ui.collapsing("Controls", |ui| {
@@ -456,24 +440,17 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                             );
                         });*/
 
-                        let mut length = persistent.prefs.animation_length;
                         reset_button_small(
                             ui,
                             &mut persistent.prefs.animation_length,
                             Preferences::default().animation_length,
                         );
-                        let slider = ui.add(
-                            DragValue::new(&mut length)
+                        ui.add(
+                            DragValue::new(&mut persistent.prefs.animation_length)
                                 .speed(10.0)
                                 .clamp_range(0.0..=1000.0)
                                 .suffix(" ms"),
                         );
-                        if slider.dragged() {
-                            persistent.prefs.animation_length = length;
-                            persistent.color_picker_open = true;
-                        } else {
-                            persistent.color_picker_open = false;
-                        }
                     });
 
                     ui.collapsing("Puzzle form", |ui| {
@@ -525,29 +502,27 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                 handled,
                 ..
             } if !handled => {
-                if !persistent.color_picker_open {
-                    match session.mouse_press_location {
-                        Some((conjugate, Some((press_position, _)))) => {
-                            let distance_moved = f32::hypot(
+                match session.mouse_press_location {
+                    Some((conjugate, Some((press_position, _)))) => {
+                        let distance_moved = f32::hypot(
+                            position.x - press_position.x,
+                            position.y - press_position.y,
+                        );
+                        if distance_moved > TURN_DISTANCE_THRESHOLD {
+                            persistent.status_message = None;
+
+                            session.camera_facings[conjugate].orbit((
                                 position.x - press_position.x,
                                 position.y - press_position.y,
-                            );
-                            if distance_moved > TURN_DISTANCE_THRESHOLD {
-                                persistent.status_message = None;
-
-                                session.camera_facings[conjugate].orbit((
-                                    position.x - press_position.x,
-                                    position.y - press_position.y,
-                                ));
-                                session.mouse_press_location = Some((conjugate, None));
-                            }
+                            ));
+                            session.mouse_press_location = Some((conjugate, None));
                         }
-                        Some((conjugate, None)) => {
-                            session.camera_facings[conjugate].orbit(delta);
-                        }
-                        None => {
-                            // do not orbit the camera
-                        }
+                    }
+                    Some((conjugate, None)) => {
+                        session.camera_facings[conjugate].orbit(delta);
+                    }
+                    None => {
+                        // do not orbit the camera
                     }
                 }
             }
@@ -557,90 +532,90 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                 handled,
                 ..
             } if !handled => {
-                if !persistent.color_picker_open {
-                    if let Some(viewport_clicked) =
-                        get_viewport_from_pixel(&session.concrete_puzzle, position)
-                    {
-                        let camera = viewport_clicked
-                            .make_camera(&session.camera_facings[viewport_clicked.conjugate]);
+                if let Some(viewport_clicked) =
+                    get_viewport_from_pixel(&session.concrete_puzzle, position)
+                {
+                    let camera = viewport_clicked
+                        .make_camera(&session.camera_facings[viewport_clicked.conjugate]);
 
-                        let sticker_m = viewport_clicked.ray_intersect(
-                            camera.position_at_pixel(position),
-                            camera.view_direction_at_pixel(position),
-                        );
+                    let sticker_m = viewport_clicked.ray_intersect(
+                        camera.position_at_pixel(position),
+                        camera.view_direction_at_pixel(position),
+                    );
 
-                        if let Some(sticker) = sticker_m {
-                            if button == MouseButton::Middle {
-                                persistent.status_message = Some(format!(
-                                    "position: {}, face: {}, color: {}, piece: {}",
-                                    session
-                                        .concrete_puzzle
-                                        .puzzle
-                                        .index_to_solved_piece(sticker.piece_ind),
-                                    sticker.face,
-                                    sticker.color,
-                                    session.concrete_puzzle.puzzle.pieces[session
-                                        .concrete_puzzle
-                                        .puzzle
-                                        .permutation()[sticker.piece_ind]]
-                                ));
-                            } else if let Some((_conjugate, Some((_, press_button)))) =
-                                session.mouse_press_location
-                            {
-                                persistent.status_message = None;
+                    if let Some(sticker) = sticker_m {
+                        if button == MouseButton::Middle {
+                            persistent.status_message = Some(format!(
+                                "position: {}, face: {}, color: {}, piece: {}",
+                                session
+                                    .concrete_puzzle
+                                    .puzzle
+                                    .index_to_solved_piece(sticker.piece_ind),
+                                sticker.face,
+                                sticker.color,
+                                session.concrete_puzzle.puzzle.pieces[session
+                                    .concrete_puzzle
+                                    .puzzle
+                                    .permutation()[sticker.piece_ind]]
+                            ));
+                        } else if let Some((_conjugate, Some((_, press_button)))) =
+                            session.mouse_press_location
+                        {
+                            persistent.status_message = None;
 
-                                if press_button == button {
-                                    // TODO revise for conjugate
-                                    let turn_direction = match button {
-                                        three_d::MouseButton::Left => -1,
-                                        three_d::MouseButton::Right => 1,
-                                        _ => 0, // should never happen
-                                    };
+                            if press_button == button {
+                                // TODO revise for conjugate
+                                let turn_direction = match button {
+                                    three_d::MouseButton::Left => -1,
+                                    three_d::MouseButton::Right => 1,
+                                    _ => 0, // should never happen
+                                };
 
-                                    let turn_face = sticker.face;
-                                    let axis_index = turn_face
-                                        .get_axis()
-                                        .iter()
-                                        .position(|&r| r == turn_face)
-                                        .expect("rays are always in their axes");
-                                    let opposite_axis = (-1i8).pow(axis_index as u32);
-                                    let turn = (turn_face, opposite_axis * turn_direction);
+                                let turn_face = sticker.face;
+                                let axis_index = turn_face
+                                    .get_axis()
+                                    .iter()
+                                    .position(|&r| r == turn_face)
+                                    .expect("rays are always in their axes");
+                                let opposite_axis = (-1i8).pow(axis_index as u32);
+                                let turn = (turn_face, opposite_axis * turn_direction);
 
-                                    let keys = persistent.keys_down.union(&persistent.keys_clicked);
+                                let keys = persistent.keys_down.union(&persistent.keys_clicked);
 
-                                    // if an invalid key is pressed on a puzzle while in viewport key mode,
-                                    // there should be no turn instead of doing the default turn
-                                    let default_mode = !keys.clone().any(|key| {
-                                        session.concrete_puzzle.key_layers[0].contains_key(key)
-                                    });
+                                // if an invalid key is pressed on a puzzle while in viewport key mode,
+                                // there should be no turn instead of doing the default turn
+                                let default_mode = !keys.clone().any(|key| {
+                                    session.concrete_puzzle.key_layers[0].contains_key(key)
+                                });
 
-                                    let grips = if default_mode {
-                                        // rustfmt? hewwo?
-                                        vec![viewport_clicked.key_layers[axis_index]
-                                            .get(&NUMBER_KEYS[0])
-                                            .expect("viewport grips should have a binding for first key")
-                                            .clone()]
+                                let grips = if default_mode {
+                                    // rustfmt? hewwo?
+                                    vec![viewport_clicked.key_layers[axis_index]
+                                        .get(&NUMBER_KEYS[0])
+                                        .expect(
+                                            "viewport grips should have a binding for first key",
+                                        )
+                                        .clone()]
+                                } else {
+                                    let key_layers = if persistent.prefs.viewport_keys {
+                                        &viewport_clicked.key_layers
                                     } else {
-                                        let key_layers = if persistent.prefs.viewport_keys {
-                                            &viewport_clicked.key_layers
-                                        } else {
-                                            &session.concrete_puzzle.key_layers
-                                        };
-                                        let grips_: Vec<_> = keys
-                                            .filter_map(|key| key_layers[axis_index].get(key))
-                                            .collect();
-
-                                        grips_.into_iter().cloned().collect()
+                                        &session.concrete_puzzle.key_layers
                                     };
+                                    let grips_: Vec<_> = keys
+                                        .filter_map(|key| key_layers[axis_index].get(key))
+                                        .collect();
 
-                                    session.twist(turn, grips, persistent.prefs.animation_length);
-                                }
+                                    grips_.into_iter().cloned().collect()
+                                };
+
+                                session.twist(turn, grips, persistent.prefs.animation_length);
                             }
                         }
                     }
-
-                    session.mouse_press_location = None;
                 }
+
+                session.mouse_press_location = None;
             }
             Event::KeyPress {
                 kind,
@@ -714,7 +689,6 @@ fn main() {
         gui: GUI::new(&context),
         prefs: Default::default(),
         settings_open: false,
-        color_picker_open: false,
     };
 
     persistent.load_prefs();
