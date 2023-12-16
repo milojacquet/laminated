@@ -1,9 +1,9 @@
-use crate::make_concrete_puzzle;
 use crate::puzzle::common::*;
 use crate::puzzle::cube::CubeRay;
 use crate::puzzle::octa::OctaRay;
 use crate::render;
 use crate::render::common::*;
+use crate::render::create::make_concrete_puzzle;
 use crate::Preferences;
 use crate::VERSION;
 use enum_map::EnumMap;
@@ -125,13 +125,22 @@ impl<'a, Ray: ConcreteRaySystem> Session<Ray> {
             .into_iter()
             .map(|ori| string_vec_to_enum_map(ori))
             .collect::<Result<_, _>>()?;
-        self.set_scramble(scramble);
+        self.scramble = scramble;
+        self.apply_scramble();
         Ok(())
     }
 
-    fn set_scramble(&mut self, scramble: Vec<EnumMap<Ray, Ray>>) {
-        self.scramble = scramble;
+    fn apply_scramble(&mut self) {
         self.concrete_puzzle.puzzle.set_orientations(&self.scramble);
+    }
+
+    fn apply_twists(&mut self) {
+        // even though multi_layer_twist only mutates concrete_puzzle,
+        // i need to clone twists so i don't double borrow
+        for (ray_order, grips) in self.twists.clone() {
+            self.multi_layer_twist(ray_order, &grips)
+        }
+        self.concrete_puzzle.reset_animations();
     }
 
     fn extract_log(&self) -> (Vec<Vec<String>>, Vec<((String, i8), Vec<Vec<i8>>)>) {
@@ -175,6 +184,17 @@ impl<'a, Ray: ConcreteRaySystem> Session<Ray> {
 
         Ok(())
     }
+
+    /// Replace the concrete puzzle with a new one.
+    /// Only use concrete puzzles which have the same underlying puzzle!
+    /// This is not checked!
+    pub fn replace_concrete_puzzle(&mut self, new_concrete_puzzle: ConcretePuzzle<Ray>) {
+        // this could probably be done better by only replacing self.concrete_puzzle.viewports,
+        // but this is easier
+        self.concrete_puzzle = new_concrete_puzzle;
+        self.apply_scramble();
+        self.apply_twists();
+    }
 }
 
 #[derive(Debug, Copy, Clone, serde::Serialize, serde::Deserialize)]
@@ -212,7 +232,7 @@ impl SessionType {
                 Session::from_concrete(make_concrete_puzzle(
                     window_size,
                     &context,
-                    render::cube::nnn_seeds(n),
+                    render::cube::nnn_seeds(n, &prefs.concrete),
                     prefs,
                 )),
             ),
@@ -230,7 +250,7 @@ impl SessionType {
                 Session::from_concrete(make_concrete_puzzle(
                     window_size,
                     &context,
-                    render::octa::fto_seeds(n),
+                    render::octa::fto_seeds(n, &prefs.concrete),
                     prefs,
                 )),
             ),
@@ -324,5 +344,19 @@ impl SessionEnum {
         let reader = std::io::BufReader::new(file);
         let session_log: SessionLog = serde_json::from_reader(reader)?;
         Self::from_log(session_log, window_size, context, path, prefs)
+    }
+
+    pub fn replace_concrete_puzzle_from(&mut self, other: SessionEnum) {
+        // not using _ => () so when i add a new SessionEnum, it errors and i have to add it here
+        match (self, other) {
+            (SessionEnum::Cube(_, session), SessionEnum::Cube(_, other_s)) => {
+                session.replace_concrete_puzzle(other_s.concrete_puzzle)
+            }
+            (SessionEnum::Cube(_, _), _) => {}
+            (SessionEnum::Octa(_, session), SessionEnum::Octa(_, other_s)) => {
+                session.replace_concrete_puzzle(other_s.concrete_puzzle)
+            }
+            (SessionEnum::Octa(_, _), _) => {}
+        }
     }
 }

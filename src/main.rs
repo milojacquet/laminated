@@ -287,6 +287,7 @@ struct RenderLoopResponse {
     load: bool,
     save_prefs: bool,
     load_prefs: bool,
+    replace_concrete_puzzle: bool,
 }
 
 /// Does everything in the render loop, and if the puzzle changed, return the new puzzle.
@@ -493,7 +494,12 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                     });
 
                     ui.collapsing("Puzzle form", |ui| {
-                        ui.checkbox(&mut persistent.prefs.concrete.octa_extend, "FTO extensions");
+                        if ui
+                            .checkbox(&mut persistent.prefs.concrete.octa_extend, "FTO extensions")
+                            .clicked()
+                        {
+                            response.replace_concrete_puzzle = true;
+                        }
                     });
 
                     ui.separator();
@@ -786,6 +792,14 @@ fn main() {
 
         if response.load_prefs {
             persistent.load_prefs();
+        }
+
+        if response.replace_concrete_puzzle {
+            session.replace_concrete_puzzle_from(session.get_type().make_session_enum(
+                persistent.window_size,
+                &context,
+                &persistent.prefs,
+            ))
         }
 
         FrameOutput::default()

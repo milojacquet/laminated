@@ -1,3 +1,4 @@
+use crate::preferences::ConcretePuzzlePreferences;
 use crate::puzzle::cube::CubeRay;
 use crate::puzzle::cube::{Basis, Sign};
 use crate::render::common::*;
@@ -40,7 +41,7 @@ impl ConcreteRaySystem for CubeRay {
     }
 }
 
-pub fn nnn_seeds<'a>(order: i8) -> PuzzleSeed<CubeRay> {
+pub fn nnn_seeds<'a>(order: i8, _prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<CubeRay> {
     use crate::puzzle::cube::name::*;
 
     let mut current_width = 0.0;

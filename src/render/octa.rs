@@ -1,3 +1,4 @@
+use crate::preferences::ConcretePuzzlePreferences;
 use crate::preferences::Preferences;
 use crate::puzzle::common::RaySystem;
 use crate::puzzle::cube::{Basis, Sign};
@@ -123,7 +124,7 @@ fn cut_depth_on_axis(order: i8, cut: i8) -> f32 {
     return 0.5 + half_width * cut as f32;
 }
 
-pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
+pub fn fto_seeds<'a>(order: i8, prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<OctaRay> {
     use crate::puzzle::octa::name::*;
 
     let grips: Vec<Vec<i8>> = (-order + 1..=order - 1)
@@ -216,7 +217,7 @@ pub fn fto_seeds<'a>(order: i8) -> PuzzleSeed<OctaRay> {
                         // Some(true): extending this face
                         // Some(false): extending the other face
                         let extend_opt: Option<bool>;
-                        if n_plus_m.abs() != 2 * order - 4 || order == 2 {
+                        if !prefs.octa_extend || n_plus_m.abs() != 2 * order - 4 || order == 2 {
                             extend_opt = None;
                         } else {
                             extend_opt = Some((n_plus_m == -2 * order + 4) ^ flip);
