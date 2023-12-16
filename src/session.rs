@@ -59,14 +59,14 @@ impl<Ray: ConcreteRaySystem> Session<Ray> {
         }
     }
 
-    fn multi_layer_twist(&mut self, tw: (Ray, i8), grips: &Vec<Vec<i8>>) {
+    fn multi_layer_twist(&mut self, tw: (Ray, i8), grips: &Vec<Vec<i8>>, animation_length: f32) {
         for grip in grips {
-            self.concrete_puzzle.twist(tw, &grip[..]);
+            self.concrete_puzzle.twist(tw, &grip[..], animation_length);
         }
     }
 
-    pub fn twist(&mut self, tw: (Ray, i8), grips: Vec<Vec<i8>>) {
-        self.multi_layer_twist(tw, &grips);
+    pub fn twist(&mut self, tw: (Ray, i8), grips: Vec<Vec<i8>>, animation_length: f32) {
+        self.multi_layer_twist(tw, &grips, animation_length);
         self.twists.push((tw, grips));
         self.undid_twists = vec![];
     }
@@ -89,11 +89,11 @@ impl<Ray: ConcreteRaySystem> Session<Ray> {
         self.scramble_from_concrete();
     }
 
-    pub fn undo(&mut self) -> eyre::Result<()> {
+    pub fn undo(&mut self, animation_length: f32) -> eyre::Result<()> {
         if let Some(((ray, order), grips)) = self.twists.pop() {
             self.undid_twists.push(((ray, order), grips.clone()));
             // we want the animation this time
-            self.multi_layer_twist((ray, -order), &grips);
+            self.multi_layer_twist((ray, -order), &grips, animation_length);
             Ok(())
         } else {
             // no undo left
@@ -101,11 +101,11 @@ impl<Ray: ConcreteRaySystem> Session<Ray> {
         }
     }
 
-    pub fn redo(&mut self) -> eyre::Result<()> {
+    pub fn redo(&mut self, animation_length: f32) -> eyre::Result<()> {
         if let Some(((ray, order), grips)) = self.undid_twists.pop() {
             self.twists.push(((ray, order), grips.clone()));
             // we want the animation this time
-            self.multi_layer_twist((ray, order), &grips);
+            self.multi_layer_twist((ray, order), &grips, animation_length);
             Ok(())
         } else {
             // no redo left
@@ -113,13 +113,13 @@ impl<Ray: ConcreteRaySystem> Session<Ray> {
         }
     }
 
-    pub fn do_inverse(&mut self) -> eyre::Result<()> {
+    pub fn do_inverse(&mut self, animation_length: f32) -> eyre::Result<()> {
         if let Some(((ray, order), grips)) = self.twists.pop() {
             self.twists.push(((ray, -order), grips.clone()));
             self.undid_twists = vec![];
             // we want the animation this time
-            self.multi_layer_twist((ray, -order), &grips);
-            self.multi_layer_twist((ray, -order), &grips); // do it again
+            self.multi_layer_twist((ray, -order), &grips, 0.0);
+            self.multi_layer_twist((ray, -order), &grips, animation_length); // do it again
             Ok(())
         } else {
             // no undo left
@@ -145,7 +145,7 @@ impl<Ray: ConcreteRaySystem> Session<Ray> {
         // even though multi_layer_twist only mutates concrete_puzzle,
         // i need to clone twists so i don't double borrow
         for (ray_order, grips) in self.twists.clone() {
-            self.multi_layer_twist(ray_order, &grips)
+            self.multi_layer_twist(ray_order, &grips, 0.0)
         }
         self.concrete_puzzle.reset_animations();
     }
@@ -184,6 +184,7 @@ impl<Ray: ConcreteRaySystem> Session<Ray> {
                     order,
                 ),
                 grips,
+                0.0,
             )
         }
 

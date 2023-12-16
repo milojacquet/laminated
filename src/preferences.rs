@@ -73,7 +73,7 @@ pub struct Preferences {
     pub colors: ColorPreferences,
     pub viewport_keys: bool,
     pub concrete: ConcretePuzzlePreferences,
-    pub animation_speed: f32,
+    pub animation_length: f32,
 }
 
 impl Default for Preferences {
@@ -82,7 +82,7 @@ impl Default for Preferences {
             colors: Default::default(),
             viewport_keys: false,
             concrete: Default::default(),
-            animation_speed: 150.0,
+            animation_length: 150.0,
         }
     }
 }

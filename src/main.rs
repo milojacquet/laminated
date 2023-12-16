@@ -22,7 +22,6 @@ pub mod util;
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 const TURN_DISTANCE_THRESHOLD: f32 = 3.0;
 const ORBIT_SPEED: f32 = 0.007; // radians per pixel
-const ANIMATION_LENGTH: f32 = 150.0;
 const ANIMATION_INIT_V: f32 = 0.1;
 const NUMBER_KEYS: [Key; 9] = [
     Key::Num1,
@@ -79,6 +78,7 @@ fn render_puzzle<Ray: ConcreteRaySystem>(
                         [puzzle.pieces[permutation[sticker.piece_ind]].orientation[sticker.color]]
                         .to_srgba(),
                     elapsed_time as f32,
+                    prefs.animation_length,
                 );
 
                 &sticker.gm
@@ -144,7 +144,7 @@ fn color_picker_grid<Ray: ConcreteRaySystem>(
                 let color_picker = ui.color_edit_button_srgb(&mut color);
                 if color_picker.changed() {
                     Ray::ray_to_color_mut(prefs)[ray] = color.into();
-                    *color_picker_open = true;
+                    //*color_picker_open = true;
                 } else if color_picker.clicked_elsewhere() {
                     *color_picker_open = false
                 }
@@ -346,7 +346,7 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                         ui.separator();
                         if shortcut_button(ui, gui_context, "Undo", COMMAND, Key::Z).clicked() {
                             // cannot borrow persistent so can't use show_only_err
-                            if let Err(err) = session.undo() {
+                            if let Err(err) = session.undo(persistent.prefs.animation_length) {
                                 persistent.status_message = Some(err.to_string());
                             } else {
                                 persistent.status_message = None;
@@ -354,7 +354,7 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                         }
                         if shortcut_button(ui, gui_context, "Redo", COMMAND_SHIFT, Key::Z).clicked()
                         {
-                            if let Err(err) = session.redo() {
+                            if let Err(err) = session.redo(persistent.prefs.animation_length) {
                                 persistent.status_message = Some(err.to_string());
                             } else {
                                 persistent.status_message = None;
@@ -362,7 +362,8 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                         }
                         if shortcut_button(ui, gui_context, "Do inverse", COMMAND, Key::X).clicked()
                         {
-                            if let Err(err) = session.do_inverse() {
+                            if let Err(err) = session.do_inverse(persistent.prefs.animation_length)
+                            {
                                 persistent.status_message = Some(err.to_string());
                             } else {
                                 persistent.status_message = None;
@@ -444,6 +445,35 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                             &mut persistent.prefs.viewport_keys,
                             "Per-viewport layer keys",
                         );
+
+                        /*ui.horizontal(|ui| {
+                            ui.label("Animation length");
+                            ui.add(
+                                DragValue::new(&mut persistent.prefs.animation_length)
+                                    .speed(10.0)
+                                    .clamp_range(0.0..=1000.0)
+                                    .suffix(" ms"),
+                            );
+                        });*/
+
+                        let mut length = persistent.prefs.animation_length;
+                        reset_button_small(
+                            ui,
+                            &mut persistent.prefs.animation_length,
+                            Preferences::default().animation_length,
+                        );
+                        let slider = ui.add(
+                            DragValue::new(&mut length)
+                                .speed(10.0)
+                                .clamp_range(0.0..=1000.0)
+                                .suffix(" ms"),
+                        );
+                        if slider.dragged() {
+                            persistent.prefs.animation_length = length;
+                            persistent.color_picker_open = true;
+                        } else {
+                            persistent.color_picker_open = false;
+                        }
                     });
 
                     ui.collapsing("Puzzle form", |ui| {
@@ -476,8 +506,11 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
     for event in &frame_input.events {
         match *event {
             Event::MousePress {
-                button, position, ..
-            } => {
+                button,
+                position,
+                handled,
+                ..
+            } if !handled => {
                 if let Some(viewport_clicked) =
                     get_viewport_from_pixel(&session.concrete_puzzle, position)
                 {
@@ -489,8 +522,9 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                 button: Some(MouseButton::Left | MouseButton::Right),
                 position,
                 delta,
+                handled,
                 ..
-            } => {
+            } if !handled => {
                 if !persistent.color_picker_open {
                     match session.mouse_press_location {
                         Some((conjugate, Some((press_position, _)))) => {
@@ -518,8 +552,11 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                 }
             }
             Event::MouseRelease {
-                button, position, ..
-            } => {
+                button,
+                position,
+                handled,
+                ..
+            } if !handled => {
                 if !persistent.color_picker_open {
                     if let Some(viewport_clicked) =
                         get_viewport_from_pixel(&session.concrete_puzzle, position)
@@ -596,7 +633,7 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                                         grips_.into_iter().cloned().collect()
                                     };
 
-                                    session.twist(turn, grips);
+                                    session.twist(turn, grips, persistent.prefs.animation_length);
                                 }
                             }
                         }
@@ -606,16 +643,21 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                 }
             }
             Event::KeyPress {
-                kind, modifiers, ..
-            } => {
+                kind,
+                modifiers,
+                handled,
+                ..
+            } if !handled => {
                 persistent.keys_down.insert(kind);
 
                 let ctrl = modifiers.ctrl || modifiers.command;
 
                 persistent.show_err(match (kind, modifiers.shift, ctrl) {
-                    (Key::Z, false, true) => session.undo(),
-                    (Key::Y, false, true) | (Key::Z, true, true) => session.redo(),
-                    (Key::X, false, true) => session.do_inverse(),
+                    (Key::Z, false, true) => session.undo(persistent.prefs.animation_length),
+                    (Key::Y, false, true) | (Key::Z, true, true) => {
+                        session.redo(persistent.prefs.animation_length)
+                    }
+                    (Key::X, false, true) => session.do_inverse(persistent.prefs.animation_length),
                     (Key::O, false, true) => {
                         response.load = true;
                         Ok(())
@@ -631,7 +673,7 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                     _ => Ok(()),
                 });
             }
-            Event::KeyRelease { kind, .. } => {
+            Event::KeyRelease { kind, handled, .. } if !handled => {
                 persistent.keys_down.remove(&kind);
             }
             _ => (),

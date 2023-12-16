@@ -1,6 +1,5 @@
 use crate::puzzle::common::*;
 use crate::ANIMATION_INIT_V;
-use crate::ANIMATION_LENGTH;
 use enum_map::EnumMap;
 use std::cmp;
 use std::collections::HashMap;
@@ -115,7 +114,7 @@ impl<Ray: ConcreteRaySystem> Sticker<Ray> {
             .reduce(f32::min)
     }
 
-    pub fn update_gm(&mut self, color: Srgba, elapsed_time: f32) {
+    pub fn update_gm(&mut self, color: Srgba, elapsed_time: f32, animation_length: f32) {
         // can this section be written better
         let remove_animation;
         let sticker_mat;
@@ -130,7 +129,7 @@ impl<Ray: ConcreteRaySystem> Sticker<Ray> {
         }
         if let Some(animation) = &mut self.animation {
             let sticker_angle = animation.start_angle
-                * cubic_interpolate(animation.time_remaining / ANIMATION_LENGTH);
+                * cubic_interpolate(animation.time_remaining / animation_length);
             sticker_mat = Mat4::from_axis_angle(animation.rotation_axis, Rad(sticker_angle));
         } else {
             sticker_mat = Mat4::identity();
@@ -300,7 +299,7 @@ where
 }
 
 impl<Ray: ConcreteRaySystem> ConcretePuzzle<Ray> {
-    pub fn twist(&mut self, (ray, order): (Ray, i8), grip: &[i8]) {
+    pub fn twist(&mut self, (ray, order): (Ray, i8), grip: &[i8], animation_length: f32) {
         self.puzzle.twist((ray, order), grip);
         for viewport in self.viewports.iter_mut() {
             for sticker in viewport.stickers.iter_mut() {
@@ -309,7 +308,7 @@ impl<Ray: ConcreteRaySystem> ConcretePuzzle<Ray> {
                     sticker.animation = Some(StickerAnimation {
                         rotation_axis: ray.axis_to_vec(viewport.conjugate),
                         start_angle: (order as f32) * 2.0 * PI / (ray.order() as f32),
-                        time_remaining: ANIMATION_LENGTH,
+                        time_remaining: animation_length,
                     })
                 }
             }
