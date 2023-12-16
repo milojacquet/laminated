@@ -4,6 +4,7 @@ use crate::puzzle::octa::OctaRay;
 use crate::render;
 use crate::render::common::*;
 use crate::render::create::make_concrete_puzzle;
+use crate::util::Vec3;
 use crate::Preferences;
 use crate::VERSION;
 use enum_map::EnumMap;
@@ -23,6 +24,7 @@ pub struct Session<Ray: ConcreteRaySystem> {
     )>,
     pub save_path: Option<std::path::PathBuf>,
     pub version: String,
+    pub camera_facings: EnumMap<Ray::Conjugate, CameraFacing>,
 }
 
 fn string_vec_to_enum_map<Ray: ConcreteRaySystem + enum_map::Enum>(
@@ -49,6 +51,11 @@ impl<'a, Ray: ConcreteRaySystem> Session<Ray> {
             mouse_press_location: None,
             save_path: None,
             version: VERSION.to_string(),
+            camera_facings: EnumMap::from_fn(|_| CameraFacing {
+                position: Vec3::new(5.0, -10.0, 4.0),
+                target: Vec3::new(0.0, 0.0, 0.0),
+                up: Vec3::new(0.0, 0.0, 1.0),
+            }),
         }
     }
 

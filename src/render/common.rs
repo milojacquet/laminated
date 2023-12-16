@@ -10,10 +10,12 @@ use crate::util::{color, Mat4, Vec3};
 use std::f32::consts::PI;
 use three_d::*;
 
+const DEFAULT_HEIGHT: Deg<f32> = Deg(20.0);
+
 pub trait ConcreteRaySystem
 where
     Self: RaySystem,
-    Self::Conjugate: Default + Eq + Copy,
+    Self::Conjugate: Default + Eq + Copy + enum_map::Enum + enum_map::EnumArray<CameraFacing>,
 {
     type Conjugate;
 
@@ -204,13 +206,51 @@ pub struct AbstractViewport {
     pub height: f32,
 }
 
+impl AbstractViewport {
+    fn camera_height(&self) -> Deg<f32> {
+        // dimensionless fov: Rad::cot(persp.fovy / two)
+        Deg::atan(1.0 / (Deg::cot(DEFAULT_HEIGHT / 2.0) / self.height)) * 2.0
+    }
+}
+
+/// A three_d::Camera without the viewport
+pub struct CameraFacing {
+    pub position: Vec3,
+    pub target: Vec3,
+    pub up: Vec3,
+}
+
+impl CameraFacing {
+    pub fn orbit(&mut self, (dx, dy): (f32, f32)) {
+        // (dx, dy) will never both be zero
+        let pointing = -1.0 * self.position;
+        // camera.up() does not have to be perpendicular to the view vector
+        let local_x_axis = pointing.cross(self.up).normalize();
+        let local_y_axis = pointing.cross(local_x_axis).normalize();
+        let orbit_direction = dx * local_x_axis + dy * local_y_axis;
+        let orbit_axis = orbit_direction.cross(pointing).normalize();
+        let mat = Mat3::from_axis_angle(orbit_axis, Rad(-f32::hypot(dx, dy) * crate::ORBIT_SPEED));
+        *self = CameraFacing {
+            position: mat * (-1.0 * pointing),
+            target: mat * self.target,
+            up: mat * (-1.0 * local_y_axis),
+        };
+        /*
+        // this has a weird bug where it slows down the more you rotate
+        camera.rotate_around(
+            &Vec3::new(0.0, 0.0, 0.0),
+            dx * ORBIT_SPEED,
+            dy * ORBIT_SPEED,
+        )*/
+    }
+}
+
 pub struct PuzzleViewport<Ray>
 where
     Ray: ConcreteRaySystem,
 {
     pub abstract_viewport: AbstractViewport,
     pub viewport: Viewport,
-    pub camera: Camera,
     pub conjugate: Ray::Conjugate,
     pub stickers: Vec<Sticker<Ray>>,
     pub key_layers: Vec<HashMap<Key, Vec<i8>>>,
@@ -225,6 +265,20 @@ where
     pub stickers: Vec<StickerSeed<Ray>>,
     // This one only applies to the puzzle in this viewport, if the appropriate setting is chosen.
     pub key_layers: Vec<HashMap<Key, Vec<i8>>>,
+}
+
+impl<Ray: ConcreteRaySystem> PuzzleViewport<Ray> {
+    pub fn make_camera(&self, cam: &CameraFacing) -> Camera {
+        Camera::new_perspective(
+            self.viewport,
+            cam.position,
+            cam.target,
+            cam.up,
+            self.abstract_viewport.camera_height(),
+            0.1,
+            1000.0,
+        )
+    }
 }
 
 impl<Ray: ConcreteRaySystem> PuzzleViewport<Ray> {

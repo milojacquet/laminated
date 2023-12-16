@@ -37,30 +37,7 @@ const NUMBER_KEYS: [Key; 9] = [
     Key::Num9,
 ]; // has to be an array?
 
-fn orbit_camera(camera: &mut Camera, (dx, dy): (f32, f32)) {
-    // (dx, dy) will never both be zero
-    let pointing = -1.0 * camera.position();
-    // camera.up() does not have to be perpendicular to the view vector
-    let local_x_axis = pointing.cross(*camera.up()).normalize();
-    let local_y_axis = pointing.cross(local_x_axis).normalize();
-    let orbit_direction = dx * local_x_axis + dy * local_y_axis;
-    let orbit_axis = orbit_direction.cross(pointing).normalize();
-    let mat = Mat3::from_axis_angle(orbit_axis, Rad(-f32::hypot(dx, dy) * ORBIT_SPEED));
-    camera.set_view(
-        mat * (-1.0 * pointing),
-        Vec3::new(0.0, 0.0, 0.0),
-        mat * (-1.0 * local_y_axis),
-    );
-    /*
-    // this has a weird bug where it slows down the more you rotate
-    camera.rotate_around(
-        &Vec3::new(0.0, 0.0, 0.0),
-        dx * ORBIT_SPEED,
-        dy * ORBIT_SPEED,
-    )*/
-}
-
-fn orbit_cameras<Ray: ConcreteRaySystem>(
+/*fn orbit_cameras<Ray: ConcreteRaySystem>(
     puzzle: &mut ConcretePuzzle<Ray>,
     conjugate: Ray::Conjugate,
     delta: (f32, f32),
@@ -73,7 +50,7 @@ fn orbit_cameras<Ray: ConcreteRaySystem>(
             orbit_camera(&mut viewport.camera, delta);
         }
     }
-}
+}*/
 
 fn get_viewport_from_pixel<Ray: ConcreteRaySystem>(
     concrete_puzzle: &ConcretePuzzle<Ray>,
@@ -100,14 +77,17 @@ fn render_puzzle<Ray: ConcreteRaySystem>(
     elapsed_time: f64,
     concrete_puzzle: &mut ConcretePuzzle<Ray>,
     prefs: &Preferences,
+    facings: &enum_map::EnumMap<Ray::Conjugate, CameraFacing>,
 ) {
     screen.clear(ClearState::color_and_depth(0.8, 0.8, 0.8, 1.0, 1.0));
 
     let permutation = concrete_puzzle.puzzle.permutation();
 
     for viewport in &mut concrete_puzzle.viewports.iter_mut() {
+        let camera = viewport.make_camera(&facings[viewport.conjugate]);
+
         screen.render(
-            &viewport.camera,
+            &camera,
             viewport.stickers.iter_mut().map(|sticker| {
                 let puzzle = &concrete_puzzle.puzzle;
                 sticker.update_gm(
@@ -124,7 +104,7 @@ fn render_puzzle<Ray: ConcreteRaySystem>(
     }
 }
 
-#[allow(dead_code)]
+/*#[allow(dead_code)]
 fn render_axes<Ray: ConcreteRaySystem>(
     screen: &mut RenderTarget,
     context: &Context,
@@ -133,7 +113,7 @@ fn render_axes<Ray: ConcreteRaySystem>(
     for viewport in &concrete_puzzle.viewports {
         screen.render(&viewport.camera, &Axes::new(context, 0.1, 1.3), &[]);
     }
-}
+}*/
 
 fn shortcut_button(
     ui: &mut egui::Ui,
@@ -548,16 +528,22 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                             if distance_moved > TURN_DISTANCE_THRESHOLD {
                                 persistent.status_message = None;
 
-                                orbit_cameras(
+                                /*orbit_cameras(
                                     &mut session.concrete_puzzle,
                                     conjugate,
                                     (position.x - press_position.x, position.y - press_position.y),
-                                );
+                                );*/
+                                session.camera_facings[conjugate].orbit((
+                                    position.x - press_position.x,
+                                    position.y - press_position.y,
+                                ));
                                 session.mouse_press_location = Some((conjugate, None));
                             }
                         }
                         Some((conjugate, None)) => {
-                            orbit_cameras(&mut session.concrete_puzzle, conjugate, delta);
+                            //orbit_cameras(&mut session.concrete_puzzle, conjugate, delta);
+                            session.camera_facings[conjugate].orbit(delta);
+
                             // change default
                         }
                         None => {
@@ -573,9 +559,12 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                     if let Some(viewport_clicked) =
                         get_viewport_from_pixel(&session.concrete_puzzle, position)
                     {
+                        let camera = viewport_clicked
+                            .make_camera(&session.camera_facings[viewport_clicked.conjugate]);
+
                         let sticker_m = viewport_clicked.ray_intersect(
-                            viewport_clicked.camera.position_at_pixel(position),
-                            viewport_clicked.camera.view_direction_at_pixel(position),
+                            camera.position_at_pixel(position),
+                            camera.view_direction_at_pixel(position),
                         );
 
                         if let Some(sticker) = sticker_m {
@@ -685,6 +674,7 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
         frame_input.elapsed_time,
         &mut session.concrete_puzzle,
         &persistent.prefs,
+        &session.camera_facings,
     );
     /*render_axes(
         &mut frame_input.screen(),

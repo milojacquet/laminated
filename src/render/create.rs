@@ -63,12 +63,6 @@ fn make_viewport(
     }
 }
 
-pub fn correct_angle<A: Angle<Unitless = f32>>(angle: A, height: f32) -> A {
-    // dimensionless fov: Rad::cot(persp.fovy / two)
-
-    A::atan(1.0 / (A::cot(angle / 2.0) / height)) * 2.0
-}
-
 pub fn create_sticker_gm<Ray: ConcreteRaySystem>(
     context: &Context,
     vertices: &Vec<Vec3>,
@@ -159,7 +153,7 @@ pub fn make_concrete_puzzle<Ray: ConcreteRaySystem>(
             PuzzleViewport {
                 abstract_viewport: viewport_seed.abstract_viewport.clone(),
                 viewport,
-                camera: Camera::new_perspective(
+                /*camera: Camera::new_perspective(
                     viewport,
                     vec3(5.0, -10.0, 4.0),
                     vec3(0.0, 0.0, 0.0),
@@ -167,7 +161,7 @@ pub fn make_concrete_puzzle<Ray: ConcreteRaySystem>(
                     correct_angle(degrees(20.0), viewport_seed.abstract_viewport.height),
                     0.1,
                     1000.0,
-                ),
+                ),*/
                 conjugate: viewport_seed.conjugate,
                 stickers,
                 key_layers: viewport_seed.key_layers.clone(),
@@ -202,7 +196,7 @@ pub fn update_viewports<Ray: ConcreteRaySystem>(
         );
         puzzle_viewport.viewport = viewport;
 
-        puzzle_viewport.camera = Camera::new_perspective(
+        /*puzzle_viewport.camera = Camera::new_perspective(
             viewport,
             vec3(5.0, -10.0, 4.0),
             vec3(0.0, 0.0, 0.0),
@@ -210,6 +204,6 @@ pub fn update_viewports<Ray: ConcreteRaySystem>(
             correct_angle(degrees(20.0), puzzle_viewport.abstract_viewport.height),
             0.1,
             1000.0,
-        )
+        )*/
     }
 }
