@@ -56,11 +56,23 @@ impl Default for ColorPreferences {
     }
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct ConcretePuzzlePreferences {
+    pub octa_extend: bool,
+}
+
+impl Default for ConcretePuzzlePreferences {
+    fn default() -> Self {
+        Self { octa_extend: true }
+    }
+}
+
 #[derive(Serialize, Deserialize, Default)]
 pub struct Preferences {
     #[serde(default)]
     pub colors: ColorPreferences,
     pub viewport_keys: bool,
+    pub concrete: ConcretePuzzlePreferences,
 }
 
 impl Preferences {

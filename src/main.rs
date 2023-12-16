@@ -468,45 +468,48 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
             if persistent.settings_open {
                 let frame = Frame::side_top_panel(&gui_context.style())
                     .fill(Color32::from_rgba_premultiplied(0, 0, 0, 222));
-                SidePanel::left("Settings")
-                    .frame(frame)
-                    .show(gui_context, |ui| {
-                        ui.collapsing("Colors", |ui| {
-                            color_picker_grid::<CubeRay>(
-                                "Cube",
-                                ui,
-                                &mut persistent.prefs,
-                                &mut persistent.color_picker_open,
-                            );
-                            color_picker_grid::<OctaRay>(
-                                "Octahedron",
-                                ui,
-                                &mut persistent.prefs,
-                                &mut persistent.color_picker_open,
-                            );
-                        });
-
-                        ui.collapsing("Controls", |ui| {
-                            ui.checkbox(
-                                &mut persistent.prefs.viewport_keys,
-                                "Per-viewport layer keys",
-                            );
-                        });
-
-                        ui.separator();
-
-                        if ui.button("Save preferences").clicked() {
-                            response.save_prefs = true;
-                        }
-
-                        if ui.button("Reload preferences").clicked() {
-                            response.load_prefs = true;
-                        }
-
-                        if ui.button("Reset preferences").clicked() {
-                            persistent.prefs = Default::default();
-                        }
+                let settings_panel = SidePanel::left("Settings").frame(frame);
+                settings_panel.show(gui_context, |ui| {
+                    ui.collapsing("Colors", |ui| {
+                        color_picker_grid::<CubeRay>(
+                            "Cube",
+                            ui,
+                            &mut persistent.prefs,
+                            &mut persistent.color_picker_open,
+                        );
+                        color_picker_grid::<OctaRay>(
+                            "Octahedron",
+                            ui,
+                            &mut persistent.prefs,
+                            &mut persistent.color_picker_open,
+                        );
                     });
+
+                    ui.collapsing("Controls", |ui| {
+                        ui.checkbox(
+                            &mut persistent.prefs.viewport_keys,
+                            "Per-viewport layer keys",
+                        );
+                    });
+
+                    ui.collapsing("Puzzle form", |ui| {
+                        ui.checkbox(&mut persistent.prefs.concrete.octa_extend, "FTO extensions");
+                    });
+
+                    ui.separator();
+
+                    if ui.button("Save preferences").clicked() {
+                        response.save_prefs = true;
+                    }
+
+                    if ui.button("Reload preferences").clicked() {
+                        response.load_prefs = true;
+                    }
+
+                    if ui.button("Reset preferences").clicked() {
+                        persistent.prefs = Default::default();
+                    }
+                });
             }
         },
     );

@@ -121,12 +121,17 @@ impl<'a, Ray: ConcreteRaySystem> Session<Ray> {
     }
 
     fn set_orientations(&mut self, oris: Vec<Vec<String>>) -> eyre::Result<()> {
-        self.concrete_puzzle.puzzle.set_orientations(
-            oris.into_iter()
-                .map(|ori| string_vec_to_enum_map(ori))
-                .collect::<Result<_, _>>()?,
-        );
+        let scramble = oris
+            .into_iter()
+            .map(|ori| string_vec_to_enum_map(ori))
+            .collect::<Result<_, _>>()?;
+        self.set_scramble(scramble);
         Ok(())
+    }
+
+    fn set_scramble(&mut self, scramble: Vec<EnumMap<Ray, Ray>>) {
+        self.scramble = scramble;
+        self.concrete_puzzle.puzzle.set_orientations(&self.scramble);
     }
 
     fn extract_log(&self) -> (Vec<Vec<String>>, Vec<((String, i8), Vec<Vec<i8>>)>) {

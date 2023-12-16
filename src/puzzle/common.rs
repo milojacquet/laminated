@@ -335,9 +335,9 @@ impl<'a, Ray: RaySystem> Puzzle<Ray> {
             .collect()
     }
 
-    pub fn set_orientations(&mut self, oris: Vec<EnumMap<Ray, Ray>>) {
+    pub fn set_orientations(&mut self, oris: &[EnumMap<Ray, Ray>]) {
         for (piece, ori) in self.pieces.iter_mut().zip(oris) {
-            piece.orientation = ori;
+            piece.orientation = enum_map_clone(ori);
         }
     }
 
