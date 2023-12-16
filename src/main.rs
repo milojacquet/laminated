@@ -417,7 +417,7 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
             if persistent.settings_open {
                 let frame = Frame::side_top_panel(&gui_context.style())
                     .fill(Color32::from_rgba_premultiplied(0, 0, 0, 222));
-                let settings_panel = SidePanel::left("Settings").frame(frame);
+                let settings_panel = SidePanel::left("Settings").frame(frame).min_width(200.0);
                 settings_panel.show(gui_context, |ui| {
                     ui.collapsing("Colors", |ui| {
                         color_picker_grid::<CubeRay>("Cube", ui, &mut persistent.prefs);
@@ -430,27 +430,20 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                             "Per-viewport layer keys",
                         );
 
-                        /*ui.horizontal(|ui| {
-                            ui.label("Animation length");
+                        ui.horizontal(|ui| {
+                            reset_button_small(
+                                ui,
+                                &mut persistent.prefs.animation_length,
+                                Preferences::default().animation_length,
+                            );
                             ui.add(
                                 DragValue::new(&mut persistent.prefs.animation_length)
                                     .speed(10.0)
                                     .clamp_range(0.0..=1000.0)
                                     .suffix(" ms"),
                             );
-                        });*/
-
-                        reset_button_small(
-                            ui,
-                            &mut persistent.prefs.animation_length,
-                            Preferences::default().animation_length,
-                        );
-                        ui.add(
-                            DragValue::new(&mut persistent.prefs.animation_length)
-                                .speed(10.0)
-                                .clamp_range(0.0..=1000.0)
-                                .suffix(" ms"),
-                        );
+                            ui.label("Animation length");
+                        });
                     });
 
                     ui.collapsing("Puzzle form", |ui| {
