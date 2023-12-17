@@ -417,7 +417,7 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
             if persistent.settings_open {
                 let frame = Frame::side_top_panel(&gui_context.style())
                     .fill(Color32::from_rgba_premultiplied(0, 0, 0, 222));
-                let settings_panel = SidePanel::left("Settings").frame(frame).min_width(200.0);
+                let settings_panel = SidePanel::left("Settings").frame(frame).min_width(210.0);
                 settings_panel.show(gui_context, |ui| {
                     ui.collapsing("Colors", |ui| {
                         color_picker_grid::<CubeRay>("Cube", ui, &mut persistent.prefs);
