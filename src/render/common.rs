@@ -324,9 +324,11 @@ impl<Ray: ConcreteRaySystem> ConcretePuzzle<Ray> {
             for sticker in viewport.stickers.iter_mut() {
                 let piece_at_sticker = self.puzzle.index_to_solved_piece(sticker.piece_ind);
                 if piece_at_sticker.grip_on_axis(ray) == grip {
+                    let start_angle = Ray::order_to_angle(order, viewport.conjugate);
+                    let start_angle = (start_angle.rem_euclid(2.0 * PI) + PI) % PI - PI;
                     sticker.animation = Some(StickerAnimation {
                         rotation_axis: ray.axis_to_vec(viewport.conjugate),
-                        start_angle: Ray::order_to_angle(order, viewport.conjugate),
+                        start_angle,
                         time_remaining: animation_length,
                     })
                 }
