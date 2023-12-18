@@ -99,20 +99,25 @@ impl RaySystem for DodecaRay {
     const CYCLE: &'static [(Self, i8)] = {
         use crate::puzzle::dodeca::name::*;
 
+        // originaly this was with U,R,L but U and L are not axis heads
+        // so it uses BR,R,BL instead
+        // i'm not going to update the line comments
+
+        // also i had to flip the signs of BR and BL but not R for some reason
+
         &[
-            /* up U  front F  */ (U, 1), (U, 1), (U, 1), (U, 1), (R, 1),
-            /* up L  front DL */ (U, 1), (U, 1), (U, 1), (U, 1), (R, 4),
-            /* up F  front L  */ (U, 4), (U, 4), (U, 4), (U, 4), (R, 4),
-            /* up R  front F  */ (U, 4), (U, 4), (U, 4), (U, 4), (R, 4),
-            /* up BR front R  */ (U, 4), (U, 4), (U, 4), (U, 4), (R, 4),
-            /* up BL front BR */ (U, 4), (U, 4), (U, 4), (U, 4), (R, 1),
-            /* up PB front PD */ (U, 1), (U, 1), (U, 1), (U, 1), (R, 1),
-            /* up PR front DR */ (U, 1), (U, 1), (U, 1), (U, 1), (L, 1),
-            /* up PB front PR */ (U, 1), (U, 1), (U, 1), (U, 1), (L, 1),
-            /* up PL front PB */ (U, 1), (U, 1), (U, 1), (U, 1), (L, 1),
-            /* up DL front PL */ (U, 1), (U, 1), (U, 1), (U, 1), (L, 1),
-            /* up DR front DL */ (U, 1), (U, 1), (U, 1), (U, 1), (R, 4),
-            /* up PD front DR */ (U, 1), (U, 1), (U, 1), (U, 1), // (_, 1),
+            /* up U  front F  */ (BR, 4), (BR, 4), (BR, 4), (BR, 4), (R, 1),
+            /* up L  front DL */ (BR, 4), (BR, 4), (BR, 4), (BR, 4), (R, 4),
+            /* up F  front L  */ (BR, 1), (BR, 1), (BR, 1), (BR, 1), (R, 4),
+            /* up R  front F  */ (BR, 1), (BR, 1), (BR, 1), (BR, 1), (R, 4),
+            /* up BR front R  */ (BR, 1), (BR, 1), (BR, 1), (BR, 1), (R, 4),
+            /* up BL front BR */ (BR, 1), (BR, 1), (BR, 1), (BR, 1), (R, 1),
+            /* up PB front PD */ (BR, 4), (BR, 4), (BR, 4), (BR, 4), (R, 4),
+            /* up PL front PB */ (BR, 4), (BR, 4), (BR, 4), (BR, 4), (BL, 4),
+            /* up DL front PL */ (BR, 4), (BR, 4), (BR, 4), (BR, 4), (BL, 4),
+            /* up DR front DL */ (BR, 4), (BR, 4), (BR, 4), (BR, 4), (BL, 4),
+            /* up PR front DR */ (BR, 4), (BR, 4), (BR, 4), (BR, 4), (R, 4),
+            /* up PD front PR */ (BR, 4), (BR, 4), (BR, 4), (BR, 4), // (_, 1),
         ]
     };
 
