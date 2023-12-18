@@ -57,6 +57,20 @@ impl ConcreteRaySystem for DodecaRay {
     }
 }
 
+const SCALE_CIRCUMRAD: f32 = 0.5;
+const SUPER_START: f32 = 0.85;
+
+/*fn bary(c1: f32, c2: f32, c3: f32, c4: f32, c5: f32) -> Vec3 {
+    use crate::puzzle::dodeca::name::PB;
+
+    let mat = DodecaRay::axis_to_transform((PB, 1), BinaryConjugate::Id);
+    let v1 = Vec3::new((3.0 * SQ5 - 5.0) / 2.0, SQ5, 0.0) * SCALE_CIRCUMRAD;
+    let v2 = (mat * v1.extend(1.0)).truncate();
+    let v3 = (mat * v1.extend(1.0)).truncate();
+    let v4 = (mat * v1.extend(1.0)).truncate();
+    let v5 = (mat * v1.extend(1.0)).truncate();
+}*/
+
 pub fn pentultimate_seeds(_prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<DodecaRay> {
     use crate::puzzle::dodeca::name::*;
 
@@ -76,25 +90,41 @@ pub fn pentultimate_seeds(_prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Dode
         height: 1.0,
     };
 
-    let scale_shape = 0.5;
-
     let mut stickers: Vec<StickerSeed<DodecaRay>> = vec![];
 
-    stickers.push({
+    let v1 = Vec3::new(SQ5 / 2.0, (5.0 + SQ5) / 4.0, (5.0 - SQ5) / 4.0) * SCALE_CIRCUMRAD;
+    let v2 = Vec3::new(0.0, SQ5, 0.0) * SCALE_CIRCUMRAD;
+    let vcen = Vec3::new(0.0, PHI, 1.0) * SCALE_CIRCUMRAD;
+
+    {
         let layers: enum_map::EnumMap<DodecaRay, i8> =
             enum_map! {PB=>1,BL=>1,BR=>1,PL=>1,PR=>1,PD=>1,F=>-1,DR=>-1,DL=>-1,R=>-1,L=>-1,U=>-1};
 
-        StickerSeed {
+        // center
+        stickers.push(StickerSeed {
+            layers,
+            face: PB,
+            color: PB,
+            vertices: vec![v1, v2, vcen],
+        });
+    }
+
+    {
+        let layers: enum_map::EnumMap<DodecaRay, i8> =
+            enum_map! {PB=>1,DR=>1,BR=>1,PL=>1,PR=>1,PD=>1,F=>-1,BL=>-1,DL=>-1,R=>-1,L=>-1,U=>-1};
+
+        // corner
+        stickers.push(StickerSeed {
             layers,
             face: PB,
             color: PB,
             vertices: vec![
-                Vec3::new(SQ5 / 2.0, (5.0 + SQ5) / 4.0, (5.0 - SQ5) / 4.0) * scale_shape,
-                Vec3::new(0.0, SQ5, 0.0) * scale_shape,
-                Vec3::new(0.0, PHI, 1.0) * scale_shape,
+                Vec3::new((3.0 * SQ5 - 5.0) / 2.0, SQ5, 0.0) * SCALE_CIRCUMRAD,
+                v2,
+                v1,
             ],
-        }
-    });
+        });
+    }
 
     viewports.push(ViewportSeed {
         abstract_viewport,

@@ -33,14 +33,6 @@ impl DodecaRay {
             .flip_by_basis(Basis::Y, flip_y)
             .flip_by_basis(Basis::Z, flip_z)
     }
-
-    fn cycle_to_x(&self, basis: Basis) -> Self {
-        Self(self.0 + (Basis::X - basis), self.1, self.2)
-    }
-
-    fn cycle_from_x(&self, basis: Basis) -> Self {
-        Self(self.0 - (Basis::X - basis), self.1, self.2)
-    }
 }
 
 impl RaySystem for DodecaRay {
@@ -103,21 +95,19 @@ impl RaySystem for DodecaRay {
         // so it uses BR,R,BL instead
         // i'm not going to update the line comments
 
-        // also i had to flip the signs of BR and BL but not R for some reason
-
         &[
-            /* up U  front F  */ (BR, 4), (BR, 4), (BR, 4), (BR, 4), (R, 1),
-            /* up L  front DL */ (BR, 4), (BR, 4), (BR, 4), (BR, 4), (R, 4),
-            /* up F  front L  */ (BR, 1), (BR, 1), (BR, 1), (BR, 1), (R, 4),
-            /* up R  front F  */ (BR, 1), (BR, 1), (BR, 1), (BR, 1), (R, 4),
-            /* up BR front R  */ (BR, 1), (BR, 1), (BR, 1), (BR, 1), (R, 4),
-            /* up BL front BR */ (BR, 1), (BR, 1), (BR, 1), (BR, 1), (R, 1),
-            /* up PB front PD */ (BR, 4), (BR, 4), (BR, 4), (BR, 4), (R, 4),
+            /* up U  front F  */ (BR, 4), (BR, 4), (BR, 4), (BR, 4), (R, 4),
+            /* up L  front DL */ (BR, 4), (BR, 4), (BR, 4), (BR, 4), (R, 1),
+            /* up F  front L  */ (BR, 1), (BR, 1), (BR, 1), (BR, 1), (R, 1),
+            /* up R  front F  */ (BR, 1), (BR, 1), (BR, 1), (BR, 1), (R, 1),
+            /* up BR front R  */ (BR, 1), (BR, 1), (BR, 1), (BR, 1), (R, 1),
+            /* up BL front BR */ (BR, 1), (BR, 1), (BR, 1), (BR, 1), (R, 4),
+            /* up PB front PD */ (BR, 4), (BR, 4), (BR, 4), (BR, 4), (R, 1),
             /* up PL front PB */ (BR, 4), (BR, 4), (BR, 4), (BR, 4), (BL, 4),
             /* up DL front PL */ (BR, 4), (BR, 4), (BR, 4), (BR, 4), (BL, 4),
             /* up DR front DL */ (BR, 4), (BR, 4), (BR, 4), (BR, 4), (BL, 4),
-            /* up PR front DR */ (BR, 4), (BR, 4), (BR, 4), (BR, 4), (R, 4),
-            /* up PD front PR */ (BR, 4), (BR, 4), (BR, 4), (BR, 4), // (_, 1),
+            /* up PR front DR */ (BR, 4), (BR, 4), (BR, 4), (BR, 4), (R, 1),
+            /* up PD front PR */ (BR, 4), (BR, 4), (BR, 4), (BR, 4), // (_, 4),
         ]
     };
 
@@ -127,10 +117,10 @@ impl RaySystem for DodecaRay {
             DodecaRay(Basis::X, Sign::Pos, Sign::Neg) => "PD",
             DodecaRay(Basis::X, Sign::Neg, Sign::Pos) => "U",
             DodecaRay(Basis::X, Sign::Neg, Sign::Neg) => "F",
-            DodecaRay(Basis::Y, Sign::Pos, Sign::Pos) => "BL",
-            DodecaRay(Basis::Y, Sign::Pos, Sign::Neg) => "BR",
-            DodecaRay(Basis::Y, Sign::Neg, Sign::Pos) => "DL",
-            DodecaRay(Basis::Y, Sign::Neg, Sign::Neg) => "DR",
+            DodecaRay(Basis::Y, Sign::Pos, Sign::Pos) => "BR",
+            DodecaRay(Basis::Y, Sign::Pos, Sign::Neg) => "BL",
+            DodecaRay(Basis::Y, Sign::Neg, Sign::Pos) => "DR",
+            DodecaRay(Basis::Y, Sign::Neg, Sign::Neg) => "DL",
             DodecaRay(Basis::Z, Sign::Pos, Sign::Pos) => "PR",
             DodecaRay(Basis::Z, Sign::Pos, Sign::Neg) => "R",
             DodecaRay(Basis::Z, Sign::Neg, Sign::Pos) => "PL",
@@ -147,10 +137,10 @@ pub mod name {
     pub const PD: DodecaRay = DodecaRay(Basis::X, Sign::Pos, Sign::Neg);
     pub const U: DodecaRay = DodecaRay(Basis::X, Sign::Neg, Sign::Pos);
     pub const F: DodecaRay = DodecaRay(Basis::X, Sign::Neg, Sign::Neg);
-    pub const BL: DodecaRay = DodecaRay(Basis::Y, Sign::Pos, Sign::Pos);
-    pub const BR: DodecaRay = DodecaRay(Basis::Y, Sign::Pos, Sign::Neg);
-    pub const DL: DodecaRay = DodecaRay(Basis::Y, Sign::Neg, Sign::Pos);
-    pub const DR: DodecaRay = DodecaRay(Basis::Y, Sign::Neg, Sign::Neg);
+    pub const BR: DodecaRay = DodecaRay(Basis::Y, Sign::Pos, Sign::Pos);
+    pub const BL: DodecaRay = DodecaRay(Basis::Y, Sign::Pos, Sign::Neg);
+    pub const DR: DodecaRay = DodecaRay(Basis::Y, Sign::Neg, Sign::Pos);
+    pub const DL: DodecaRay = DodecaRay(Basis::Y, Sign::Neg, Sign::Neg);
     pub const PR: DodecaRay = DodecaRay(Basis::Z, Sign::Pos, Sign::Pos);
     pub const R: DodecaRay = DodecaRay(Basis::Z, Sign::Pos, Sign::Neg);
     pub const PL: DodecaRay = DodecaRay(Basis::Z, Sign::Neg, Sign::Pos);
