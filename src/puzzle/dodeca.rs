@@ -53,7 +53,7 @@ impl RaySystem for DodecaRay {
 
     #[rustfmt::skip]
     const CYCLE: &'static [(Self, i8)] = {
-        todo!();
+        &[]
     };
 
     fn name(&self) -> String {

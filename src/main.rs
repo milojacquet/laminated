@@ -305,6 +305,7 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                                 }
                             }
                         });
+
                         ui.menu_button("Octahedron", |ui| {
                             // bugged and not useful
                             /*if ui.button(format!("Core (testing)")).clicked() {
@@ -325,6 +326,20 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                                     );
                                     ui.close_menu();
                                 }
+                            }
+                        });
+
+                        ui.menu_button("Dodecahedron", |ui| {
+                            if ui.button(format!("2 layers (Pentultimate)")).clicked() {
+                                response.new_session = Some(
+                                    SessionType::Dodeca(DodecaPuzzle::Pentultimate)
+                                        .make_session_enum(
+                                            persistent.window_size,
+                                            context,
+                                            &persistent.prefs,
+                                        ),
+                                );
+                                ui.close_menu();
                             }
                         });
                     });
@@ -700,6 +715,9 @@ fn main() {
                 run_render_loop(&mut frame_input, session, &mut persistent, &context)
             }
             SessionEnum::Octa(_, ref mut session) => {
+                run_render_loop(&mut frame_input, session, &mut persistent, &context)
+            }
+            SessionEnum::Dodeca(_, ref mut session) => {
                 run_render_loop(&mut frame_input, session, &mut persistent, &context)
             }
         };

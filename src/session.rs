@@ -1,5 +1,6 @@
 use crate::puzzle::common::*;
 use crate::puzzle::cube::CubeRay;
+use crate::puzzle::dodeca::DodecaRay;
 use crate::puzzle::octa::OctaRay;
 use crate::render;
 use crate::render::common::*;
@@ -217,14 +218,21 @@ pub enum OctaPuzzle {
 }
 
 #[derive(Debug, Copy, Clone, serde::Serialize, serde::Deserialize)]
+pub enum DodecaPuzzle {
+    Pentultimate,
+}
+
+#[derive(Debug, Copy, Clone, serde::Serialize, serde::Deserialize)]
 pub enum SessionType {
     Cube(CubePuzzle),
     Octa(OctaPuzzle),
+    Dodeca(DodecaPuzzle),
 }
 
 pub enum SessionEnum {
     Cube(CubePuzzle, Session<CubeRay>),
     Octa(OctaPuzzle, Session<OctaRay>),
+    Dodeca(DodecaPuzzle, Session<DodecaRay>),
 }
 
 impl SessionType {
@@ -262,6 +270,15 @@ impl SessionType {
                     prefs,
                 )),
             ),
+            SessionType::Dodeca(ps @ DodecaPuzzle::Pentultimate) => SessionEnum::Dodeca(
+                ps,
+                Session::from_concrete(make_concrete_puzzle(
+                    window_size,
+                    context,
+                    render::dodeca::pentultimate_seeds(&prefs.concrete),
+                    prefs,
+                )),
+            ),
         }
     }
 }
@@ -279,6 +296,7 @@ impl SessionEnum {
         match self {
             Self::Cube(pz, _) => SessionType::Cube(*pz),
             Self::Octa(pz, _) => SessionType::Octa(*pz),
+            Self::Dodeca(pz, _) => SessionType::Dodeca(*pz),
         }
     }
 
@@ -286,6 +304,7 @@ impl SessionEnum {
         match self {
             SessionEnum::Cube(_, ref session) => &session.save_path,
             SessionEnum::Octa(_, ref session) => &session.save_path,
+            SessionEnum::Dodeca(_, ref session) => &session.save_path,
         }
     }
 
@@ -293,6 +312,7 @@ impl SessionEnum {
         match self {
             SessionEnum::Cube(_, ref mut session) => session.save_path = val,
             SessionEnum::Octa(_, ref mut session) => session.save_path = val,
+            SessionEnum::Dodeca(_, ref mut session) => session.save_path = val,
         };
     }
 
@@ -300,6 +320,7 @@ impl SessionEnum {
         match self {
             SessionEnum::Cube(_, ref session) => &session.version,
             SessionEnum::Octa(_, ref session) => &session.version,
+            SessionEnum::Dodeca(_, ref session) => &session.version,
         }
     }
 
@@ -307,6 +328,7 @@ impl SessionEnum {
         let (scramble, twists) = match self {
             Self::Cube(_, session) => session.extract_log(),
             Self::Octa(_, session) => session.extract_log(),
+            Self::Dodeca(_, session) => session.extract_log(),
         };
 
         SessionLog {
@@ -336,6 +358,7 @@ impl SessionEnum {
         match &mut session {
             SessionEnum::Cube(_, ref mut session) => session.process_log(log),
             SessionEnum::Octa(_, ref mut session) => session.process_log(log),
+            SessionEnum::Dodeca(_, ref mut session) => session.process_log(log),
         }?;
         session.set_save_path(Some(path));
 
@@ -365,6 +388,10 @@ impl SessionEnum {
                 session.replace_concrete_puzzle(other_s.concrete_puzzle)
             }
             (SessionEnum::Octa(_, _), _) => {}
+            (SessionEnum::Dodeca(_, session), SessionEnum::Dodeca(_, other_s)) => {
+                session.replace_concrete_puzzle(other_s.concrete_puzzle)
+            }
+            (SessionEnum::Dodeca(_, _), _) => {}
         }
     }
 }

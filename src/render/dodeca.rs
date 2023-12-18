@@ -55,3 +55,7 @@ impl ConcreteRaySystem for DodecaRay {
         &mut prefs.colors.dodeca
     }
 }
+
+pub fn pentultimate_seeds(prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<DodecaRay> {
+    todo!()
+}

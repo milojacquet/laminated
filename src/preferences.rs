@@ -91,12 +91,19 @@ impl Default for ConcretePuzzlePreferences {
     }
 }
 
+fn default_animation_length() -> f32 {
+    150.0
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct Preferences {
     #[serde(default)]
     pub colors: ColorPreferences,
+    #[serde(default)]
     pub viewport_keys: bool,
+    #[serde(default)]
     pub concrete: ConcretePuzzlePreferences,
+    #[serde(default = "default_animation_length")]
     pub animation_length: f32,
 }
 
