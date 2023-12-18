@@ -600,12 +600,13 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
 
                                 let grips = if default_mode {
                                     // rustfmt? hewwo?
-                                    vec![viewport_clicked.key_layers[axis_index]
-                                        .get(&NUMBER_KEYS[0])
-                                        .expect(
-                                            "viewport grips should have a binding for first key",
-                                        )
-                                        .clone()]
+                                    if let Some(layer) =
+                                        viewport_clicked.key_layers[axis_index].get(&NUMBER_KEYS[0])
+                                    {
+                                        vec![layer.clone()]
+                                    } else {
+                                        vec![]
+                                    }
                                 } else {
                                     let key_layers = if persistent.prefs.viewport_keys {
                                         &viewport_clicked.key_layers
