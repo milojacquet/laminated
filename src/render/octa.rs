@@ -8,17 +8,14 @@ use enum_map::enum_map;
 use std::collections::HashMap;
 use std::f32::consts::PI;
 
-use crate::util::{color, Mat4, Vec3};
-use cgmath::{InnerSpace, Rad};
+use crate::util::{color, Vec3};
+use cgmath::InnerSpace;
 
 impl ConcreteRaySystem for OctaRay {
     type Conjugate = ();
 
-    fn axis_to_transform((ray, order): (Self, i8), conjugate: Self::Conjugate) -> Mat4 {
-        Mat4::from_axis_angle(
-            ray.axis_to_vec(conjugate),
-            Rad(order as f32 * 2.0 * PI / 3.0),
-        )
+    fn order_to_angle(order: i8, _conjugate: Self::Conjugate) -> f32 {
+        order as f32 * 2.0 * PI / 3.0
     }
 
     fn ray_to_vec(&self, _conjugate: Self::Conjugate) -> Vec3 {

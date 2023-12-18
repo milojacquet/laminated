@@ -8,20 +8,15 @@ use std::collections::HashMap;
 use std::f32::consts::PI;
 
 use crate::preferences::Preferences;
-use crate::util::{color, Mat4, Vec3};
-use cgmath::Rad;
+use crate::util::{color, Vec3};
 
 const SUPER_START: f32 = 0.75;
 
 impl ConcreteRaySystem for CubeRay {
     type Conjugate = ();
 
-    fn axis_to_transform((ray, order): (Self, i8), _conjugate: Self::Conjugate) -> Mat4 {
-        match ray.0 {
-            Basis::X => Mat4::from_angle_x(Rad(PI / 2.0 * (order as f32))),
-            Basis::Y => Mat4::from_angle_y(Rad(PI / 2.0 * (order as f32))),
-            Basis::Z => Mat4::from_angle_z(Rad(PI / 2.0 * (order as f32))),
-        }
+    fn order_to_angle(order: i8, _conjugate: Self::Conjugate) -> f32 {
+        PI / 2.0 * (order as f32)
     }
 
     fn ray_to_vec(&self, _conjugate: Self::Conjugate) -> Vec3 {

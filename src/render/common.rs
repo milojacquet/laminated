@@ -25,7 +25,15 @@ where
 {
     type Conjugate;
 
-    fn axis_to_transform(turn: (Self, i8), conjugate: Self::Conjugate) -> Mat4;
+    fn order_to_angle(order: i8, conjugate: Self::Conjugate) -> f32;
+
+    fn turn_to_transform(turn: (Self, i8), conjugate: Self::Conjugate) -> Mat4 {
+        let (ray, order) = turn;
+        Mat4::from_axis_angle(
+            ray.axis_to_vec(conjugate),
+            Rad(Self::order_to_angle(order, conjugate)),
+        )
+    }
 
     /// Unit vector that points along a ray.
     fn ray_to_vec(&self, conjugate: Self::Conjugate) -> Vec3;
@@ -314,7 +322,7 @@ impl<Ray: ConcreteRaySystem> ConcretePuzzle<Ray> {
                 if piece_at_sticker.grip_on_axis(ray) == grip {
                     sticker.animation = Some(StickerAnimation {
                         rotation_axis: ray.axis_to_vec(viewport.conjugate),
-                        start_angle: (order as f32) * 2.0 * PI / (ray.order() as f32),
+                        start_angle: Ray::order_to_angle(order, viewport.conjugate),
                         time_remaining: animation_length,
                     })
                 }
@@ -338,7 +346,6 @@ pub fn polygon_inds(verts: usize) -> Vec<[usize; 3]> {
 pub mod concrete_ray_system_tests {
     use super::*;
     use crate::enum_iter;
-    use itertools::Itertools;
 
     const EPSILON: f32 = 1e-4;
 
@@ -367,7 +374,7 @@ pub mod concrete_ray_system_tests {
             for &axis in Ray::AXIS_HEADS {
                 for ray in enum_iter::<Ray>() {
                     let abst_first = ray.turn((axis, 1)).ray_to_vec(conjugate).extend(1.0);
-                    let conc_first = Ray::axis_to_transform((axis, 1), conjugate)
+                    let conc_first = Ray::turn_to_transform((axis, 1), conjugate)
                         * ray.ray_to_vec(conjugate).extend(1.0);
                     assert!(
                         abst_first.distance(conc_first) < EPSILON,

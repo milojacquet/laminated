@@ -128,7 +128,7 @@ pub fn make_concrete_puzzle<Ray: ConcreteRaySystem>(
                         seed.face = seed.face.turn(turn);
                         seed.color = seed.color.turn(turn);
 
-                        let mat = Ray::axis_to_transform(turn, viewport_seed.conjugate);
+                        let mat = Ray::turn_to_transform(turn, viewport_seed.conjugate);
                         for vert in seed.vertices.iter_mut() {
                             *vert = (mat * vert.extend(1.0)).truncate();
                         }

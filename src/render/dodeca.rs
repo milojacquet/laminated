@@ -59,15 +59,12 @@ impl DodecaRay {
 impl ConcreteRaySystem for DodecaRay {
     type Conjugate = BinaryConjugate;
 
-    fn axis_to_transform((ray, order): (Self, i8), conjugate: Self::Conjugate) -> Mat4 {
+    fn order_to_angle(order: i8, conjugate: Self::Conjugate) -> f32 {
         let multiplier = match conjugate {
             BinaryConjugate::Id => 1.0,
             BinaryConjugate::Conj => -2.0,
         };
-        Mat4::from_axis_angle(
-            ray.axis_to_vec(conjugate),
-            Rad(order as f32 * 2.0 * PI * multiplier / 5.0),
-        )
+        order as f32 * 2.0 * PI * multiplier / 5.0
     }
 
     fn ray_to_vec(&self, conjugate: Self::Conjugate) -> Vec3 {
@@ -102,7 +99,7 @@ const SUPER_START: f32 = 0.7;
 fn bary(c1: f32, c2: f32, c3: f32, c4: f32, c5: f32) -> Vec3 {
     use crate::puzzle::dodeca::name::PB;
 
-    let mat = DodecaRay::axis_to_transform((PB, 1), BinaryConjugate::Id);
+    let mat = DodecaRay::turn_to_transform((PB, 1), BinaryConjugate::Id);
     let v1 = Vec3::new((3.0 * SQ5 - 5.0) / 2.0, SQ5, 0.0) * SCALE_CIRCUMRAD;
     let v2 = (mat * v1.extend(1.0)).truncate();
     let v3 = (mat * v2.extend(1.0)).truncate();
