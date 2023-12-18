@@ -554,3 +554,14 @@ pub fn fto_seeds(order: i8, prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Oct
         key_layers,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::render::common::concrete_ray_system_tests::validate_concrete_ray_system;
+
+    #[test]
+    fn validate_concrete_ray_system_octa() {
+        validate_concrete_ray_system::<OctaRay>()
+    }
+}

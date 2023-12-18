@@ -334,3 +334,59 @@ impl<Ray: ConcreteRaySystem> ConcretePuzzle<Ray> {
 pub fn polygon_inds(verts: usize) -> Vec<[usize; 3]> {
     (2..verts).map(|i| [0, i - 1, i]).collect()
 }
+
+pub mod concrete_ray_system_tests {
+    use super::*;
+    use crate::enum_iter;
+    use itertools::Itertools;
+
+    const EPSILON: f32 = 1e-4;
+
+    fn ray_vectors_unit<Ray>()
+    where
+        Ray: ConcreteRaySystem + std::fmt::Debug,
+        Ray::Conjugate: std::fmt::Debug,
+    {
+        for conjugate in enum_iter::<Ray::Conjugate>() {
+            for ray in enum_iter::<Ray>() {
+                let vec = ray.ray_to_vec(conjugate);
+                assert!(
+                    (vec.magnitude() - 1.0).abs() < EPSILON,
+                    "vector of {ray:?} in conjugate {conjugate:?} is not unit ({vec:?})",
+                );
+            }
+        }
+    }
+
+    fn turn_matrix_matches_abstract<Ray>()
+    where
+        Ray: ConcreteRaySystem + std::fmt::Debug,
+        Ray::Conjugate: std::fmt::Debug,
+    {
+        for conjugate in enum_iter::<Ray::Conjugate>() {
+            for &axis in Ray::AXIS_HEADS {
+                for ray in enum_iter::<Ray>() {
+                    let abst_first = ray.turn((axis, 1)).ray_to_vec(conjugate).extend(1.0);
+                    let conc_first = Ray::axis_to_transform((axis, 1), conjugate)
+                        * ray.ray_to_vec(conjugate).extend(1.0);
+                    assert!(
+                        abst_first.distance(conc_first) < EPSILON,
+                        "concretely turning {ray:?} around {axis:?} in \
+                        conjugate {conjugate:?} does not match abstract \
+                        ({:?},{abst_first:?},{conc_first:?})",
+                        ray.turn((axis, 1))
+                    );
+                }
+            }
+        }
+    }
+
+    pub fn validate_concrete_ray_system<Ray>()
+    where
+        Ray: ConcreteRaySystem + std::fmt::Debug,
+        Ray::Conjugate: std::fmt::Debug,
+    {
+        ray_vectors_unit::<Ray>();
+        turn_matrix_matches_abstract::<Ray>();
+    }
+}

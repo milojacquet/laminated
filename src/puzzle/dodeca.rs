@@ -8,6 +8,41 @@ pub use crate::puzzle::common::{Basis, BasisDiff, Sign};
 #[derive(Debug, Enum, Clone, Copy, PartialEq, Eq)]
 pub struct DodecaRay(pub Basis, pub Sign, pub Sign);
 
+impl DodecaRay {
+    fn get_flip(&self, basis: Basis) -> Sign {
+        match basis - self.0 {
+            BasisDiff::D0 => self.1 * self.2,
+            BasisDiff::D1 => self.1,
+            BasisDiff::D2 => self.2,
+        }
+    }
+
+    fn flip_by_basis(&self, basis: Basis, sign: Sign) -> Self {
+        match basis - self.0 {
+            BasisDiff::D0 => *self,
+            BasisDiff::D1 => Self(self.0, sign * self.1, self.2),
+            BasisDiff::D2 => Self(self.0, self.1, sign * self.2),
+        }
+    }
+
+    fn flip_by(&self, axis: Self) -> Self {
+        let flip_x = axis.get_flip(Basis::X);
+        let flip_y = axis.get_flip(Basis::Y);
+        let flip_z = axis.get_flip(Basis::Z);
+        self.flip_by_basis(Basis::X, flip_x)
+            .flip_by_basis(Basis::Y, flip_y)
+            .flip_by_basis(Basis::Z, flip_z)
+    }
+
+    fn cycle_to_x(&self, basis: Basis) -> Self {
+        Self(self.0 + (Basis::X - basis), self.1, self.2)
+    }
+
+    fn cycle_from_x(&self, basis: Basis) -> Self {
+        Self(self.0 - (Basis::X - basis), self.1, self.2)
+    }
+}
+
 impl RaySystem for DodecaRay {
     fn get_axis(&self) -> Vec<Self> {
         vec![
@@ -21,8 +56,15 @@ impl RaySystem for DodecaRay {
         // 1/2 [[1/φ, -1 , φ  ],
         //      [1  , φ  , 1/φ],
         //      [-φ , 1/φ, 1  ]]
+        // not actually used
         let axis = axis.get_axis()[0];
-        let transform = match (self.0 - axis.0, self.1 * axis.1 * self.2 * axis.2) {
+
+        // absolute coordinates: (Basis, Sign, Sign)
+        // relative coordinates: that for which axis is (Basis::X, Sign::Pos, Sign::Pos)
+        // to convert axis to relative: flip x, y, z so signs are both Pos, then cycle
+        let rel_ray = self.flip_by(axis); //.cycle_to_x(axis.0);
+
+        let transform = match (rel_ray.0 - axis.0, rel_ray.1 * rel_ray.2) {
             (BasisDiff::D0, Sign::Pos) => (BasisDiff::D0, Sign::Pos, Sign::Pos),
             (BasisDiff::D0, Sign::Neg) => (BasisDiff::D2, Sign::Neg, Sign::Neg),
             (BasisDiff::D1, Sign::Pos) => (BasisDiff::D1, Sign::Pos, Sign::Pos),
@@ -32,10 +74,12 @@ impl RaySystem for DodecaRay {
         };
         //println!("{self:?} {axis:?} {transform:?}");
         DodecaRay(
-            self.0 + transform.0,
-            self.1 * transform.1,
-            self.2 * transform.2,
+            rel_ray.0 + transform.0,
+            rel_ray.1 * transform.1,
+            rel_ray.2 * transform.2,
         )
+        //.cycle_from_x(axis.0)
+        .flip_by(axis)
     }
 
     fn order(&self) -> i8 {
@@ -53,7 +97,23 @@ impl RaySystem for DodecaRay {
 
     #[rustfmt::skip]
     const CYCLE: &'static [(Self, i8)] = {
-        &[]
+        use crate::puzzle::dodeca::name::*;
+
+        &[
+            /* up U  front F  */ (U, 1), (U, 1), (U, 1), (U, 1), (R, 1),
+            /* up L  front DL */ (U, 1), (U, 1), (U, 1), (U, 1), (R, 4),
+            /* up F  front L  */ (U, 4), (U, 4), (U, 4), (U, 4), (R, 4),
+            /* up R  front F  */ (U, 4), (U, 4), (U, 4), (U, 4), (R, 4),
+            /* up BR front R  */ (U, 4), (U, 4), (U, 4), (U, 4), (R, 4),
+            /* up BL front BR */ (U, 4), (U, 4), (U, 4), (U, 4), (R, 1),
+            /* up PB front PD */ (U, 1), (U, 1), (U, 1), (U, 1), (R, 1),
+            /* up PR front DR */ (U, 1), (U, 1), (U, 1), (U, 1), (L, 1),
+            /* up PB front PR */ (U, 1), (U, 1), (U, 1), (U, 1), (L, 1),
+            /* up PL front PB */ (U, 1), (U, 1), (U, 1), (U, 1), (L, 1),
+            /* up DL front PL */ (U, 1), (U, 1), (U, 1), (U, 1), (L, 1),
+            /* up DR front DL */ (U, 1), (U, 1), (U, 1), (U, 1), (R, 4),
+            /* up PD front DR */ (U, 1), (U, 1), (U, 1), (U, 1), // (_, 1),
+        ]
     };
 
     fn name(&self) -> String {

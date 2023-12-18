@@ -13,6 +13,7 @@ use crate::util::{color, Mat3, Mat4, Vec3};
 use cgmath::{InnerSpace, Rad};
 use enum_map::Enum;
 
+const SQ5: f32 = 2.2360679774997896964;
 const PHI: f32 = 1.6180339887498948482; //0.5 * (1.0 + 5.0_f32.sqrt());
 
 impl ConcreteRaySystem for DodecaRay {
@@ -40,8 +41,8 @@ impl ConcreteRaySystem for DodecaRay {
             .normalize(),
             BinaryConjugate::Conj => {
                 Mat3::from_angle_x(Rad(PI / 2.0))
-                    * (-(self.0 + BasisDiff::D2).to_vec() * self.1.to_f32()
-                        + PHI * (self.0 + BasisDiff::D1).to_vec() * self.2.to_f32())
+                    * (-(self.0 + BasisDiff::D1).to_vec() * self.1.to_f32()
+                        + PHI * (self.0 + BasisDiff::D2).to_vec() * self.2.to_f32())
                     .normalize()
             }
         }
@@ -56,6 +57,66 @@ impl ConcreteRaySystem for DodecaRay {
     }
 }
 
-pub fn pentultimate_seeds(prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<DodecaRay> {
-    todo!()
+pub fn pentultimate_seeds(_prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<DodecaRay> {
+    use crate::puzzle::dodeca::name::*;
+
+    let grips: Vec<Vec<i8>> = vec![vec![-1, 1], vec![1, -1]];
+
+    let mut viewports: Vec<ViewportSeed<DodecaRay>> = vec![];
+
+    let key_layers = vec![
+        HashMap::from([(NUMBER_KEYS[0], vec![1, -1]), (NUMBER_KEYS[1], vec![-1, 1])]),
+        HashMap::from([(NUMBER_KEYS[0], vec![-1, 1]), (NUMBER_KEYS[1], vec![1, -1])]),
+    ];
+
+    let abstract_viewport = AbstractViewport {
+        x: 0.0,
+        y: 0.0,
+        width: 1.0,
+        height: 1.0,
+    };
+
+    let scale_shape = 0.5;
+
+    let mut stickers: Vec<StickerSeed<DodecaRay>> = vec![];
+
+    stickers.push({
+        let layers: enum_map::EnumMap<DodecaRay, i8> =
+            enum_map! {PB=>1,BL=>1,BR=>1,PL=>1,PR=>1,PD=>1,F=>-1,DR=>-1,DL=>-1,R=>-1,L=>-1,U=>-1};
+
+        StickerSeed {
+            layers,
+            face: PB,
+            color: PB,
+            vertices: vec![
+                Vec3::new(SQ5 / 2.0, (5.0 + SQ5) / 4.0, (5.0 - SQ5) / 4.0) * scale_shape,
+                Vec3::new(0.0, SQ5, 0.0) * scale_shape,
+                Vec3::new(0.0, PHI, 1.0) * scale_shape,
+            ],
+        }
+    });
+
+    viewports.push(ViewportSeed {
+        abstract_viewport,
+        conjugate: BinaryConjugate::Id,
+        stickers,
+        key_layers: key_layers.clone(),
+    });
+
+    PuzzleSeed {
+        grips,
+        viewports,
+        key_layers: key_layers.clone(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::render::common::concrete_ray_system_tests::validate_concrete_ray_system;
+
+    #[test]
+    fn validate_concrete_ray_system_dodeca() {
+        validate_concrete_ray_system::<DodecaRay>()
+    }
 }

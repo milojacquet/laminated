@@ -46,6 +46,27 @@ impl Add<BasisDiff> for Basis {
     }
 }
 
+impl Add for BasisDiff {
+    type Output = Self;
+    fn add(self, diff: BasisDiff) -> Self {
+        match (self, diff) {
+            (_, BasisDiff::D0) => self,
+            (BasisDiff::D0, _) => self,
+            (BasisDiff::D1, BasisDiff::D1) => BasisDiff::D2,
+            (BasisDiff::D1, BasisDiff::D2) => BasisDiff::D0,
+            (BasisDiff::D2, BasisDiff::D1) => BasisDiff::D0,
+            (BasisDiff::D2, BasisDiff::D2) => BasisDiff::D1,
+        }
+    }
+}
+
+impl Sub<BasisDiff> for Basis {
+    type Output = Self;
+    fn sub(self, diff: BasisDiff) -> Self {
+        self + (-diff)
+    }
+}
+
 impl Sub for Basis {
     type Output = BasisDiff;
     fn sub(self, basis: Self) -> BasisDiff {
@@ -59,6 +80,17 @@ impl Sub for Basis {
             (Basis::Z, Basis::X) => BasisDiff::D2,
             (Basis::X, Basis::Y) => BasisDiff::D2,
             (Basis::Y, Basis::Z) => BasisDiff::D2,
+        }
+    }
+}
+
+impl Neg for BasisDiff {
+    type Output = BasisDiff;
+    fn neg(self) -> Self {
+        match self {
+            BasisDiff::D0 => BasisDiff::D0,
+            BasisDiff::D1 => BasisDiff::D2,
+            BasisDiff::D2 => BasisDiff::D1,
         }
     }
 }

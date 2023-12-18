@@ -204,3 +204,14 @@ pub fn nnn_seeds(order: i8, _prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Cu
         key_layers,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::render::common::concrete_ray_system_tests::validate_concrete_ray_system;
+
+    #[test]
+    fn validate_concrete_ray_system_cube() {
+        validate_concrete_ray_system::<CubeRay>()
+    }
+}
