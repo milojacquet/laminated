@@ -234,6 +234,7 @@ pub fn fto_seeds(order: i8, prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Oct
                                     fv(0.0, 1.0, 0.0) * circrad,
                                     fv(0.0, 0.0, 1.0) * circrad,
                                 ],
+                                options: Default::default(),
                             });
                         } else if i == m && j == n {
                             // corner
@@ -248,6 +249,7 @@ pub fn fto_seeds(order: i8, prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Oct
                                             fv(0.0, cd(il + 1), cd(jl - 1)) * circrad,
                                             fv(0.0, 0.0, 1.0) * circrad,
                                         ],
+                                        options: Default::default(),
                                     });
                                 }
                                 Some(false) => {
@@ -263,6 +265,7 @@ pub fn fto_seeds(order: i8, prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Oct
                                             fv(0.0 - sd, 0.5, 0.5 + sd) * circrad,
                                             fv(0.0 - sd, 0.0 + sd, 1.0) * circrad,
                                         ],
+                                        options: Default::default(),
                                     });
                                 }
                                 Some(true) => {
@@ -275,6 +278,7 @@ pub fn fto_seeds(order: i8, prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Oct
                                             fv(0.0 + sd, 0.5, 0.5 + sd) * circrad,
                                             fv(0.0 + sd, 0.0 + sd, 1.0) * circrad,
                                         ],
+                                        options: Default::default(),
                                     });
                                 }
                             }
@@ -297,6 +301,7 @@ pub fn fto_seeds(order: i8, prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Oct
                                         fv(1.0 + 2.0 * sd, 1.0 + 2.0 * sd, 1.0 + 2.0 * sd) / 3.0
                                             * circrad,
                                     ],
+                                    options: Default::default(),
                                 });
                                 stickers.push(StickerSeed {
                                     layers,
@@ -307,6 +312,7 @@ pub fn fto_seeds(order: i8, prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Oct
                                         fv(sd, 0.5 + sd, 0.5) * circrad,
                                         fv(0.0, 0.5, 0.5) * circrad,
                                     ],
+                                    options: Default::default(),
                                 });
                             } else {
                                 stickers.push(StickerSeed {
@@ -331,6 +337,7 @@ pub fn fto_seeds(order: i8, prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Oct
                                         ) * circrad,
                                         fv(1.0, 1.0, 1.0) / 3.0 * circrad,
                                     ],
+                                    options: Default::default(),
                                 });
                                 stickers.push(StickerSeed {
                                     layers,
@@ -350,6 +357,7 @@ pub fn fto_seeds(order: i8, prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Oct
                                         fv(1.0 - 2.0 * cd(il + 1), cd(il + 1), cd(il + 1))
                                             * circrad,
                                     ],
+                                    options: Default::default(),
                                 });
                             }
                         } else if i == m {
@@ -382,6 +390,7 @@ pub fn fto_seeds(order: i8, prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Oct
                                         cd(jl - 1),
                                     ) * circrad,
                                 ],
+                                options: Default::default(),
                             });
                             stickers.push(StickerSeed {
                                 layers,
@@ -401,6 +410,7 @@ pub fn fto_seeds(order: i8, prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Oct
                                     fv(1.0 - cd(il + 1) - cd(jl + 1), cd(il + 1), cd(jl + 1))
                                         * circrad,
                                 ],
+                                options: Default::default(),
                             });
                         } else if j == m {
                             // trapezoid (x-center) near D
@@ -432,6 +442,7 @@ pub fn fto_seeds(order: i8, prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Oct
                                         (1.0 - cd(il + 1)) / 2.0,
                                     ) * circrad,
                                 ],
+                                options: Default::default(),
                             });
                             stickers.push(StickerSeed {
                                 layers,
@@ -451,6 +462,7 @@ pub fn fto_seeds(order: i8, prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Oct
                                     fv(1.0 - cd(il + 1) - cd(jl + 1), cd(il + 1), cd(jl + 1))
                                         * circrad,
                                 ],
+                                options: Default::default(),
                             });
                         } else if i + j == m + n {
                             // edge or wing
@@ -466,6 +478,7 @@ pub fn fto_seeds(order: i8, prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Oct
                                     fv(1.0 - cd(il - 1) - cd(jl + 1), cd(il - 1), cd(jl + 1))
                                         * circrad,
                                 ],
+                                options: Default::default(),
                             });
                         } else {
                             // rhombus
@@ -491,6 +504,7 @@ pub fn fto_seeds(order: i8, prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Oct
                                     fv(1.0 - cd(il - 1) - cd(jl + 1), cd(il - 1), cd(jl + 1))
                                         * circrad,
                                 ],
+                                options: Default::default(),
                             });
                             stickers.push(StickerSeed {
                                 layers,
@@ -510,6 +524,7 @@ pub fn fto_seeds(order: i8, prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Oct
                                     fv(1.0 - cd(il + 1) - cd(jl + 1), cd(il + 1), cd(jl + 1))
                                         * circrad,
                                 ],
+                                options: Default::default(),
                             });
                         }
                     }

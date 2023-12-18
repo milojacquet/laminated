@@ -50,14 +50,16 @@ fn make_viewport(
         window_height as f32 / top_viewport.height,
     );
 
+    // these are the coordinates of the top viewport
+    // x0 and y0 are the bottom-left point of the viewport, not the (0,0)
     let viewport_width = scale * top_viewport.width;
     let viewport_height = scale * top_viewport.height;
     let viewport_x0 = (window_width as f32 / 2.0 - viewport_width / 2.0).max(0.0);
     let viewport_y0 = (window_height as f32 / 2.0 - viewport_height / 2.0).max(0.0);
 
     Viewport {
-        x: (viewport_x0 + abstract_viewport.x * scale).ceil() as i32,
-        y: (viewport_y0 + abstract_viewport.y * scale).ceil() as i32,
+        x: (viewport_x0 + (abstract_viewport.x - top_viewport.x) * scale).ceil() as i32,
+        y: (viewport_y0 + (abstract_viewport.y - top_viewport.y) * scale).ceil() as i32,
         width: (abstract_viewport.width * scale).round() as u32,
         height: (abstract_viewport.height * scale).round() as u32,
     }
@@ -122,9 +124,11 @@ pub fn make_concrete_puzzle<Ray: ConcreteRaySystem>(
                 for turn_m in iter::once(None).chain(Ray::CYCLE.iter().map(Some)) {
                     if let Some(&turn) = turn_m {
                         let (turn_ray, turn_order) = turn;
-                        seed.layers = EnumMap::from_fn(|ray: Ray| {
-                            seed.layers[ray.turn((turn_ray, -turn_order))]
-                        });
+                        if !seed.options.core {
+                            seed.layers = EnumMap::from_fn(|ray: Ray| {
+                                seed.layers[ray.turn((turn_ray, -turn_order))]
+                            });
+                        }
                         seed.face = seed.face.turn(turn);
                         seed.color = seed.color.turn(turn);
 
@@ -146,6 +150,7 @@ pub fn make_concrete_puzzle<Ray: ConcreteRaySystem>(
                         vertices: seed.vertices.clone(),
                         gm,
                         animation: None,
+                        options: seed.options,
                     });
                 }
             }

@@ -94,6 +94,7 @@ impl ConcreteRaySystem for DodecaRay {
 
 const SCALE_CIRCUMRAD: f32 = 0.7;
 const SUPER_START: f32 = 0.7;
+const CORE_SIZE: f32 = 0.4;
 
 fn bary(c1: f32, c2: f32, c3: f32, c4: f32, c5: f32) -> Vec3 {
     use crate::puzzle::dodeca::name::PB;
@@ -162,6 +163,7 @@ pub fn pentultimate_seeds(_prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Dode
                     bary(0.0, SUPER_START, 1.0, 1.0 - SUPER_START, 0.0),
                     bary(1.0, 1.0, 1.0, 1.0, 1.0),
                 ],
+                options: Default::default(),
             });
             stickers.push(StickerSeed {
                 layers,
@@ -172,6 +174,7 @@ pub fn pentultimate_seeds(_prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Dode
                     bary(1.0 - SUPER_START, 1.0, SUPER_START, 0.0, 0.0),
                     bary(0.0, 1.0, 1.0, 0.0, 0.0),
                 ],
+                options: Default::default(),
             });
         }
 
@@ -202,6 +205,7 @@ pub fn pentultimate_seeds(_prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Dode
                     bary(1.0, 1.0, 0.0, 0.0, 0.0),
                     bary(0.0, 1.0, 0.0, 0.0, 0.0),
                 ],
+                options: Default::default(),
             });
         }
 
@@ -211,6 +215,34 @@ pub fn pentultimate_seeds(_prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Dode
             stickers,
             key_layers: key_layers.clone(),
         });
+
+        {
+            let layers = enum_map! {U=>1,R=>1,F=>1,L=>1,BL=>1,BR=>1,DL=>-1,DR=>-1,PL=>-1,PB=>-1,PR=>-1,PD=>-1};
+            viewports.push(ViewportSeed {
+                abstract_viewport: AbstractViewport {
+                    x: x + 0.5 - 0.5 * CORE_SIZE,
+                    y: -CORE_SIZE * 0.7, // yeah it intersects. what of it?
+                    width: CORE_SIZE,
+                    height: CORE_SIZE,
+                },
+                conjugate: conj,
+                stickers: vec![StickerSeed {
+                    layers,
+                    face: PB.conjugate(conj),
+                    color: PB.conjugate(conj),
+                    vertices: vec![
+                        bary(1.0, 0.0, 0.0, 0.0, 0.0) * CORE_SIZE * 0.8,
+                        bary(0.0, 1.0, 0.0, 0.0, 0.0) * CORE_SIZE * 0.8,
+                        bary(1.0, 1.0, 1.0, 1.0, 1.0) * CORE_SIZE * 0.8,
+                    ],
+                    options: StickerOptions {
+                        core: true,
+                        ..Default::default()
+                    },
+                }],
+                key_layers: vec![HashMap::new(), HashMap::new()],
+            });
+        }
     }
 
     PuzzleSeed {

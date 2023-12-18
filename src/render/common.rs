@@ -74,6 +74,11 @@ impl SimpleMesh {
     }
 }
 
+#[derive(Debug, Default, Clone, Copy)]
+pub struct StickerOptions {
+    pub core: bool,
+}
+
 /// The initial data which will be symmetry-expanded into a sticker.
 #[derive(Debug)]
 pub struct StickerSeed<Ray>
@@ -88,6 +93,7 @@ where
     pub color: Ray,
     /// The vertices of the polygon that makes up the sticker.
     pub vertices: Vec<Vec3>,
+    pub options: StickerOptions,
 }
 
 #[derive(Debug)]
@@ -115,6 +121,7 @@ where
     pub vertices: Vec<Vec3>,
     pub gm: Gm<Mesh, ColorMaterial>,
     pub animation: Option<StickerAnimation>,
+    pub options: StickerOptions,
 }
 
 /// Smoothly maps 0 to 0 and 1 to 1, with derivative ANIMATION_INIT_V at 0 and 1.
@@ -325,7 +332,8 @@ impl<Ray: ConcreteRaySystem> ConcretePuzzle<Ray> {
                 let piece_at_sticker = self.puzzle.index_to_solved_piece(sticker.piece_ind);
                 if piece_at_sticker.grip_on_axis(ray) == grip {
                     let start_angle = Ray::order_to_angle(order, viewport.conjugate);
-                    let start_angle = (start_angle.rem_euclid(2.0 * PI) + PI) % PI - PI;
+                    let start_angle =
+                        (start_angle.rem_euclid(2.0 * PI) + PI).rem_euclid(2.0 * PI) - PI;
                     sticker.animation = Some(StickerAnimation {
                         rotation_axis: ray.axis_to_vec(viewport.conjugate),
                         start_angle,

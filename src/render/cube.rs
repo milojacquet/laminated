@@ -81,6 +81,7 @@ pub fn nnn_seeds(order: i8, _prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Cu
                         face: U,
                         color: U,
                         vertices: vec![cv(-1.0, -1.0), cv(1.0, -1.0), cv(1.0, 1.0), cv(-1.0, 1.0)],
+                        options: Default::default(),
                     });
                 } else if j == i {
                     // x-center
@@ -94,6 +95,7 @@ pub fn nnn_seeds(order: i8, _prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Cu
                             cv(SUPER_START, SUPER_START),
                             cv(-1.0, SUPER_START),
                         ],
+                        options: Default::default(),
                     });
                     stickers.push(StickerSeed {
                         layers,
@@ -105,6 +107,7 @@ pub fn nnn_seeds(order: i8, _prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Cu
                             cv(1.0, 1.0),
                             cv(SUPER_START, SUPER_START),
                         ],
+                        options: Default::default(),
                     });
                     stickers.push(StickerSeed {
                         layers,
@@ -116,6 +119,7 @@ pub fn nnn_seeds(order: i8, _prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Cu
                             cv(1.0, 1.0),
                             cv(-1.0, 1.0),
                         ],
+                        options: Default::default(),
                     });
                 } else {
                     // t-center or oblique
@@ -129,6 +133,7 @@ pub fn nnn_seeds(order: i8, _prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Cu
                             cv(SUPER_START, 1.0),
                             cv(-1.0, 1.0),
                         ],
+                        options: Default::default(),
                     });
                     stickers.push(StickerSeed {
                         layers,
@@ -140,6 +145,7 @@ pub fn nnn_seeds(order: i8, _prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Cu
                             cv(1.0, 1.0),
                             cv(SUPER_START, 1.0),
                         ],
+                        options: Default::default(),
                     });
                 }
             }
@@ -155,6 +161,7 @@ pub fn nnn_seeds(order: i8, _prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Cu
                     Vec3::new(SUPER_START * si, -SUPER_START * si, 1.0) * cube_scale,
                     Vec3::new(SUPER_START * si, SUPER_START * si, 1.0) * cube_scale,
                 ],
+                options: Default::default(),
             });
             stickers.push(StickerSeed {
                 layers,
@@ -166,6 +173,7 @@ pub fn nnn_seeds(order: i8, _prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Cu
                     Vec3::new(si, si, 1.0) * cube_scale,
                     Vec3::new(SUPER_START * si, SUPER_START * si, 1.0) * cube_scale,
                 ],
+                options: Default::default(),
             });
         }
 
