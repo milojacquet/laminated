@@ -25,7 +25,11 @@ where
 {
     type Conjugate;
 
-    fn order_to_angle(order: i8, conjugate: Self::Conjugate) -> f32;
+    fn order_conjugate(conjugate: Self::Conjugate) -> i8;
+
+    fn order_to_angle(order: i8, conjugate: Self::Conjugate) -> f32 {
+        order as f32 * 2.0 * PI * Self::order_conjugate(conjugate) as f32 / Self::order() as f32
+    }
 
     fn turn_to_transform(turn: (Self, i8), conjugate: Self::Conjugate) -> Mat4 {
         let (ray, order) = turn;

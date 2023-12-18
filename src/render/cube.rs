@@ -15,8 +15,8 @@ const SUPER_START: f32 = 0.75;
 impl ConcreteRaySystem for CubeRay {
     type Conjugate = ();
 
-    fn order_to_angle(order: i8, _conjugate: Self::Conjugate) -> f32 {
-        PI / 2.0 * (order as f32)
+    fn order_conjugate(_conjugate: Self::Conjugate) -> i8 {
+        1
     }
 
     fn ray_to_vec(&self, _conjugate: Self::Conjugate) -> Vec3 {

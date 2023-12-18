@@ -74,7 +74,7 @@ impl RaySystem for DodecaRay {
         .flip_by(axis)
     }
 
-    fn order(&self) -> i8 {
+    fn order() -> i8 {
         5
     }
 

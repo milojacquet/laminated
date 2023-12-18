@@ -574,12 +574,12 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                             persistent.status_message = None;
 
                             if press_button == button {
-                                // TODO revise for conjugate
-                                let turn_direction = match button {
-                                    three_d::MouseButton::Left => -1,
-                                    three_d::MouseButton::Right => 1,
-                                    _ => 0, // should never happen
-                                };
+                                let turn_direction =
+                                    match button {
+                                        three_d::MouseButton::Left => -1,
+                                        three_d::MouseButton::Right => 1,
+                                        _ => 0, // should never happen
+                                    } * Ray::order_conjugate(viewport_clicked.conjugate);
 
                                 let turn_face = sticker.face;
                                 let axis_index = turn_face

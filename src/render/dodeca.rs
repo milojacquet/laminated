@@ -59,12 +59,11 @@ impl DodecaRay {
 impl ConcreteRaySystem for DodecaRay {
     type Conjugate = BinaryConjugate;
 
-    fn order_to_angle(order: i8, conjugate: Self::Conjugate) -> f32 {
-        let multiplier = match conjugate {
-            BinaryConjugate::Id => 1.0,
-            BinaryConjugate::Conj => -2.0,
-        };
-        order as f32 * 2.0 * PI * multiplier / 5.0
+    fn order_conjugate(conjugate: Self::Conjugate) -> i8 {
+        match conjugate {
+            BinaryConjugate::Id => 1,
+            BinaryConjugate::Conj => -2,
+        }
     }
 
     fn ray_to_vec(&self, conjugate: Self::Conjugate) -> Vec3 {

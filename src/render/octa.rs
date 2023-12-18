@@ -14,8 +14,8 @@ use cgmath::InnerSpace;
 impl ConcreteRaySystem for OctaRay {
     type Conjugate = ();
 
-    fn order_to_angle(order: i8, _conjugate: Self::Conjugate) -> f32 {
-        order as f32 * 2.0 * PI / 3.0
+    fn order_conjugate(_conjugate: Self::Conjugate) -> i8 {
+        1
     }
 
     fn ray_to_vec(&self, _conjugate: Self::Conjugate) -> Vec3 {

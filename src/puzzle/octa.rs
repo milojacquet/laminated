@@ -32,7 +32,7 @@ impl RaySystem for OctaRay {
         OctaRay(axis.1 * self.2, axis.2 * self.0, axis.0 * self.1)
     }
 
-    fn order(&self) -> i8 {
+    fn order() -> i8 {
         3
     }
 

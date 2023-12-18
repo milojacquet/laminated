@@ -160,13 +160,13 @@ where
     fn turn(&self, ray_order: (Self, i8)) -> Self {
         let (ray, order) = ray_order;
         let mut turned = *self;
-        for _ in 0..order.rem_euclid(ray.order()) {
+        for _ in 0..order.rem_euclid(Self::order()) {
             turned = turned.turn_one(ray);
         }
         turned
     }
     /// Gets the order of the turn
-    fn order(&self) -> i8;
+    fn order() -> i8;
     /// Returns a list of rays, each one of which is the first ray of its axis.
     const AXIS_HEADS: &'static [Self];
     /// Hamiltonian cycle for symmetry group
@@ -384,7 +384,7 @@ impl<Ray: RaySystem> Puzzle<Ray> {
                 .choose(&mut rng)
                 .expect("ray system should not be empty")
                 .to_vec();
-            self.twist((ray, rng.gen_range(0..ray.order())), &grip[..]);
+            self.twist((ray, rng.gen_range(0..Ray::order())), &grip[..]);
         }
     }
 }
@@ -449,12 +449,12 @@ pub mod ray_system_tests {
     fn turns_have_correct_order<Ray: RaySystem + std::fmt::Debug>() {
         for &ray in Ray::AXIS_HEADS {
             for ray2 in enum_iter::<Ray>() {
-                let r = ray2.turn((ray, ray.order()));
+                let r = ray2.turn((ray, Ray::order()));
                 assert!(
                     ray2 == r,
                     "{:?} does not turn with order divisible by {:?} under {:?}",
                     ray2,
-                    ray.order(),
+                    Ray::order(),
                     ray
                 );
             }
