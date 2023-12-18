@@ -1,6 +1,7 @@
 use crate::key_label::*;
 use crate::preferences::Preferences;
 use crate::puzzle::cube::CubeRay;
+use crate::puzzle::dodeca::DodecaRay;
 use crate::puzzle::octa::OctaRay;
 use crate::render::common::*;
 use crate::render::create::*;
@@ -422,6 +423,7 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                     ui.collapsing("Colors", |ui| {
                         color_picker_grid::<CubeRay>("Cube", ui, &mut persistent.prefs);
                         color_picker_grid::<OctaRay>("Octahedron", ui, &mut persistent.prefs);
+                        color_picker_grid::<DodecaRay>("Dodecahedron", ui, &mut persistent.prefs);
                     });
 
                     ui.collapsing("Controls", |ui| {

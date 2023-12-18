@@ -1,5 +1,6 @@
 use crate::puzzle::common::*;
 use crate::ANIMATION_INIT_V;
+use enum_map::Enum;
 use enum_map::EnumMap;
 use std::cmp;
 use std::collections::HashMap;
@@ -11,10 +12,16 @@ use three_d::*;
 
 const DEFAULT_HEIGHT: Deg<f32> = Deg(20.0);
 
+#[derive(Debug, Enum, Clone, Copy, PartialEq, Eq)]
+pub enum BinaryConjugate {
+    Id,
+    Conj,
+}
+
 pub trait ConcreteRaySystem
 where
     Self: RaySystem,
-    Self::Conjugate: Default + Eq + Copy + enum_map::Enum + enum_map::EnumArray<CameraFacing>,
+    Self::Conjugate: Eq + Copy + enum_map::Enum + enum_map::EnumArray<CameraFacing>,
 {
     type Conjugate;
 

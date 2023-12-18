@@ -404,9 +404,25 @@ pub mod ray_system_tests {
             for ray2s in enum_iter::<Ray>().combinations(2) {
                 assert!(
                     ray2s[0].turn_one(ray) != ray2s[1].turn_one(ray),
-                    "{:?} and {:?} turn the same under {:?}",
+                    "{:?} and {:?} both turn to {:?} under {:?}",
                     ray2s[0],
                     ray2s[1],
+                    ray2s[0].turn_one(ray),
+                    ray
+                );
+            }
+        }
+    }
+
+    fn turns_have_correct_order<Ray: RaySystem + std::fmt::Debug>() {
+        for &ray in Ray::AXIS_HEADS {
+            for ray2 in enum_iter::<Ray>() {
+                let r = ray2.turn((ray, ray.order()));
+                assert!(
+                    ray2 == r,
+                    "{:?} does not turn with order divisible by {:?} under {:?}",
+                    ray2,
+                    ray.order(),
                     ray
                 );
             }
@@ -418,5 +434,6 @@ pub mod ray_system_tests {
         axis_heads_all_heads::<Ray>();
         turns_consistent_axis::<Ray>();
         turns_permutations::<Ray>();
+        turns_have_correct_order::<Ray>();
     }
 }

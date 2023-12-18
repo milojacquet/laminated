@@ -3,6 +3,7 @@ use enum_map::EnumArray;
 use enum_map::EnumMap;
 
 pub type Vec3 = cgmath::Vector3<f32>;
+pub type Mat3 = cgmath::Matrix3<f32>;
 pub type Mat4 = cgmath::Matrix4<f32>;
 
 pub fn enum_iter<E>() -> impl Iterator<Item = E>
@@ -107,4 +108,10 @@ pub mod color {
     pub const YELLOW: Color = Color::hex(0xffd414);
     pub const PURPLE: Color = Color::hex(0x663399);
     pub const DARK_GREEN: Color = Color::hex(0x1a891a);
+    // not yet good
+    pub const BROWN: Color = Color::hex(0x804000);
+    pub const GRAY: Color = Color::hex(0x808080);
+    pub const PINK: Color = Color::hex(0xff00ff);
+    pub const CHARTREUSE: Color = Color::hex(0x80ff00);
+    pub const CYAN: Color = Color::hex(0x00fffff);
 }

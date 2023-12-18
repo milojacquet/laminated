@@ -1,6 +1,6 @@
 use crate::preferences::ConcretePuzzlePreferences;
 use crate::preferences::Preferences;
-use crate::puzzle::cube::Basis;
+use crate::puzzle::common::Basis;
 use crate::puzzle::octa::OctaRay;
 use crate::render::common::*;
 use crate::NUMBER_KEYS;
