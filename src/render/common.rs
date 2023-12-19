@@ -79,6 +79,15 @@ pub struct StickerOptions {
     pub core: bool,
 }
 
+impl<Ray: RaySystem> Puzzle<Ray> {
+    pub fn piece_by_ind(&self, piece_ind: StickerInd, permutation: &[usize]) -> &Piece<Ray> {
+        match piece_ind {
+            StickerInd::Normal(ind) => &self.pieces[permutation[ind]],
+            StickerInd::Core(ind) => &self.pieces[ind],
+        }
+    }
+}
+
 /// The initial data which will be symmetry-expanded into a sticker.
 #[derive(Debug)]
 pub struct StickerSeed<Ray>
@@ -334,20 +343,11 @@ where
 impl<Ray: ConcreteRaySystem> ConcretePuzzle<Ray> {
     pub fn twist(&mut self, (ray, order): (Ray, i8), grip: &[i8], animation_length: f32) {
         self.puzzle.twist((ray, order), grip);
+        let permutation = self.puzzle.permutation();
         for viewport in self.viewports.iter_mut() {
             for sticker in viewport.stickers.iter_mut() {
-                let sticker_turned;
-                match sticker.piece_ind {
-                    StickerInd::Normal(ind) => {
-                        let piece_at_sticker = &self.puzzle.pieces[self.puzzle.permutation()[ind]];
-                        sticker_turned = piece_at_sticker.grip_on_axis(ray) == grip
-                    }
-                    StickerInd::Core(ind) => {
-                        let piece_at_sticker = &self.puzzle.pieces[ind];
-                        sticker_turned = piece_at_sticker.grip_on_axis(ray) == grip
-                    }
-                };
-                if sticker_turned {
+                let piece_at_sticker = self.puzzle.piece_by_ind(sticker.piece_ind, &permutation);
+                if piece_at_sticker.grip_on_axis(ray) == grip {
                     let start_angle = Ray::order_to_angle(order, viewport.conjugate);
                     let start_angle =
                         (start_angle.rem_euclid(2.0 * PI) + PI).rem_euclid(2.0 * PI) - PI;

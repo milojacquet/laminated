@@ -74,12 +74,9 @@ fn render_puzzle<Ray: ConcreteRaySystem>(
             &camera,
             viewport.stickers.iter_mut().map(|sticker| {
                 let puzzle = &concrete_puzzle.puzzle;
-                let piece_ind = match sticker.piece_ind {
-                    StickerInd::Normal(ind) => permutation[ind],
-                    StickerInd::Core(ind) => ind,
-                };
+                let piece_at_sticker = puzzle.piece_by_ind(sticker.piece_ind, &permutation);
                 sticker.update_gm(
-                    Ray::ray_to_color(prefs)[puzzle.pieces[piece_ind].orientation[sticker.color]]
+                    Ray::ray_to_color(prefs)[piece_at_sticker.orientation[sticker.color]]
                         .to_srgba(),
                     elapsed_time as f32,
                     prefs.animation_length,
