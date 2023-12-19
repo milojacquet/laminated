@@ -275,6 +275,11 @@ const MPENT_SCALE: f32 = 0.9;
 const MPENT_DEPTH: f32 = 0.3;
 const MPENT_SUPER: f32 = 0.1;
 
+//const SLICE_SCALE:f32=1.0;
+const SLICE_INNER_DEPTH: f32 = (25.0 - SQ5) / 62.0;
+const SLICE_OUTER_DEPTH: f32 = (1.0 - 2.0 * SLICE_INNER_DEPTH) / (PHI + 1.0);
+const SLICE_SUPER: f32 = 0.03;
+
 pub fn mega_seeds(_prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<DodecaRay> {
     use crate::puzzle::dodeca::name::*;
 
@@ -505,6 +510,197 @@ pub fn mega_seeds(_prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<DodecaRay> {
                 face: PB.conjugate(conj),
                 color: PL.conjugate(conj),
                 vertices: vec![turn(pt_ab + sup_ac), turn(pt_ab + sup_be), turn(pt_ab)],
+                options: Default::default(),
+            });
+
+            viewports.push(ViewportSeed {
+                abstract_viewport,
+                conjugate: conj,
+                stickers,
+                key_layers: key_layers.clone(),
+            });
+        }
+
+        // funny slice puzzle
+        {
+            let abstract_viewport = AbstractViewport {
+                x: MEGA_SCALE + MPENT_SCALE,
+                y: -y_off,
+                width: 1.0,
+                height: 1.0,
+            };
+
+            let bary = |a, b, c, d, e| bary(SCALE_CIRCUMRAD, a, b, c, d, e);
+            let pt_b = bary(0.0, 1.0, 0.0, 0.0, 0.0);
+            let pt_bai = bary(SLICE_INNER_DEPTH, 1.0 - SLICE_INNER_DEPTH, 0.0, 0.0, 0.0);
+            let pt_bao = bary(SLICE_OUTER_DEPTH, 1.0 - SLICE_OUTER_DEPTH, 0.0, 0.0, 0.0);
+            let pt_abi = bary(1.0 - SLICE_INNER_DEPTH, SLICE_INNER_DEPTH, 0.0, 0.0, 0.0);
+            let pt_abo = bary(1.0 - SLICE_OUTER_DEPTH, SLICE_OUTER_DEPTH, 0.0, 0.0, 0.0);
+            let pt_iba = bary(
+                SLICE_INNER_DEPTH,
+                SLICE_INNER_DEPTH,
+                1.0 - 2.0 * SLICE_INNER_DEPTH,
+                -(1.0 - 2.0 * SLICE_INNER_DEPTH),
+                1.0 - 2.0 * SLICE_INNER_DEPTH,
+            ); // also on the outer cut
+            let pt_ibai = pt_iba + pt_bai - pt_abi;
+            let pt_iabi = pt_iba + pt_abi - pt_bai;
+            let pt_ib = pt_bao + turn(pt_abo) - pt_b;
+
+            let sup_ac = bary_nosc(SCALE_CIRCUMRAD, -1.0, 0.0, 1.0, 0.0, 0.0) * SLICE_SUPER;
+            let sup_be = bary_nosc(SCALE_CIRCUMRAD, 0.0, -1.0, 0.0, 0.0, 1.0) * SLICE_SUPER;
+            let sup_ba = bary_nosc(SCALE_CIRCUMRAD, 1.0, -1.0, 0.0, 0.0, 0.0) * SLICE_SUPER;
+            let sup_bc = bary_nosc(SCALE_CIRCUMRAD, 0.0, -1.0, 1.0, 0.0, 0.0) * SLICE_SUPER;
+
+            let mut stickers: Vec<StickerSeed<DodecaRay>> = vec![];
+
+            // ring
+            stickers.push(StickerSeed {
+                layers: make_grips(vec![PL, PD, PR, BL, BR]),
+                face: PB.conjugate(conj),
+                color: PB.conjugate(conj),
+                vertices: vec![
+                    pt_iba + sup_be,
+                    pt_iba + sup_ac,
+                    turn(pt_iba + sup_be),
+                    bary(1.0, 1.0, 1.0, 1.0, 1.0),
+                ],
+                options: Default::default(),
+            });
+            stickers.push(StickerSeed {
+                layers: make_grips(vec![PL, PD, PR, BL, BR]),
+                face: PB.conjugate(conj),
+                color: PD.conjugate(conj),
+                vertices: vec![pt_iba, pt_iba + sup_ac, pt_iba + sup_be],
+                options: Default::default(),
+            });
+
+            // coedge
+            stickers.push(StickerSeed {
+                layers: make_grips(vec![PL, PR]),
+                face: PB.conjugate(conj),
+                color: PB.conjugate(conj),
+                vertices: vec![pt_iba, pt_abi, pt_bai],
+                options: Default::default(),
+            });
+
+            // cocorner
+            stickers.push(StickerSeed {
+                layers: make_grips(vec![PR, BL, DL]),
+                face: PB.conjugate(conj),
+                color: PB.conjugate(conj),
+                vertices: vec![pt_bao, pt_b, turn(pt_abo), pt_ib],
+                options: Default::default(),
+            });
+
+            // snake
+            stickers.push(StickerSeed {
+                layers: make_grips(vec![PL, PD, PR, BL]),
+                face: PB.conjugate(conj),
+                color: PB.conjugate(conj),
+                vertices: vec![
+                    pt_iba + sup_ac,
+                    pt_ibai + sup_ac,
+                    turn(pt_iabi + sup_be),
+                    turn(pt_iba + sup_be),
+                ],
+                options: Default::default(),
+            });
+            stickers.push(StickerSeed {
+                layers: make_grips(vec![PL, PD, PR, BL]),
+                face: PB.conjugate(conj),
+                color: PD.conjugate(conj),
+                vertices: vec![pt_iba, pt_ibai, pt_ibai + sup_ac, pt_iba + sup_ac],
+                options: Default::default(),
+            });
+            stickers.push(StickerSeed {
+                layers: make_grips(vec![PL, PD, PR, BL]),
+                face: PB.conjugate(conj),
+                color: PL.conjugate(conj),
+                vertices: vec![
+                    turn(pt_iabi),
+                    turn(pt_iba),
+                    turn(pt_iba + sup_be),
+                    turn(pt_iabi + sup_be),
+                ],
+                options: Default::default(),
+            });
+
+            // bull
+            stickers.push(StickerSeed {
+                layers: make_grips(vec![PL, PD, DL, BL, PR]),
+                face: PB.conjugate(conj),
+                color: PB.conjugate(conj),
+                vertices: vec![
+                    pt_ibai + sup_ac,
+                    pt_ib + sup_ba + sup_bc,
+                    turn(pt_iabi + sup_be),
+                ],
+                options: Default::default(),
+            });
+            stickers.push(StickerSeed {
+                layers: make_grips(vec![PL, PD, DL, BL, PR]),
+                face: PB.conjugate(conj),
+                color: PD.conjugate(conj),
+                vertices: vec![pt_ibai, pt_ib, pt_ib + sup_ba + sup_bc, pt_ibai + sup_ac],
+                options: Default::default(),
+            });
+            stickers.push(StickerSeed {
+                layers: make_grips(vec![PL, PD, DL, BL, PR]),
+                face: PB.conjugate(conj),
+                color: PL.conjugate(conj),
+                vertices: vec![
+                    turn(pt_iabi),
+                    turn(pt_iabi + sup_be),
+                    pt_ib + sup_ba + sup_bc,
+                    pt_ib,
+                ],
+                options: Default::default(),
+            });
+
+            // cotadpole
+            stickers.push(StickerSeed {
+                layers: make_grips(vec![PL, DL, BL, PR]),
+                face: PB.conjugate(conj),
+                color: PB.conjugate(conj),
+                vertices: vec![pt_ibai, pt_bai, pt_bao, pt_ib],
+                options: Default::default(),
+            });
+            stickers.push(StickerSeed {
+                layers: make_grips(vec![PD, DL, BL, PR]),
+                face: PB.conjugate(conj),
+                color: PB.conjugate(conj),
+                vertices: vec![turn(pt_abi), turn(pt_iabi), pt_ib, turn(pt_abo)],
+                options: Default::default(),
+            });
+
+            // coworm
+            stickers.push(StickerSeed {
+                layers: make_grips(vec![PL, PR, BL]),
+                face: PB.conjugate(conj),
+                color: PB.conjugate(conj),
+                vertices: vec![pt_bai + sup_be, pt_bai + sup_ac, pt_ibai, pt_iba],
+                options: Default::default(),
+            });
+            stickers.push(StickerSeed {
+                layers: make_grips(vec![PL, PR, BL]),
+                face: PB.conjugate(conj),
+                color: PD.conjugate(conj),
+                vertices: vec![pt_bai + sup_ac, pt_bai + sup_be, pt_bai],
+                options: Default::default(),
+            });
+            stickers.push(StickerSeed {
+                layers: make_grips(vec![PL, PR, BR]),
+                face: PB.conjugate(conj),
+                color: PB.conjugate(conj),
+                vertices: vec![pt_abi + sup_be, pt_abi + sup_ac, pt_iba, pt_iabi],
+                options: Default::default(),
+            });
+            stickers.push(StickerSeed {
+                layers: make_grips(vec![PL, PR, BR]),
+                face: PB.conjugate(conj),
+                color: PD.conjugate(conj),
+                vertices: vec![pt_abi + sup_ac, pt_abi + sup_be, pt_abi],
                 options: Default::default(),
             });
 
