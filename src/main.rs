@@ -74,9 +74,12 @@ fn render_puzzle<Ray: ConcreteRaySystem>(
             &camera,
             viewport.stickers.iter_mut().map(|sticker| {
                 let puzzle = &concrete_puzzle.puzzle;
+                let piece_ind = match sticker.piece_ind {
+                    StickerInd::Normal(ind) => permutation[ind],
+                    StickerInd::Core(ind) => ind,
+                };
                 sticker.update_gm(
-                    Ray::ray_to_color(prefs)
-                        [puzzle.pieces[permutation[sticker.piece_ind]].orientation[sticker.color]]
+                    Ray::ray_to_color(prefs)[puzzle.pieces[piece_ind].orientation[sticker.color]]
                         .to_srgba(),
                     elapsed_time as f32,
                     prefs.animation_length,
@@ -555,7 +558,8 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
 
                     if let Some(sticker) = sticker_m {
                         if button == MouseButton::Middle {
-                            persistent.status_message = Some(format!(
+                            // needs fixing!
+                            /*persistent.status_message = Some(format!(
                                 "position: {}, face: {}, color: {}, piece: {}",
                                 session
                                     .concrete_puzzle
@@ -567,7 +571,7 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                                     .concrete_puzzle
                                     .puzzle
                                     .permutation()[sticker.piece_ind]]
-                            ));
+                            ));*/
                         } else if let Some((_conjugate, Some((_, press_button)))) =
                             session.mouse_press_location
                         {

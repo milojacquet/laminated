@@ -106,13 +106,21 @@ pub struct StickerAnimation {
     pub time_remaining: f32,
 }
 
+/// Normal: this sticker corresponds to the location on the puzzle at ind
+/// Core: this sticker corresponds to the piece on the puzzle whose solved position is ind
+#[derive(Debug, Clone, Copy)]
+pub enum StickerInd {
+    Normal(usize),
+    Core(usize),
+}
+
 //#[derive(Debug)]
 pub struct Sticker<Ray>
 where
     Ray: ConcreteRaySystem,
 {
     /// The index of the piece this sticker is part of in `permutation` on `Puzzle`.
-    pub piece_ind: usize,
+    pub piece_ind: StickerInd,
     /// The face the sticker is on. Controls what turn is done when clicked.
     pub face: Ray,
     /// The face that controls the color of the sticker.
@@ -121,7 +129,6 @@ where
     pub vertices: Vec<Vec3>,
     pub gm: Gm<Mesh, ColorMaterial>,
     pub animation: Option<StickerAnimation>,
-    pub options: StickerOptions,
 }
 
 /// Smoothly maps 0 to 0 and 1 to 1, with derivative ANIMATION_INIT_V at 0 and 1.
@@ -329,8 +336,18 @@ impl<Ray: ConcreteRaySystem> ConcretePuzzle<Ray> {
         self.puzzle.twist((ray, order), grip);
         for viewport in self.viewports.iter_mut() {
             for sticker in viewport.stickers.iter_mut() {
-                let piece_at_sticker = self.puzzle.index_to_solved_piece(sticker.piece_ind);
-                if piece_at_sticker.grip_on_axis(ray) == grip {
+                let sticker_turned;
+                match sticker.piece_ind {
+                    StickerInd::Normal(ind) => {
+                        let piece_at_sticker = &self.puzzle.pieces[self.puzzle.permutation()[ind]];
+                        sticker_turned = piece_at_sticker.grip_on_axis(ray) == grip
+                    }
+                    StickerInd::Core(ind) => {
+                        let piece_at_sticker = &self.puzzle.pieces[ind];
+                        sticker_turned = piece_at_sticker.grip_on_axis(ray) == grip
+                    }
+                };
+                if sticker_turned {
                     let start_angle = Ray::order_to_angle(order, viewport.conjugate);
                     let start_angle =
                         (start_angle.rem_euclid(2.0 * PI) + PI).rem_euclid(2.0 * PI) - PI;

@@ -144,13 +144,16 @@ pub fn make_concrete_puzzle<Ray: ConcreteRaySystem>(
                     let gm = create_sticker_gm(context, &seed.vertices, seed.color, prefs);
 
                     stickers.push(Sticker {
-                        piece_ind,
+                        piece_ind: if seed.options.core {
+                            StickerInd::Core(piece_ind)
+                        } else {
+                            StickerInd::Normal(piece_ind)
+                        },
                         face: seed.face,
                         color: seed.color,
                         vertices: seed.vertices.clone(),
                         gm,
                         animation: None,
-                        options: seed.options,
                     });
                 }
             }
