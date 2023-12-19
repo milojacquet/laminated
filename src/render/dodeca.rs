@@ -202,8 +202,8 @@ pub fn pentultimate_seeds(_prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Dode
                 color: PB.conjugate(conj),
                 vertices: vec![
                     bary(SUPER_START, 1.0, 1.0 - SUPER_START, 0.0, 0.0),
-                    bary(2.0 - SUPER_START, 1.0, SUPER_START, 0.0, 0.0),
-                    bary(0.0, SUPER_START, 1.0, 2.0 - SUPER_START, 0.0),
+                    bary(1.0 - SUPER_START, 1.0, SUPER_START, 0.0, 0.0),
+                    bary(0.0, SUPER_START, 1.0, 1.0 - SUPER_START, 0.0),
                     bary(1.0, 1.0, 1.0, 1.0, 1.0),
                 ],
                 options: Default::default(),
@@ -214,7 +214,7 @@ pub fn pentultimate_seeds(_prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Dode
                 color: PL.conjugate(conj),
                 vertices: vec![
                     bary(0.0, SUPER_START, 1.0, 1.0 - SUPER_START, 0.0),
-                    bary(2.0 - SUPER_START, 1.0, SUPER_START, 0.0, 0.0),
+                    bary(1.0 - SUPER_START, 1.0, SUPER_START, 0.0, 0.0),
                     bary(0.0, 1.0, 1.0, 0.0, 0.0),
                 ],
                 options: Default::default(),
