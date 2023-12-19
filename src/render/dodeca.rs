@@ -54,6 +54,10 @@ impl DodecaRay {
             }
         }
     }
+
+    fn opposite(&self) -> Self {
+        Self(self.0, -self.1, -self.2)
+    }
 }
 
 impl ConcreteRaySystem for DodecaRay {
@@ -96,16 +100,24 @@ const SCALE_CIRCUMRAD: f32 = 0.7;
 const SUPER_START: f32 = 0.7;
 const CORE_SIZE: f32 = 0.4;
 
-fn bary(c1: f32, c2: f32, c3: f32, c4: f32, c5: f32) -> Vec3 {
+fn turn(vec: Vec3) -> Vec3 {
     use crate::puzzle::dodeca::name::PB;
-
     let mat = DodecaRay::turn_to_transform((PB, 1), BinaryConjugate::Id);
-    let v1 = Vec3::new((3.0 * SQ5 - 5.0) / 2.0, SQ5, 0.0) * SCALE_CIRCUMRAD;
-    let v2 = (mat * v1.extend(1.0)).truncate();
-    let v3 = (mat * v2.extend(1.0)).truncate();
-    let v4 = (mat * v3.extend(1.0)).truncate();
-    let v5 = (mat * v4.extend(1.0)).truncate();
-    (c1 * v1 + c2 * v2 + c3 * v3 + c4 * v4 + c5 * v5) / (c1 + c2 + c3 + c4 + c5)
+    (mat * vec.extend(1.0)).truncate()
+}
+
+// c1-PD-c2-PL-c3-BL-c4-BR-c5-PR-
+fn bary_nosc(scale: f32, c1: f32, c2: f32, c3: f32, c4: f32, c5: f32) -> Vec3 {
+    let v1 = Vec3::new((3.0 * SQ5 - 5.0) / 2.0, SQ5, 0.0);
+    let v2 = turn(v1);
+    let v3 = turn(v2);
+    let v4 = turn(v3);
+    let v5 = turn(v4);
+    (c1 * v1 + c2 * v2 + c3 * v3 + c4 * v4 + c5 * v5) * scale
+}
+
+fn bary(scale: f32, c1: f32, c2: f32, c3: f32, c4: f32, c5: f32) -> Vec3 {
+    bary_nosc(scale, c1, c2, c3, c4, c5) / (c1 + c2 + c3 + c4 + c5)
 }
 
 pub fn pentultimate_seeds(_prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<DodecaRay> {
@@ -119,6 +131,8 @@ pub fn pentultimate_seeds(_prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Dode
         HashMap::from([(NUMBER_KEYS[0], vec![1, -1]), (NUMBER_KEYS[1], vec![-1, 1])]),
         HashMap::from([(NUMBER_KEYS[0], vec![-1, 1]), (NUMBER_KEYS[1], vec![1, -1])]),
     ];
+
+    let bary = |a, b, c, d, e| bary(SCALE_CIRCUMRAD, a, b, c, d, e);
 
     for conj in enum_iter::<BinaryConjugate>() {
         let x = match conj {
@@ -188,8 +202,8 @@ pub fn pentultimate_seeds(_prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Dode
                 color: PB.conjugate(conj),
                 vertices: vec![
                     bary(SUPER_START, 1.0, 1.0 - SUPER_START, 0.0, 0.0),
-                    bary(1.0 - SUPER_START, 1.0, SUPER_START, 0.0, 0.0),
-                    bary(0.0, SUPER_START, 1.0, 1.0 - SUPER_START, 0.0),
+                    bary(2.0 - SUPER_START, 1.0, SUPER_START, 0.0, 0.0),
+                    bary(0.0, SUPER_START, 1.0, 2.0 - SUPER_START, 0.0),
                     bary(1.0, 1.0, 1.0, 1.0, 1.0),
                 ],
                 options: Default::default(),
@@ -200,7 +214,7 @@ pub fn pentultimate_seeds(_prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Dode
                 color: PL.conjugate(conj),
                 vertices: vec![
                     bary(0.0, SUPER_START, 1.0, 1.0 - SUPER_START, 0.0),
-                    bary(1.0 - SUPER_START, 1.0, SUPER_START, 0.0, 0.0),
+                    bary(2.0 - SUPER_START, 1.0, SUPER_START, 0.0, 0.0),
                     bary(0.0, 1.0, 1.0, 0.0, 0.0),
                 ],
                 options: Default::default(),
@@ -244,6 +258,263 @@ pub fn pentultimate_seeds(_prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Dode
             stickers,
             key_layers: key_layers.clone(),
         });
+    }
+
+    PuzzleSeed {
+        grips,
+        viewports,
+        key_layers: key_layers.clone(),
+    }
+}
+
+const MEGA_SCALE: f32 = 0.8;
+const MEGA_DEPTH: f32 = 0.4;
+const MEGA_SUPER: f32 = 1.2;
+
+const MPENT_SCALE: f32 = 0.9;
+const MPENT_DEPTH: f32 = 0.3;
+const MPENT_SUPER: f32 = 0.1;
+
+pub fn mega_seeds(_prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<DodecaRay> {
+    use crate::puzzle::dodeca::name::*;
+
+    let grips: Vec<Vec<i8>> = vec![vec![-2, 2], vec![0, 0], vec![2, -2]];
+
+    let mut viewports: Vec<ViewportSeed<DodecaRay>> = vec![];
+
+    let key_layers = vec![
+        HashMap::from([
+            (NUMBER_KEYS[0], vec![2, -2]),
+            (NUMBER_KEYS[1], vec![0, 0]),
+            (NUMBER_KEYS[2], vec![-2, 2]),
+        ]),
+        HashMap::from([
+            (NUMBER_KEYS[0], vec![-2, 2]),
+            (NUMBER_KEYS[1], vec![0, 0]),
+            (NUMBER_KEYS[2], vec![2, -2]),
+        ]),
+    ];
+
+    for conj in enum_iter::<BinaryConjugate>() {
+        let y_off = match conj {
+            BinaryConjugate::Id => 0.0,
+            BinaryConjugate::Conj => 1.0,
+        };
+
+        let make_grips = |grips: Vec<DodecaRay>| {
+            enum_map::EnumMap::from_fn(|ray: DodecaRay| {
+                if grips.contains(&ray.unconjugate(conj)) {
+                    2
+                } else if grips.contains(&ray.unconjugate(conj).opposite()) {
+                    -2
+                } else {
+                    0
+                }
+            })
+        };
+
+        // megaminx
+        {
+            let abstract_viewport = AbstractViewport {
+                x: 0.0,
+                y: (1.0 - MEGA_SCALE) / 2.0 - y_off,
+                width: MEGA_SCALE,
+                height: MEGA_SCALE,
+            };
+
+            let bary = |a, b, c, d, e| bary(SCALE_CIRCUMRAD * MEGA_SCALE, a, b, c, d, e);
+
+            let mut stickers: Vec<StickerSeed<DodecaRay>> = vec![];
+
+            // center
+            stickers.push(StickerSeed {
+                layers: make_grips(vec![PB]),
+                face: PB.conjugate(conj),
+                color: PB.conjugate(conj),
+                vertices: vec![
+                    bary(
+                        MEGA_DEPTH * MEGA_SUPER,
+                        1.0 - 2.0 * MEGA_DEPTH * MEGA_SUPER,
+                        MEGA_DEPTH * MEGA_SUPER,
+                        0.0,
+                        0.0,
+                    ),
+                    bary(
+                        0.0,
+                        MEGA_DEPTH * MEGA_SUPER,
+                        1.0 - 2.0 * MEGA_DEPTH * MEGA_SUPER,
+                        MEGA_DEPTH * MEGA_SUPER,
+                        0.0,
+                    ),
+                    bary(1.0, 1.0, 1.0, 1.0, 1.0),
+                ],
+                options: Default::default(),
+            });
+            stickers.push(StickerSeed {
+                layers: make_grips(vec![PB]),
+                face: PB.conjugate(conj),
+                color: PL.conjugate(conj),
+                vertices: vec![
+                    bary(MEGA_DEPTH, 1.0 - 2.0 * MEGA_DEPTH, MEGA_DEPTH, 0.0, 0.0),
+                    bary(0.0, MEGA_DEPTH, 1.0 - 2.0 * MEGA_DEPTH, MEGA_DEPTH, 0.0),
+                    bary(
+                        0.0,
+                        MEGA_DEPTH * MEGA_SUPER,
+                        1.0 - 2.0 * MEGA_DEPTH * MEGA_SUPER,
+                        MEGA_DEPTH * MEGA_SUPER,
+                        0.0,
+                    ),
+                    bary(
+                        MEGA_DEPTH * MEGA_SUPER,
+                        1.0 - 2.0 * MEGA_DEPTH * MEGA_SUPER,
+                        MEGA_DEPTH * MEGA_SUPER,
+                        0.0,
+                        0.0,
+                    ),
+                ],
+                options: Default::default(),
+            });
+
+            // edge
+            stickers.push(StickerSeed {
+                layers: make_grips(vec![PB, PL]),
+                face: PB.conjugate(conj),
+                color: PB.conjugate(conj),
+                vertices: vec![
+                    bary(0.0, MEGA_DEPTH, 1.0 - 2.0 * MEGA_DEPTH, MEGA_DEPTH, 0.0),
+                    bary(MEGA_DEPTH, 1.0 - 2.0 * MEGA_DEPTH, MEGA_DEPTH, 0.0, 0.0),
+                    bary(0.0, 1.0 - MEGA_DEPTH, MEGA_DEPTH, 0.0, 0.0),
+                    bary(0.0, MEGA_DEPTH, 1.0 - MEGA_DEPTH, 0.0, 0.0),
+                ],
+                options: Default::default(),
+            });
+
+            // corner
+            stickers.push(StickerSeed {
+                layers: make_grips(vec![PB, PL, PD]),
+                face: PB.conjugate(conj),
+                color: PB.conjugate(conj),
+                vertices: vec![
+                    bary(MEGA_DEPTH, 1.0 - 2.0 * MEGA_DEPTH, MEGA_DEPTH, 0.0, 0.0),
+                    bary(MEGA_DEPTH, 1.0 - MEGA_DEPTH, 0.0, 0.0, 0.0),
+                    bary(0.0, 1.0, 0.0, 0.0, 0.0),
+                    bary(0.0, 1.0 - MEGA_DEPTH, MEGA_DEPTH, 0.0, 0.0),
+                ],
+                options: Default::default(),
+            });
+
+            viewports.push(ViewportSeed {
+                abstract_viewport,
+                conjugate: conj,
+                stickers,
+                key_layers: key_layers.clone(),
+            });
+        }
+
+        // master pentultiate
+        {
+            let abstract_viewport = AbstractViewport {
+                x: MEGA_SCALE,
+                y: (1.0 - MPENT_SCALE) / 2.0 - y_off,
+                width: MPENT_SCALE,
+                height: MPENT_SCALE,
+            };
+
+            let bary = |a, b, c, d, e| bary(SCALE_CIRCUMRAD * MPENT_SCALE, a, b, c, d, e);
+            let pt_b = bary(0.0, 1.0, 0.0, 0.0, 0.0);
+            let pt_ba = bary(MPENT_DEPTH, 1.0 - MPENT_DEPTH, 0.0, 0.0, 0.0);
+            let pt_ab = bary(1.0 - MPENT_DEPTH, MPENT_DEPTH, 0.0, 0.0, 0.0);
+            let pt_iba = bary(
+                MPENT_DEPTH,
+                MPENT_DEPTH,
+                1.0 - 2.0 * MPENT_DEPTH,
+                -(1.0 - 2.0 * MPENT_DEPTH),
+                1.0 - 2.0 * MPENT_DEPTH,
+            );
+
+            let sup_ac =
+                bary_nosc(SCALE_CIRCUMRAD * MPENT_SCALE, -1.0, 0.0, 1.0, 0.0, 0.0) * MPENT_SUPER;
+            let sup_be =
+                bary_nosc(SCALE_CIRCUMRAD * MPENT_SCALE, 0.0, -1.0, 0.0, 0.0, 1.0) * MPENT_SUPER;
+
+            let mut stickers: Vec<StickerSeed<DodecaRay>> = vec![];
+
+            // starminx center
+            stickers.push(StickerSeed {
+                layers: make_grips(vec![PB, PL, PD, PR, BL, BR]),
+                face: PB.conjugate(conj),
+                color: PB.conjugate(conj),
+                vertices: vec![
+                    pt_iba + sup_be,
+                    pt_iba + sup_ac,
+                    turn(pt_iba + sup_be),
+                    bary(1.0, 1.0, 1.0, 1.0, 1.0),
+                ],
+                options: Default::default(),
+            });
+            stickers.push(StickerSeed {
+                layers: make_grips(vec![PB, PL, PD, PR, BL, BR]),
+                face: PB.conjugate(conj),
+                color: PD.conjugate(conj),
+                vertices: vec![pt_iba, pt_iba + sup_ac, pt_iba + sup_be],
+                options: Default::default(),
+            });
+
+            // crystal edge
+            stickers.push(StickerSeed {
+                layers: make_grips(vec![PB, PL, PD, PR]),
+                face: PB.conjugate(conj),
+                color: PB.conjugate(conj),
+                vertices: vec![pt_iba, pt_ab, pt_ba],
+                options: Default::default(),
+            });
+
+            // pentultimate corner
+            stickers.push(StickerSeed {
+                layers: make_grips(vec![PB, PL, PD, PR, BL, DL]),
+                face: PB.conjugate(conj),
+                color: PB.conjugate(conj),
+                vertices: vec![pt_ba, pt_b, turn(pt_ab)],
+                options: Default::default(),
+            });
+
+            // star point
+            stickers.push(StickerSeed {
+                layers: make_grips(vec![PB, PL, PD, PR, BL]),
+                face: PB.conjugate(conj),
+                color: PB.conjugate(conj),
+                vertices: vec![
+                    pt_ba + sup_be,
+                    pt_ba + sup_ac,
+                    turn(pt_ab + sup_be),
+                    turn(pt_ab + sup_ac),
+                    turn(pt_iba),
+                    pt_iba,
+                ],
+                options: Default::default(),
+            });
+            stickers.push(StickerSeed {
+                layers: make_grips(vec![PB, PL, PD, PR, BL]),
+                face: PB.conjugate(conj),
+                color: PD.conjugate(conj),
+                vertices: vec![pt_ba + sup_ac, pt_ba + sup_be, pt_ba],
+                options: Default::default(),
+            });
+            stickers.push(StickerSeed {
+                layers: make_grips(vec![PB, PL, PD, PR, BL]),
+                face: PB.conjugate(conj),
+                color: PL.conjugate(conj),
+                vertices: vec![turn(pt_ab + sup_ac), turn(pt_ab + sup_be), turn(pt_ab)],
+                options: Default::default(),
+            });
+
+            viewports.push(ViewportSeed {
+                abstract_viewport,
+                conjugate: conj,
+                stickers,
+                key_layers: key_layers.clone(),
+            });
+        }
     }
 
     PuzzleSeed {

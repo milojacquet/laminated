@@ -220,6 +220,7 @@ pub enum OctaPuzzle {
 #[derive(Debug, Copy, Clone, serde::Serialize, serde::Deserialize)]
 pub enum DodecaPuzzle {
     Pentultimate,
+    Megaminx,
 }
 
 #[derive(Debug, Copy, Clone, serde::Serialize, serde::Deserialize)]
@@ -276,6 +277,15 @@ impl SessionType {
                     window_size,
                     context,
                     render::dodeca::pentultimate_seeds(&prefs.concrete),
+                    prefs,
+                )),
+            ),
+            SessionType::Dodeca(ps @ DodecaPuzzle::Megaminx) => SessionEnum::Dodeca(
+                ps,
+                Session::from_concrete(make_concrete_puzzle(
+                    window_size,
+                    context,
+                    render::dodeca::mega_seeds(&prefs.concrete),
                     prefs,
                 )),
             ),

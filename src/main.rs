@@ -341,6 +341,16 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                                 );
                                 ui.close_menu();
                             }
+                            if ui.button(format!("3 layers (Megaminx)")).clicked() {
+                                response.new_session = Some(
+                                    SessionType::Dodeca(DodecaPuzzle::Megaminx).make_session_enum(
+                                        persistent.window_size,
+                                        context,
+                                        &persistent.prefs,
+                                    ),
+                                );
+                                ui.close_menu();
+                            }
                         });
                     });
 
