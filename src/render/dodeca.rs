@@ -276,9 +276,9 @@ const MPENT_DEPTH: f32 = 0.3;
 const MPENT_SUPER: f32 = 0.1;
 
 //const SLICE_SCALE:f32=1.0;
-const SLICE_INNER_DEPTH: f32 = (25.0 - SQ5) / 62.0;
+const SLICE_INNER_DEPTH: f32 = 0.38; //(25.0 - SQ5) / 62.0;
 const SLICE_OUTER_DEPTH: f32 = (1.0 - 2.0 * SLICE_INNER_DEPTH) / (PHI + 1.0);
-const SLICE_SUPER: f32 = 0.03;
+const SLICE_SUPER: f32 = 0.05;
 
 pub fn mega_seeds(_prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<DodecaRay> {
     use crate::puzzle::dodeca::name::*;
