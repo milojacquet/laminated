@@ -1,17 +1,15 @@
 use crate::enum_iter;
 use crate::preferences::ConcretePuzzlePreferences;
 use crate::preferences::Preferences;
-use crate::puzzle::common::Basis;
-use crate::puzzle::common::BasisDiff;
+use crate::puzzle::common::{Basis, BasisDiff, Sign};
 use crate::puzzle::dodeca::DodecaRay;
 use crate::render::common::*;
 use crate::NUMBER_KEYS;
 use enum_map::enum_map;
 use std::collections::HashMap;
-use std::f32::consts::PI;
 
-use crate::util::{color, Mat3, Mat4, Vec3};
-use cgmath::{InnerSpace, Rad};
+use crate::util::{color, Vec3};
+use cgmath::InnerSpace;
 
 const SQ5: f32 = 2.2360679774997896964;
 const PHI: f32 = 1.6180339887498948482; //0.5 * (1.0 + 5.0_f32.sqrt());
@@ -84,6 +82,23 @@ impl ConcreteRaySystem for DodecaRay {
                 .normalize();
                 Vec3::new(vec.x, vec.z, vec.y)
             }
+        }
+    }
+
+    fn default_colors() -> enum_map::EnumMap<Self, color::Color> {
+        enum_map! {
+            Self(Basis::X, Sign::Pos, Sign::Pos) => color::ORANGE, // "PB",
+            Self(Basis::X, Sign::Pos, Sign::Neg) => color::GRAY, // "PD",
+            Self(Basis::X, Sign::Neg, Sign::Pos) => color::WHITE, // "U",
+            Self(Basis::X, Sign::Neg, Sign::Neg) => color::RED, // "F",
+            Self(Basis::Y, Sign::Pos, Sign::Pos) => color::BROWN, // "BL",
+            Self(Basis::Y, Sign::Pos, Sign::Neg) => color::PURPLE, // "BR",
+            Self(Basis::Y, Sign::Neg, Sign::Pos) => color::PINK, // "DR",
+            Self(Basis::Y, Sign::Neg, Sign::Neg) => color::YELLOW, // "DL",
+            Self(Basis::Z, Sign::Pos, Sign::Pos) => color::GREEN, // "PR",
+            Self(Basis::Z, Sign::Pos, Sign::Neg) => color::BLUE, // "R",
+            Self(Basis::Z, Sign::Neg, Sign::Pos) => color::CYAN, // "PL",
+            Self(Basis::Z, Sign::Neg, Sign::Neg) => color::DARK_GREEN, // "L",
         }
     }
 

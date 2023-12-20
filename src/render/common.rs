@@ -47,6 +47,7 @@ where
         self.get_axis()[0].ray_to_vec(conjugate)
     }
 
+    fn default_colors() -> EnumMap<Self, color::Color>;
     fn ray_to_color(prefs: &Preferences) -> &EnumMap<Self, color::Color>;
     fn ray_to_color_mut(prefs: &mut Preferences) -> &mut EnumMap<Self, color::Color>;
 }

@@ -1,12 +1,11 @@
 use crate::preferences::ConcretePuzzlePreferences;
 use crate::preferences::Preferences;
-use crate::puzzle::common::Basis;
+use crate::puzzle::common::{Basis, Sign};
 use crate::puzzle::octa::OctaRay;
 use crate::render::common::*;
 use crate::NUMBER_KEYS;
 use enum_map::enum_map;
 use std::collections::HashMap;
-use std::f32::consts::PI;
 
 use crate::util::{color, Vec3};
 use cgmath::InnerSpace;
@@ -23,6 +22,19 @@ impl ConcreteRaySystem for OctaRay {
             + Basis::Y.to_vec() * self.1.to_f32()
             + Basis::Z.to_vec() * self.2.to_f32())
         .normalize()
+    }
+
+    fn default_colors() -> enum_map::EnumMap<Self, color::Color> {
+        enum_map! {
+            Self(Sign::Pos, Sign::Neg, Sign::Pos) => color::WHITE,
+            Self(Sign::Pos, Sign::Neg, Sign::Neg) => color::GREEN,
+            Self(Sign::Neg, Sign::Neg, Sign::Pos) => color::RED,
+            Self(Sign::Neg, Sign::Neg, Sign::Neg) => color::DARK_GREEN,
+            Self(Sign::Pos, Sign::Pos, Sign::Pos) => color::BLUE,
+            Self(Sign::Pos, Sign::Pos, Sign::Neg) => color::ORANGE,
+            Self(Sign::Neg, Sign::Pos, Sign::Pos) => color::PURPLE,
+            Self(Sign::Neg, Sign::Pos, Sign::Neg) => color::YELLOW,
+        }
     }
 
     fn ray_to_color(prefs: &Preferences) -> &enum_map::EnumMap<Self, color::Color> {

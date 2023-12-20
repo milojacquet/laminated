@@ -108,7 +108,7 @@ pub mod color {
     pub const YELLOW: Color = Color::hex(0xffd414);
     pub const PURPLE: Color = Color::hex(0x663399);
     pub const DARK_GREEN: Color = Color::hex(0x1a891a);
-    pub const BROWN: Color = Color::hex(0xac6911);
+    pub const BROWN: Color = Color::hex(0x884d0f);
     pub const GRAY: Color = Color::hex(0x808080);
     pub const PINK: Color = Color::hex(0xff8fff);
     pub const CYAN: Color = Color::hex(0x1ec4ff);

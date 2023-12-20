@@ -1,11 +1,10 @@
 use crate::preferences::ConcretePuzzlePreferences;
-use crate::puzzle::cube::Basis;
 use crate::puzzle::cube::CubeRay;
+use crate::puzzle::cube::{Basis, Sign};
 use crate::render::common::*;
 use crate::NUMBER_KEYS;
 use enum_map::enum_map;
 use std::collections::HashMap;
-use std::f32::consts::PI;
 
 use crate::preferences::Preferences;
 use crate::util::{color, Vec3};
@@ -25,6 +24,17 @@ impl ConcreteRaySystem for CubeRay {
 
     fn axis_to_vec(&self, _conjugate: Self::Conjugate) -> Vec3 {
         self.0.to_vec()
+    }
+
+    fn default_colors() -> enum_map::EnumMap<Self, color::Color> {
+        enum_map! {
+            Self(Basis::Y, Sign::Pos) => color::ORANGE,
+            Self(Basis::Z, Sign::Pos) => color::WHITE,
+            Self(Basis::X, Sign::Pos) => color::BLUE,
+            Self(Basis::Z, Sign::Neg) => color::YELLOW,
+            Self(Basis::X, Sign::Neg) => color::GREEN,
+            Self(Basis::Y, Sign::Neg) => color::RED,
+        }
     }
 
     fn ray_to_color(prefs: &Preferences) -> &enum_map::EnumMap<Self, color::Color> {
