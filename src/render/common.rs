@@ -35,21 +35,22 @@ impl ConcreteTurn {
         }
     }
 
-    pub fn to_transform(&self) -> Mat4 {
+    /// t==1.0 => do transform, t==0.0 => identity
+    pub fn to_transform_partial(&self, t: f32) -> Mat4 {
         match self {
-            Self::Rotation(axis, angle) => Mat4::from_axis_angle(axis.clone(), Rad(*angle)),
+            Self::Rotation(axis, angle) => Mat4::from_axis_angle(axis.clone(), Rad(angle * t)),
             Self::Reflection(normal) => Matrix4::new(
-                1.0 - 2.0 * normal.x * normal.x,
-                1.0 - 2.0 * normal.x * normal.y,
-                1.0 - 2.0 * normal.x * normal.z,
+                1.0 - t * 2.0 * normal.x * normal.x,
+                -t * 2.0 * normal.x * normal.y,
+                -t * 2.0 * normal.x * normal.z,
                 0.0,
-                1.0 - 2.0 * normal.y * normal.x,
-                1.0 - 2.0 * normal.y * normal.y,
-                1.0 - 2.0 * normal.y * normal.z,
+                -t * 2.0 * normal.y * normal.x,
+                1.0 - t * 2.0 * normal.y * normal.y,
+                -t * 2.0 * normal.y * normal.z,
                 0.0,
-                1.0 - 2.0 * normal.z * normal.x,
-                1.0 - 2.0 * normal.z * normal.y,
-                1.0 - 2.0 * normal.z * normal.z,
+                -t * 2.0 * normal.z * normal.x,
+                -t * 2.0 * normal.z * normal.y,
+                1.0 - t * 2.0 * normal.z * normal.z,
                 0.0,
                 0.0,
                 0.0,
@@ -59,29 +60,8 @@ impl ConcreteTurn {
         }
     }
 
-    /// t==1.0 => do transform, t==0.0 => identity
-    pub fn to_transform_inv(&self, t: f32) -> Mat4 {
-        match self {
-            Self::Rotation(axis, angle) => Mat4::from_axis_angle(axis.clone(), Rad(angle * t)),
-            Self::Reflection(normal) => Matrix4::new(
-                1.0 - t * 2.0 * normal.x * normal.x,
-                1.0 - t * 2.0 * normal.x * normal.y,
-                1.0 - t * 2.0 * normal.x * normal.z,
-                0.0,
-                1.0 - t * 2.0 * normal.y * normal.x,
-                1.0 - t * 2.0 * normal.y * normal.y,
-                1.0 - t * 2.0 * normal.y * normal.z,
-                0.0,
-                1.0 - t * 2.0 * normal.z * normal.x,
-                1.0 - t * 2.0 * normal.z * normal.y,
-                1.0 - t * 2.0 * normal.z * normal.z,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                1.0,
-            ),
-        }
+    pub fn to_transform(&self) -> Mat4 {
+        self.to_transform_partial(1.0)
     }
 }
 
@@ -99,7 +79,7 @@ where
         order as f32 * 2.0 * PI * Self::order_conjugate(conjugate) as f32 / Self::order() as f32
     }*/
 
-    fn order_conjugate(conjugate: Self::Conjugate) -> i8 {
+    fn order_conjugate(_conjugate: Self::Conjugate) -> i8 {
         1
     }
 
@@ -244,7 +224,7 @@ impl<Ray: ConcreteRaySystem> Sticker<Ray> {
             // let sticker_angle = animation.start_angle
             //     * cubic_interpolate(animation.time_remaining / animation_length);
             // sticker_mat = Mat4::from_axis_angle(animation.rotation_axis, Rad(sticker_angle));
-            sticker_mat = animation.turn.to_transform_inv(cubic_interpolate(
+            sticker_mat = animation.turn.to_transform_partial(cubic_interpolate(
                 animation.time_remaining / animation_length,
             ))
         } else {

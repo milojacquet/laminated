@@ -75,18 +75,18 @@ pub mod name {
         RDodecaRay(basis, c1.1, c2.1)
     }
 
-    const RF: RDodecaRay = add_cube_rays(c::R, c::F);
-    const RB: RDodecaRay = add_cube_rays(c::R, c::B);
-    const LF: RDodecaRay = add_cube_rays(c::L, c::F);
-    const LB: RDodecaRay = add_cube_rays(c::L, c::B);
-    const FU: RDodecaRay = add_cube_rays(c::F, c::U);
-    const FD: RDodecaRay = add_cube_rays(c::F, c::D);
-    const BU: RDodecaRay = add_cube_rays(c::B, c::U);
-    const BD: RDodecaRay = add_cube_rays(c::B, c::D);
-    const UR: RDodecaRay = add_cube_rays(c::U, c::R);
-    const UL: RDodecaRay = add_cube_rays(c::U, c::L);
-    const DR: RDodecaRay = add_cube_rays(c::D, c::R);
-    const DL: RDodecaRay = add_cube_rays(c::D, c::L);
+    pub const RF: RDodecaRay = add_cube_rays(c::R, c::F);
+    pub const RB: RDodecaRay = add_cube_rays(c::R, c::B);
+    pub const LF: RDodecaRay = add_cube_rays(c::L, c::F);
+    pub const LB: RDodecaRay = add_cube_rays(c::L, c::B);
+    pub const FU: RDodecaRay = add_cube_rays(c::F, c::U);
+    pub const FD: RDodecaRay = add_cube_rays(c::F, c::D);
+    pub const BU: RDodecaRay = add_cube_rays(c::B, c::U);
+    pub const BD: RDodecaRay = add_cube_rays(c::B, c::D);
+    pub const UR: RDodecaRay = add_cube_rays(c::U, c::R);
+    pub const UL: RDodecaRay = add_cube_rays(c::U, c::L);
+    pub const DR: RDodecaRay = add_cube_rays(c::D, c::R);
+    pub const DL: RDodecaRay = add_cube_rays(c::D, c::L);
 }
 
 impl fmt::Display for RDodecaRay {
