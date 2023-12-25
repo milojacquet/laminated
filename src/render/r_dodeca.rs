@@ -82,8 +82,11 @@ impl ConcreteRaySystem for RDodecaRay {
     }
 }
 
-const CORE_SIZE: f32 = 0.4;
+const SHAPE_SCALE: f32 = 1.7;
+
+const CORE_SCALE: f32 = 0.4;
 const SUPER_START: f32 = 0.8;
+const RU2RI_SCALE: f32 = 0.8;
 
 pub fn little_chop_seeds(_prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<RDodecaRay> {
     use crate::puzzle::r_dodeca::name::*;
@@ -111,13 +114,13 @@ pub fn little_chop_seeds(_prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<RDode
         // core guide
         {
             let abstract_viewport = AbstractViewport {
-                x: -CORE_SIZE,
+                x: -CORE_SCALE,
                 y: match conj {
-                    BinaryConjugate::Id => 2.0 - CORE_SIZE,
-                    BinaryConjugate::Conj => 0.0,
+                    BinaryConjugate::Id => 2.0 - CORE_SCALE - 0.2,
+                    BinaryConjugate::Conj => 0.0 + 0.2,
                 },
-                width: CORE_SIZE,
-                height: CORE_SIZE,
+                width: CORE_SCALE,
+                height: CORE_SCALE,
             };
 
             let layers = enum_map! {FU=>1,BU=>1,UR=>1,UL=>1,RF=>1,LF=>1,BD=>-1,FD=>-1,DL=>-1,DR=>-1,LB=>-1,RB=>-1,};
@@ -129,9 +132,9 @@ pub fn little_chop_seeds(_prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<RDode
                     face: RB.conjugate(conj),
                     color: RB.conjugate(conj),
                     vertices: vec![
-                        Vec3::new(1.0, 0.0, 0.0) * CORE_SIZE,
-                        Vec3::new(0.5, 0.5, -0.5) * CORE_SIZE,
-                        Vec3::new(0.5, 0.5, 0.5) * CORE_SIZE,
+                        Vec3::new(1.0, 0.0, 0.0) * CORE_SCALE * SHAPE_SCALE,
+                        Vec3::new(0.5, 0.5, -0.5) * CORE_SCALE * SHAPE_SCALE,
+                        Vec3::new(0.5, 0.5, 0.5) * CORE_SCALE * SHAPE_SCALE,
                     ],
                     options: StickerOptions {
                         core: true,
@@ -169,9 +172,9 @@ pub fn little_chop_seeds(_prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<RDode
                         1.0 * SUPER_START + 0.5 * (1.0 - SUPER_START),
                         0.5 * (1.0 - SUPER_START),
                         0.0,
-                    ),
-                    Vec3::new(0.5, 0.5, -0.5 * SUPER_START),
-                    Vec3::new(0.5, 0.5, 0.5 * SUPER_START),
+                    ) * SHAPE_SCALE,
+                    Vec3::new(0.5, 0.5, -0.5 * SUPER_START) * SHAPE_SCALE,
+                    Vec3::new(0.5, 0.5, 0.5 * SUPER_START) * SHAPE_SCALE,
                 ],
                 options: StickerOptions {
                     parity: conj == BinaryConjugate::Conj,
@@ -187,10 +190,10 @@ pub fn little_chop_seeds(_prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<RDode
                         1.0 * SUPER_START + 0.5 * (1.0 - SUPER_START),
                         0.5 * (1.0 - SUPER_START),
                         0.0,
-                    ),
-                    Vec3::new(0.5, 0.5, 0.5 * SUPER_START),
-                    Vec3::new(0.5, 0.5, 0.5),
-                    Vec3::new(1.0, 0.0, 0.0),
+                    ) * SHAPE_SCALE,
+                    Vec3::new(0.5, 0.5, 0.5 * SUPER_START) * SHAPE_SCALE,
+                    Vec3::new(0.5, 0.5, 0.5) * SHAPE_SCALE,
+                    Vec3::new(1.0, 0.0, 0.0) * SHAPE_SCALE,
                 ],
                 options: StickerOptions {
                     parity: conj == BinaryConjugate::Conj,
@@ -202,14 +205,14 @@ pub fn little_chop_seeds(_prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<RDode
                 face: RB.conjugate(conj),
                 color: DR.conjugate(conj),
                 vertices: vec![
-                    Vec3::new(0.5, 0.5, -0.5 * SUPER_START),
+                    Vec3::new(0.5, 0.5, -0.5 * SUPER_START) * SHAPE_SCALE,
                     Vec3::new(
                         1.0 * SUPER_START + 0.5 * (1.0 - SUPER_START),
                         0.5 * (1.0 - SUPER_START),
                         0.0,
-                    ),
-                    Vec3::new(1.0, 0.0, 0.0),
-                    Vec3::new(0.5, 0.5, -0.5),
+                    ) * SHAPE_SCALE,
+                    Vec3::new(1.0, 0.0, 0.0) * SHAPE_SCALE,
+                    Vec3::new(0.5, 0.5, -0.5) * SHAPE_SCALE,
                 ],
                 options: StickerOptions {
                     parity: conj == BinaryConjugate::Conj,
@@ -224,6 +227,53 @@ pub fn little_chop_seeds(_prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<RDode
                 key_layers: key_layers.clone(),
             });
         }
+    }
+
+    for side in [1, -1] {
+        let make_grips = |grips: Vec<RDodecaRay>| {
+            enum_map::EnumMap::from_fn(|ray: RDodecaRay| {
+                if grips.contains(&ray.unconjugate(BinaryConjugate::Id)) {
+                    1
+                } else {
+                    -1
+                }
+            })
+        };
+
+        let abstract_viewport = AbstractViewport {
+            x: if side == 1 { -RU2RI_SCALE } else { 1.0 },
+            y: 1.0 - RU2RI_SCALE * 0.5,
+            width: RU2RI_SCALE,
+            height: RU2RI_SCALE,
+        };
+
+        let mut stickers: Vec<StickerSeed<RDodecaRay>> = vec![];
+
+        let layers: enum_map::EnumMap<RDodecaRay, i8> = make_grips(if side == 1 {
+            vec![RB, BU, UR, LB, FU, DR]
+        } else {
+            vec![RB, BU, UR, RF, BD, UL]
+        });
+
+        // chiral corners
+        stickers.push(StickerSeed {
+            layers,
+            face: RB,
+            color: RB,
+            vertices: vec![
+                Vec3::new(1.0, 0.0, 0.0) * RU2RI_SCALE * SHAPE_SCALE,
+                Vec3::new(0.0, 1.0, 0.0) * RU2RI_SCALE * SHAPE_SCALE,
+                Vec3::new(0.5, 0.5, 0.5) * RU2RI_SCALE * SHAPE_SCALE,
+            ],
+            options: Default::default(),
+        });
+
+        viewports.push(ViewportSeed {
+            abstract_viewport,
+            conjugate: BinaryConjugate::Id,
+            stickers,
+            key_layers: key_layers.clone(),
+        });
     }
 
     PuzzleSeed {
