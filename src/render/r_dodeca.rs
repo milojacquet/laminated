@@ -83,6 +83,7 @@ impl ConcreteRaySystem for RDodecaRay {
 }
 
 const CORE_SIZE: f32 = 0.4;
+const SUPER_START: f32 = 0.8;
 
 pub fn little_chop_seeds(_prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<RDodecaRay> {
     use crate::puzzle::r_dodeca::name::*;
@@ -97,18 +98,17 @@ pub fn little_chop_seeds(_prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<RDode
     ];
 
     for conj in enum_iter::<BinaryConjugate>() {
-        /*let make_grips = |grips: Vec<RDodecaRay>| {
+        let make_grips = |grips: Vec<RDodecaRay>| {
             enum_map::EnumMap::from_fn(|ray: RDodecaRay| {
                 if grips.contains(&ray.unconjugate(conj)) {
                     1
-                } else if grips.contains(&ray.unconjugate(conj).opposite()) {
-                    -1
                 } else {
-                    0
+                    -1
                 }
             })
-        };*/
+        };
 
+        // core guide
         {
             let abstract_viewport = AbstractViewport {
                 x: -CORE_SIZE,
@@ -143,96 +143,87 @@ pub fn little_chop_seeds(_prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<RDode
             });
         }
 
-        /*let abstract_viewport = AbstractViewport {
-            x,
-            y: 0.0,
-            width: 1.0,
-            height: 1.0,
-        };
-
-        let mut stickers: Vec<StickerSeed<DodecaRay>> = vec![];
-
+        // little chop: little chop triangles
         {
-            let layers: enum_map::EnumMap<DodecaRay, i8> =
-                enum_map::EnumMap::from_fn(|ray: DodecaRay| match ray.unconjugate(conj) {
-                    PB => 1,
-                    BL => 1,
-                    BR => 1,
-                    PL => 1,
-                    PR => 1,
-                    PD => 1,
-                    F => -1,
-                    DR => -1,
-                    DL => -1,
-                    R => -1,
-                    L => -1,
-                    U => -1,
-                });
+            let abstract_viewport = AbstractViewport {
+                x: 0.0,
+                y: match conj {
+                    BinaryConjugate::Id => 1.0,
+                    BinaryConjugate::Conj => 0.0,
+                },
+                width: 1.0,
+                height: 1.0,
+            };
 
-            // center
+            let mut stickers: Vec<StickerSeed<RDodecaRay>> = vec![];
+
+            let layers: enum_map::EnumMap<RDodecaRay, i8> =
+                make_grips(vec![RB, RF, UR, DR, BU, BD]);
+
             stickers.push(StickerSeed {
                 layers,
-                face: PB.conjugate(conj),
-                color: PB.conjugate(conj),
+                face: RB.conjugate(conj),
+                color: RB.conjugate(conj),
                 vertices: vec![
-                    bary(SUPER_START, 1.0, 1.0 - SUPER_START, 0.0, 0.0),
-                    bary(1.0 - SUPER_START, 1.0, SUPER_START, 0.0, 0.0),
-                    bary(0.0, SUPER_START, 1.0, 1.0 - SUPER_START, 0.0),
-                    bary(1.0, 1.0, 1.0, 1.0, 1.0),
+                    Vec3::new(
+                        1.0 * SUPER_START + 0.5 * (1.0 - SUPER_START),
+                        0.5 * (1.0 - SUPER_START),
+                        0.0,
+                    ),
+                    Vec3::new(0.5, 0.5, -0.5 * SUPER_START),
+                    Vec3::new(0.5, 0.5, 0.5 * SUPER_START),
                 ],
-                options: Default::default(),
+                options: StickerOptions {
+                    parity: conj == BinaryConjugate::Conj,
+                    ..Default::default()
+                },
             });
             stickers.push(StickerSeed {
                 layers,
-                face: PB.conjugate(conj),
-                color: PL.conjugate(conj),
+                face: RB.conjugate(conj),
+                color: UR.conjugate(conj),
                 vertices: vec![
-                    bary(0.0, SUPER_START, 1.0, 1.0 - SUPER_START, 0.0),
-                    bary(1.0 - SUPER_START, 1.0, SUPER_START, 0.0, 0.0),
-                    bary(0.0, 1.0, 1.0, 0.0, 0.0),
+                    Vec3::new(
+                        1.0 * SUPER_START + 0.5 * (1.0 - SUPER_START),
+                        0.5 * (1.0 - SUPER_START),
+                        0.0,
+                    ),
+                    Vec3::new(0.5, 0.5, 0.5 * SUPER_START),
+                    Vec3::new(0.5, 0.5, 0.5),
+                    Vec3::new(1.0, 0.0, 0.0),
                 ],
-                options: Default::default(),
+                options: StickerOptions {
+                    parity: conj == BinaryConjugate::Conj,
+                    ..Default::default()
+                },
+            });
+            stickers.push(StickerSeed {
+                layers,
+                face: RB.conjugate(conj),
+                color: DR.conjugate(conj),
+                vertices: vec![
+                    Vec3::new(0.5, 0.5, -0.5 * SUPER_START),
+                    Vec3::new(
+                        1.0 * SUPER_START + 0.5 * (1.0 - SUPER_START),
+                        0.5 * (1.0 - SUPER_START),
+                        0.0,
+                    ),
+                    Vec3::new(1.0, 0.0, 0.0),
+                    Vec3::new(0.5, 0.5, -0.5),
+                ],
+                options: StickerOptions {
+                    parity: conj == BinaryConjugate::Conj,
+                    ..Default::default()
+                },
+            });
+
+            viewports.push(ViewportSeed {
+                abstract_viewport,
+                conjugate: conj,
+                stickers,
+                key_layers: key_layers.clone(),
             });
         }
-
-        {
-            let layers: enum_map::EnumMap<DodecaRay, i8> =
-                enum_map::EnumMap::from_fn(|ray: DodecaRay| match ray.unconjugate(conj) {
-                    PB => 1,
-                    BL => 1,
-                    DL => 1,
-                    PL => 1,
-                    PR => 1,
-                    PD => 1,
-                    F => -1,
-                    DR => -1,
-                    BR => -1,
-                    R => -1,
-                    L => -1,
-                    U => -1,
-                });
-
-            // corner
-            stickers.push(StickerSeed {
-                layers,
-                face: PB.conjugate(conj),
-                color: PB.conjugate(conj),
-                vertices: vec![
-                    bary(0.0, 1.0, 1.0, 0.0, 0.0),
-                    bary(1.0, 1.0, 0.0, 0.0, 0.0),
-                    bary(0.0, 1.0, 0.0, 0.0, 0.0),
-                ],
-                options: Default::default(),
-            });
-        }
-
-        viewports.push(ViewportSeed {
-            abstract_viewport,
-            conjugate: conj,
-            stickers,
-            key_layers: key_layers.clone(),
-        });
-        */
     }
 
     PuzzleSeed {
