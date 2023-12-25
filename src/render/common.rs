@@ -237,6 +237,11 @@ impl<Ray: ConcreteRaySystem> Sticker<Ray> {
 
         self.gm.material.color = color;
         self.gm.set_transformation(sticker_mat);
+        self.gm.material.render_states.cull = if sticker_mat.determinant() > 0.0 {
+            Cull::Back
+        } else {
+            Cull::Front
+        };
     }
 }
 
