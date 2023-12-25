@@ -25,6 +25,7 @@ where
 {
     type Conjugate;
 
+    /// The angle of the turn is 2π * order_conjugate(conj) / order().
     fn order_conjugate(conjugate: Self::Conjugate) -> i8;
 
     fn order_to_angle(order: i8, conjugate: Self::Conjugate) -> f32 {

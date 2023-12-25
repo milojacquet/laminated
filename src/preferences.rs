@@ -1,6 +1,7 @@
 use crate::puzzle::cube::CubeRay;
 use crate::puzzle::dodeca::DodecaRay;
 use crate::puzzle::octa::OctaRay;
+use crate::puzzle::r_dodeca::RDodecaRay;
 use crate::render::common::ConcreteRaySystem;
 use crate::util::color;
 use crate::util::color::Color;
@@ -22,6 +23,9 @@ pub struct ColorPreferences {
     #[serde(default = "DodecaRay::default_colors")]
     #[serde(with = "crate::util::enum_map_serde")]
     pub dodeca: EnumMap<DodecaRay, Color>,
+    #[serde(default = "RDodecaRay::default_colors")]
+    #[serde(with = "crate::util::enum_map_serde")]
+    pub r_dodeca: EnumMap<RDodecaRay, Color>,
 }
 
 impl Default for ColorPreferences {
@@ -30,6 +34,7 @@ impl Default for ColorPreferences {
             cube: CubeRay::default_colors(),
             octa: OctaRay::default_colors(),
             dodeca: DodecaRay::default_colors(),
+            r_dodeca: RDodecaRay::default_colors(),
         }
     }
 }
