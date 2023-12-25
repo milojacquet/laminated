@@ -130,6 +130,7 @@ impl SimpleMesh {
 #[derive(Debug, Default, Clone, Copy)]
 pub struct StickerOptions {
     pub core: bool,
+    pub parity: bool,
 }
 
 impl<Ray: RaySystem> Puzzle<Ray> {

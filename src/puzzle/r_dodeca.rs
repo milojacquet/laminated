@@ -44,8 +44,12 @@ impl RaySystem for RDodecaRay {
     const CYCLE: &'static [(Self, i8)] = {
         use crate::puzzle::r_dodeca::name::*;
 
+        // comments are cube colors
         &[
-
+            /* white top, red   front */ (FU, 1), (UR, 1), (FU, 1), (UR, 1), (FU, 1), (BU, 1),
+            /* red   top, green front */ (FU, 1), (UR, 1), (FU, 1), (UR, 1), (FU, 1), (BU, 1),
+            /* green top, white front */ (FU, 1), (UR, 1), (FU, 1), (UR, 1), (FU, 1), (UL, 1),
+            /* blue  top, white front */ (FU, 1), (UR, 1), (FU, 1), (UR, 1), (FU, 1)
         ]
     };
 

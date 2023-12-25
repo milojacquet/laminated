@@ -137,12 +137,16 @@ pub fn make_concrete_puzzle<Ray: ConcreteRaySystem>(
                         for vert in seed.vertices.iter_mut() {
                             *vert = (mat * vert.extend(1.0)).truncate();
                         }
+                        if seed.options.parity {
+                            seed.vertices.reverse();
+                        }
                     }
                     let seed_layers_clone = enum_map_clone(&seed.layers);
                     let piece_ind =
                         puzzle.piece_to_index(&Piece::make_solved_from_layers(seed_layers_clone));
 
                     let gm = create_sticker_gm(context, &seed.vertices, seed.color, prefs);
+                    //dbg!(seed.options.parity, i, &seed.vertices, &vertices);
 
                     stickers.push(Sticker {
                         piece_ind: if seed.options.core {

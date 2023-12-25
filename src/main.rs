@@ -307,14 +307,6 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                         });
 
                         ui.menu_button("Octahedron", |ui| {
-                            // bugged and not useful
-                            /*if ui.button(format!("Core (testing)")).clicked() {
-                                response.new_session = Some(
-                                    SessionType::Octa(OctaPuzzle::Core)
-                                        .make_session_enum(persistent.window_size, &context),
-                                );
-                                ui.close_menu();
-                            }*/
                             for n in 2..=5 {
                                 if ui.button(format!("{0} layers", n)).clicked() {
                                     response.new_session = Some(
@@ -348,6 +340,20 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                                         context,
                                         &persistent.prefs,
                                     ),
+                                );
+                                ui.close_menu();
+                            }
+                        });
+
+                        ui.menu_button("Rhombic Dodecahedron", |ui| {
+                            if ui.button(format!("2 layers (Little Chop)")).clicked() {
+                                response.new_session = Some(
+                                    SessionType::RDodeca(RDodecaPuzzle::LittleChop)
+                                        .make_session_enum(
+                                            persistent.window_size,
+                                            context,
+                                            &persistent.prefs,
+                                        ),
                                 );
                                 ui.close_menu();
                             }
@@ -730,6 +736,9 @@ fn main() {
                 run_render_loop(&mut frame_input, session, &mut persistent, &context)
             }
             SessionEnum::Dodeca(_, ref mut session) => {
+                run_render_loop(&mut frame_input, session, &mut persistent, &context)
+            }
+            SessionEnum::RDodeca(_, ref mut session) => {
                 run_render_loop(&mut frame_input, session, &mut persistent, &context)
             }
         };

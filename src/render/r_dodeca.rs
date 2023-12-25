@@ -69,7 +69,7 @@ impl ConcreteRaySystem for RDodecaRay {
 
         let default_dodeca = DodecaRay::default_colors();
         enum_map::EnumMap::from_fn(|ray: Self| {
-            default_dodeca[DodecaRay(ray.0, ray.1, ray.2).turn((name::U, 0))]
+            default_dodeca[DodecaRay(ray.0, ray.1, ray.2).turn((name::U, 2))]
         })
     }
 
@@ -84,7 +84,7 @@ impl ConcreteRaySystem for RDodecaRay {
 
 const CORE_SIZE: f32 = 0.4;
 
-pub fn little_chop(_prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<RDodecaRay> {
+pub fn little_chop_seeds(_prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<RDodecaRay> {
     use crate::puzzle::r_dodeca::name::*;
 
     let grips: Vec<Vec<i8>> = vec![vec![-1, 1], vec![1, -1]];
@@ -129,12 +129,13 @@ pub fn little_chop(_prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<RDodecaRay>
                     face: RB.conjugate(conj),
                     color: RB.conjugate(conj),
                     vertices: vec![
-                        Vec3::new(1.0, 0.0, 0.0),
-                        Vec3::new(0.5, 0.5, 0.5),
-                        Vec3::new(0.5, 0.5, -0.5),
+                        Vec3::new(1.0, 0.0, 0.0) * CORE_SIZE,
+                        Vec3::new(0.5, 0.5, -0.5) * CORE_SIZE,
+                        Vec3::new(0.5, 0.5, 0.5) * CORE_SIZE,
                     ],
                     options: StickerOptions {
                         core: true,
+                        parity: conj == BinaryConjugate::Conj,
                         ..Default::default()
                     },
                 }],
