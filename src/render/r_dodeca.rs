@@ -244,9 +244,9 @@ pub fn little_chop_seeds(_prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<RDode
         let mut stickers: Vec<StickerSeed<RDodecaRay>> = vec![];
 
         let layers: enum_map::EnumMap<RDodecaRay, i8> = make_grips(if side == 1 {
-            vec![RB, BU, UR, LB, FU, DR]
-        } else {
             vec![RB, BU, UR, RF, BD, UL]
+        } else {
+            vec![RB, BU, UR, LB, FU, DR]
         });
 
         // chiral corners
