@@ -18,6 +18,73 @@ pub enum BinaryConjugate {
     Conj,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum ConcreteTurn {
+    Rotation(Vec3, f32), // rotation around (normal) Vec3 by f32
+    Reflection(Vec3),    // reflection perpendicular to (normal) Vec3
+}
+
+impl ConcreteTurn {
+    pub fn mod_angle(&self) -> Self {
+        match self {
+            Self::Rotation(axis, angle) => Self::Rotation(
+                axis.clone(),
+                (angle.rem_euclid(2.0 * PI) + PI).rem_euclid(2.0 * PI) - PI,
+            ),
+            Self::Reflection(_normal) => self.clone(),
+        }
+    }
+
+    pub fn to_transform(&self) -> Mat4 {
+        match self {
+            Self::Rotation(axis, angle) => Mat4::from_axis_angle(axis.clone(), Rad(*angle)),
+            Self::Reflection(normal) => Matrix4::new(
+                1.0 - 2.0 * normal.x * normal.x,
+                1.0 - 2.0 * normal.x * normal.y,
+                1.0 - 2.0 * normal.x * normal.z,
+                0.0,
+                1.0 - 2.0 * normal.y * normal.x,
+                1.0 - 2.0 * normal.y * normal.y,
+                1.0 - 2.0 * normal.y * normal.z,
+                0.0,
+                1.0 - 2.0 * normal.z * normal.x,
+                1.0 - 2.0 * normal.z * normal.y,
+                1.0 - 2.0 * normal.z * normal.z,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0,
+            ),
+        }
+    }
+
+    /// t==1.0 => do transform, t==0.0 => identity
+    pub fn to_transform_inv(&self, t: f32) -> Mat4 {
+        match self {
+            Self::Rotation(axis, angle) => Mat4::from_axis_angle(axis.clone(), Rad(angle * t)),
+            Self::Reflection(normal) => Matrix4::new(
+                1.0 - t * 2.0 * normal.x * normal.x,
+                1.0 - t * 2.0 * normal.x * normal.y,
+                1.0 - t * 2.0 * normal.x * normal.z,
+                0.0,
+                1.0 - t * 2.0 * normal.y * normal.x,
+                1.0 - t * 2.0 * normal.y * normal.y,
+                1.0 - t * 2.0 * normal.y * normal.z,
+                0.0,
+                1.0 - t * 2.0 * normal.z * normal.x,
+                1.0 - t * 2.0 * normal.z * normal.y,
+                1.0 - t * 2.0 * normal.z * normal.z,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0,
+            ),
+        }
+    }
+}
+
 pub trait ConcreteRaySystem
 where
     Self: RaySystem,
@@ -26,20 +93,24 @@ where
     type Conjugate;
 
     /// The angle of the turn is 2π * order_conjugate(conj) / order().
-    fn order_conjugate(conjugate: Self::Conjugate) -> i8;
+    //fn concrete_turn(turn: (Self, i8), conjugate: Self::Conjugate) -> ConcreteTurn;
 
-    fn order_to_angle(order: i8, conjugate: Self::Conjugate) -> f32 {
+    /*fn order_to_angle(order: i8, conjugate: Self::Conjugate) -> f32 {
         order as f32 * 2.0 * PI * Self::order_conjugate(conjugate) as f32 / Self::order() as f32
+    }*/
+
+    fn order_conjugate(conjugate: Self::Conjugate) -> i8 {
+        1
     }
 
-    fn turn_to_transform(turn: (Self, i8), conjugate: Self::Conjugate) -> Mat4 {
+    fn turn_to_concrete(turn: (Self, i8), conjugate: Self::Conjugate) -> ConcreteTurn {
         let (ray, order) = turn;
-        Mat4::from_axis_angle(
+        ConcreteTurn::Rotation(
             ray.axis_to_vec(conjugate),
-            Rad(Self::order_to_angle(order, conjugate)),
+            order as f32 * 2.0 * Self::order_conjugate(conjugate) as f32 * PI
+                / Self::order() as f32,
         )
     }
-
     /// Unit vector that points along a ray.
     fn ray_to_vec(&self, conjugate: Self::Conjugate) -> Vec3;
 
@@ -109,10 +180,8 @@ where
 
 #[derive(Debug)]
 pub struct StickerAnimation {
-    /// the axis the sticker is turning around
-    pub rotation_axis: Vec3,
-    /// the angle the axis starts at
-    pub start_angle: f32,
+    /// the turn being performed
+    pub turn: ConcreteTurn,
     /// the time remaining for the animation, in milliseconds
     pub time_remaining: f32,
 }
@@ -172,9 +241,12 @@ impl<Ray: ConcreteRaySystem> Sticker<Ray> {
             self.animation = None;
         }
         if let Some(animation) = &mut self.animation {
-            let sticker_angle = animation.start_angle
-                * cubic_interpolate(animation.time_remaining / animation_length);
-            sticker_mat = Mat4::from_axis_angle(animation.rotation_axis, Rad(sticker_angle));
+            // let sticker_angle = animation.start_angle
+            //     * cubic_interpolate(animation.time_remaining / animation_length);
+            // sticker_mat = Mat4::from_axis_angle(animation.rotation_axis, Rad(sticker_angle));
+            sticker_mat = animation.turn.to_transform_inv(cubic_interpolate(
+                animation.time_remaining / animation_length,
+            ))
         } else {
             sticker_mat = Mat4::identity();
         }
@@ -350,12 +422,9 @@ impl<Ray: ConcreteRaySystem> ConcretePuzzle<Ray> {
             for sticker in viewport.stickers.iter_mut() {
                 let piece_at_sticker = self.puzzle.piece_by_ind(sticker.piece_ind, &permutation);
                 if piece_at_sticker.grip_on_axis(ray) == grip {
-                    let start_angle = Ray::order_to_angle(order, viewport.conjugate);
-                    let start_angle =
-                        (start_angle.rem_euclid(2.0 * PI) + PI).rem_euclid(2.0 * PI) - PI;
+                    let turn = Ray::turn_to_concrete((ray, order), viewport.conjugate).mod_angle();
                     sticker.animation = Some(StickerAnimation {
-                        rotation_axis: ray.axis_to_vec(viewport.conjugate),
-                        start_angle,
+                        turn,
                         time_remaining: animation_length,
                     })
                 }
@@ -407,7 +476,7 @@ pub mod concrete_ray_system_tests {
             for &axis in Ray::AXIS_HEADS {
                 for ray in enum_iter::<Ray>() {
                     let abst_first = ray.turn((axis, 1)).ray_to_vec(conjugate).extend(1.0);
-                    let conc_first = Ray::turn_to_transform((axis, 1), conjugate)
+                    let conc_first = Ray::turn_to_concrete((axis, 1), conjugate).to_transform()
                         * ray.ray_to_vec(conjugate).extend(1.0);
                     assert!(
                         abst_first.distance(conc_first) < EPSILON,

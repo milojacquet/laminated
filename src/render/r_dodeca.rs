@@ -1,12 +1,14 @@
 use crate::enum_iter;
 use crate::preferences::ConcretePuzzlePreferences;
 use crate::preferences::Preferences;
+use crate::puzzle::common::RaySystem;
 use crate::puzzle::common::{Basis, BasisDiff, Sign};
 use crate::puzzle::r_dodeca::RDodecaRay;
 use crate::render::common::*;
 use crate::NUMBER_KEYS;
 use enum_map::enum_map;
 use std::collections::HashMap;
+use std::f32::consts::PI;
 
 use crate::util::{color, Vec3};
 use cgmath::InnerSpace;
@@ -62,6 +64,18 @@ impl ConcreteRaySystem for RDodecaRay {
         1
     }
 
+    fn turn_to_concrete((ray, order): (Self, i8), conjugate: Self::Conjugate) -> ConcreteTurn {
+        match conjugate {
+            BinaryConjugate::Id => ConcreteTurn::Rotation(
+                ray.axis_to_vec(conjugate),
+                order as f32 * 2.0 * PI / Self::order() as f32,
+            ),
+            BinaryConjugate::Conj => {
+                ConcreteTurn::Reflection(Self(ray.0, ray.1, -ray.2).axis_to_vec(conjugate))
+            }
+        }
+    }
+
     fn ray_to_vec(&self, conjugate: Self::Conjugate) -> Vec3 {
         // in the conjugate, (a, ±₁, ±₂) -> - ±₁a⁺ + ±₂a⁺⁺
         let sign = match conjugate {
@@ -75,7 +89,6 @@ impl ConcreteRaySystem for RDodecaRay {
     }
 
     fn default_colors() -> enum_map::EnumMap<Self, color::Color> {
-        use crate::puzzle::common::RaySystem;
         use crate::puzzle::dodeca::{name, DodecaRay};
 
         let default_dodeca = DodecaRay::default_colors();

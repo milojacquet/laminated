@@ -1,12 +1,14 @@
 use crate::enum_iter;
 use crate::preferences::ConcretePuzzlePreferences;
 use crate::preferences::Preferences;
+use crate::puzzle::common::RaySystem;
 use crate::puzzle::common::{Basis, BasisDiff, Sign};
 use crate::puzzle::dodeca::DodecaRay;
 use crate::render::common::*;
 use crate::NUMBER_KEYS;
 use enum_map::enum_map;
 use std::collections::HashMap;
+use std::f32::consts::PI;
 
 use crate::util::{color, Vec3};
 use cgmath::InnerSpace;
@@ -117,7 +119,7 @@ const CORE_SIZE: f32 = 0.4;
 
 fn turn(vec: Vec3) -> Vec3 {
     use crate::puzzle::dodeca::name::PB;
-    let mat = DodecaRay::turn_to_transform((PB, 1), BinaryConjugate::Id);
+    let mat = DodecaRay::turn_to_concrete((PB, 1), BinaryConjugate::Id).to_transform();
     (mat * vec.extend(1.0)).truncate()
 }
 

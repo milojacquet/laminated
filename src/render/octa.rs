@@ -1,9 +1,11 @@
 use crate::preferences::ConcretePuzzlePreferences;
 use crate::preferences::Preferences;
+use crate::puzzle::common::RaySystem;
 use crate::puzzle::common::{Basis, Sign};
 use crate::puzzle::octa::OctaRay;
 use crate::render::common::*;
 use crate::NUMBER_KEYS;
+use core::f32::consts::PI;
 use enum_map::enum_map;
 use std::collections::HashMap;
 
@@ -12,10 +14,6 @@ use cgmath::InnerSpace;
 
 impl ConcreteRaySystem for OctaRay {
     type Conjugate = ();
-
-    fn order_conjugate(_conjugate: Self::Conjugate) -> i8 {
-        1
-    }
 
     fn ray_to_vec(&self, _conjugate: Self::Conjugate) -> Vec3 {
         (Basis::X.to_vec() * self.0.to_f32()

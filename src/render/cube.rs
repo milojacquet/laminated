@@ -1,10 +1,12 @@
 use crate::preferences::ConcretePuzzlePreferences;
+use crate::puzzle::common::RaySystem;
 use crate::puzzle::cube::CubeRay;
 use crate::puzzle::cube::{Basis, Sign};
 use crate::render::common::*;
 use crate::NUMBER_KEYS;
 use enum_map::enum_map;
 use std::collections::HashMap;
+use std::f32::consts::PI;
 
 use crate::preferences::Preferences;
 use crate::util::{color, Vec3};
@@ -13,10 +15,6 @@ const SUPER_START: f32 = 0.75;
 
 impl ConcreteRaySystem for CubeRay {
     type Conjugate = ();
-
-    fn order_conjugate(_conjugate: Self::Conjugate) -> i8 {
-        1
-    }
 
     fn ray_to_vec(&self, _conjugate: Self::Conjugate) -> Vec3 {
         self.0.to_vec() * self.1.to_f32()
