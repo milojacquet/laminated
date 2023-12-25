@@ -27,10 +27,13 @@ pub enum ConcreteTurn {
 impl ConcreteTurn {
     pub fn mod_angle(&self) -> Self {
         match self {
-            Self::Rotation(axis, angle) => Self::Rotation(
-                axis.clone(),
-                (angle.rem_euclid(2.0 * PI) + PI).rem_euclid(2.0 * PI) - PI,
-            ),
+            Self::Rotation(axis, angle) => {
+                let min = if angle > &0.0 { PI * -0.99 } else { PI * -1.01 };
+                Self::Rotation(
+                    axis.clone(),
+                    (angle.rem_euclid(2.0 * PI) - min).rem_euclid(2.0 * PI) + min,
+                )
+            }
             Self::Reflection(_normal) => self.clone(),
         }
     }
