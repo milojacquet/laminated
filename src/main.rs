@@ -3,6 +3,7 @@ use crate::preferences::Preferences;
 use crate::puzzle::cube::CubeRay;
 use crate::puzzle::dodeca::DodecaRay;
 use crate::puzzle::octa::OctaRay;
+use crate::puzzle::r_dodeca::RDodecaRay;
 use crate::render::common::*;
 use crate::render::create::*;
 use crate::session::*;
@@ -130,24 +131,25 @@ fn color_picker_grid<Ray: ConcreteRaySystem>(
 ) {
     use egui::*;
 
-    ui.label(name);
-    Grid::new(format!("{name}_color_grid"))
-        .min_col_width(0.0)
-        .show(ui, |ui| {
-            for ray in enum_iter::<Ray>() {
-                reset_button_small(
-                    ui,
-                    &mut Ray::ray_to_color_mut(prefs)[ray],
-                    Ray::ray_to_color(&Default::default())[ray],
-                );
-                // i can't make a mutable view &mut [u8; 3] of a Color so i have to do this
-                let mut color = Ray::ray_to_color_mut(prefs)[ray].as_array();
-                ui.color_edit_button_srgb(&mut color);
-                Ray::ray_to_color_mut(prefs)[ray] = color.into();
-                ui.label(ray.name());
-                ui.end_row();
-            }
-        });
+    ui.collapsing(name, |ui| {
+        Grid::new(format!("{name}_color_grid"))
+            .min_col_width(0.0)
+            .show(ui, |ui| {
+                for ray in enum_iter::<Ray>() {
+                    reset_button_small(
+                        ui,
+                        &mut Ray::ray_to_color_mut(prefs)[ray],
+                        Ray::ray_to_color(&Default::default())[ray],
+                    );
+                    // i can't make a mutable view &mut [u8; 3] of a Color so i have to do this
+                    let mut color = Ray::ray_to_color_mut(prefs)[ray].as_array();
+                    ui.color_edit_button_srgb(&mut color);
+                    Ray::ray_to_color_mut(prefs)[ray] = color.into();
+                    ui.label(ray.name());
+                    ui.end_row();
+                }
+            });
+    });
 }
 
 // polyfill from egui 0.24.1
@@ -451,56 +453,70 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                     .fill(Color32::from_rgba_premultiplied(0, 0, 0, 222));
                 let settings_panel = SidePanel::left("Settings").frame(frame).min_width(210.0);
                 settings_panel.show(gui_context, |ui| {
-                    ui.collapsing("Colors", |ui| {
-                        color_picker_grid::<CubeRay>("Cube", ui, &mut persistent.prefs);
-                        color_picker_grid::<OctaRay>("Octahedron", ui, &mut persistent.prefs);
-                        color_picker_grid::<DodecaRay>("Dodecahedron", ui, &mut persistent.prefs);
-                    });
-
-                    ui.collapsing("Controls", |ui| {
-                        ui.checkbox(
-                            &mut persistent.prefs.viewport_keys,
-                            "Per-viewport layer keys",
-                        );
-
-                        ui.horizontal(|ui| {
-                            reset_button_small(
+                    ScrollArea::vertical().show(ui, |ui| {
+                        ui.collapsing("Colors", |ui| {
+                            color_picker_grid::<CubeRay>("Cube", ui, &mut persistent.prefs);
+                            color_picker_grid::<OctaRay>("Octahedron", ui, &mut persistent.prefs);
+                            color_picker_grid::<DodecaRay>(
+                                "Dodecahedron",
                                 ui,
-                                &mut persistent.prefs.animation_length,
-                                Preferences::default().animation_length,
+                                &mut persistent.prefs,
                             );
-                            ui.add(
-                                DragValue::new(&mut persistent.prefs.animation_length)
-                                    .speed(10.0)
-                                    .clamp_range(0.0..=1000.0)
-                                    .suffix(" ms"),
+                            color_picker_grid::<RDodecaRay>(
+                                "Rhombic Dodecahedron",
+                                ui,
+                                &mut persistent.prefs,
                             );
-                            ui.label("Animation length");
                         });
-                    });
 
-                    ui.collapsing("Puzzle form", |ui| {
-                        if ui
-                            .checkbox(&mut persistent.prefs.concrete.octa_extend, "FTO extensions")
-                            .clicked()
-                        {
-                            response.replace_concrete_puzzle = true;
+                        ui.collapsing("Controls", |ui| {
+                            ui.checkbox(
+                                &mut persistent.prefs.viewport_keys,
+                                "Per-viewport layer keys",
+                            );
+
+                            ui.horizontal(|ui| {
+                                reset_button_small(
+                                    ui,
+                                    &mut persistent.prefs.animation_length,
+                                    Preferences::default().animation_length,
+                                );
+                                ui.add(
+                                    DragValue::new(&mut persistent.prefs.animation_length)
+                                        .speed(10.0)
+                                        .clamp_range(0.0..=1000.0)
+                                        .suffix(" ms"),
+                                );
+                                ui.label("Animation length");
+                            });
+                        });
+
+                        ui.collapsing("Puzzle form", |ui| {
+                            if ui
+                                .checkbox(
+                                    &mut persistent.prefs.concrete.octa_extend,
+                                    "FTO extensions",
+                                )
+                                .clicked()
+                            {
+                                response.replace_concrete_puzzle = true;
+                            }
+                        });
+
+                        ui.separator();
+
+                        if ui.button("Save preferences").clicked() {
+                            response.save_prefs = true;
+                        }
+
+                        if ui.button("Reload preferences").clicked() {
+                            response.load_prefs = true;
+                        }
+
+                        if ui.button("Reset preferences").clicked() {
+                            persistent.prefs = Default::default();
                         }
                     });
-
-                    ui.separator();
-
-                    if ui.button("Save preferences").clicked() {
-                        response.save_prefs = true;
-                    }
-
-                    if ui.button("Reload preferences").clicked() {
-                        response.load_prefs = true;
-                    }
-
-                    if ui.button("Reset preferences").clicked() {
-                        persistent.prefs = Default::default();
-                    }
                 });
             }
         },

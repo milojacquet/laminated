@@ -231,13 +231,7 @@ pub fn little_chop_seeds(_prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<RDode
 
     for side in [1, -1] {
         let make_grips = |grips: Vec<RDodecaRay>| {
-            enum_map::EnumMap::from_fn(|ray: RDodecaRay| {
-                if grips.contains(&ray.unconjugate(BinaryConjugate::Id)) {
-                    1
-                } else {
-                    -1
-                }
-            })
+            enum_map::EnumMap::from_fn(|ray: RDodecaRay| if grips.contains(&ray) { 1 } else { -1 })
         };
 
         let abstract_viewport = AbstractViewport {
