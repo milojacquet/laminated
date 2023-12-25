@@ -135,17 +135,19 @@ fn color_picker_grid<Ray: ConcreteRaySystem>(
         Grid::new(format!("{name}_color_grid"))
             .min_col_width(0.0)
             .show(ui, |ui| {
-                for ray in enum_iter::<Ray>() {
-                    reset_button_small(
-                        ui,
-                        &mut Ray::ray_to_color_mut(prefs)[ray],
-                        Ray::ray_to_color(&Default::default())[ray],
-                    );
-                    // i can't make a mutable view &mut [u8; 3] of a Color so i have to do this
-                    let mut color = Ray::ray_to_color_mut(prefs)[ray].as_array();
-                    ui.color_edit_button_srgb(&mut color);
-                    Ray::ray_to_color_mut(prefs)[ray] = color.into();
-                    ui.label(ray.name());
+                for axis in Ray::AXIS_HEADS {
+                    for ray in axis.get_axis() {
+                        reset_button_small(
+                            ui,
+                            &mut Ray::ray_to_color_mut(prefs)[ray],
+                            Ray::ray_to_color(&Default::default())[ray],
+                        );
+                        // i can't make a mutable view &mut [u8; 3] of a Color so i have to do this
+                        let mut color = Ray::ray_to_color_mut(prefs)[ray].as_array();
+                        ui.color_edit_button_srgb(&mut color);
+                        Ray::ray_to_color_mut(prefs)[ray] = color.into();
+                        ui.label(ray.name());
+                    }
                     ui.end_row();
                 }
             });
@@ -451,7 +453,7 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
             if persistent.settings_open {
                 let frame = Frame::side_top_panel(&gui_context.style())
                     .fill(Color32::from_rgba_premultiplied(0, 0, 0, 222));
-                let settings_panel = SidePanel::left("Settings").frame(frame).min_width(210.0);
+                let settings_panel = SidePanel::left("Settings").frame(frame).min_width(230.0);
                 settings_panel.show(gui_context, |ui| {
                     ScrollArea::vertical().show(ui, |ui| {
                         ui.collapsing("Colors", |ui| {
