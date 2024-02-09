@@ -722,7 +722,7 @@ fn main() {
         max_size: Some((1280, 720)),
         ..Default::default()
     })
-    .unwrap();
+    .expect("should create window");
 
     let context = window.gl();
     context.set_cull(Cull::Back);
