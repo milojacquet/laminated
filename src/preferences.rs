@@ -1,5 +1,8 @@
 use crate::puzzle::cube::CubeRay;
+use crate::puzzle::dodeca::DodecaRay;
 use crate::puzzle::octa::OctaRay;
+use crate::puzzle::r_dodeca::RDodecaRay;
+use crate::render::common::ConcreteRaySystem;
 use crate::util::color;
 use crate::util::color::Color;
 use enum_map::enum_map;
@@ -9,49 +12,29 @@ use serde::Serialize;
 
 const PREFS_PATH: &'static str = "./preferences.json";
 
-fn color_cube_default() -> EnumMap<CubeRay, Color> {
-    use crate::puzzle::cube::*;
-
-    enum_map! {
-        CubeRay(Basis::Y, Sign::Pos) => color::ORANGE,
-        CubeRay(Basis::Z, Sign::Pos) => color::WHITE,
-        CubeRay(Basis::X, Sign::Pos) => color::BLUE,
-        CubeRay(Basis::Z, Sign::Neg) => color::YELLOW,
-        CubeRay(Basis::X, Sign::Neg) => color::GREEN,
-        CubeRay(Basis::Y, Sign::Neg) => color::RED,
-    }
-}
-
-fn color_octa_default() -> EnumMap<OctaRay, Color> {
-    use crate::puzzle::octa::*;
-
-    enum_map! {
-        OctaRay(Sign::Pos, Sign::Neg, Sign::Pos) => color::WHITE,
-        OctaRay(Sign::Pos, Sign::Neg, Sign::Neg) => color::GREEN,
-        OctaRay(Sign::Neg, Sign::Neg, Sign::Pos) => color::RED,
-        OctaRay(Sign::Neg, Sign::Neg, Sign::Neg) => color::DARK_GREEN,
-        OctaRay(Sign::Pos, Sign::Pos, Sign::Pos) => color::BLUE,
-        OctaRay(Sign::Pos, Sign::Pos, Sign::Neg) => color::ORANGE,
-        OctaRay(Sign::Neg, Sign::Pos, Sign::Pos) => color::PURPLE,
-        OctaRay(Sign::Neg, Sign::Pos, Sign::Neg) => color::YELLOW,
-    }
-}
-
 #[derive(Serialize, Deserialize)]
 pub struct ColorPreferences {
-    #[serde(default = "color_cube_default")]
+    #[serde(default = "CubeRay::default_colors")]
     #[serde(with = "crate::util::enum_map_serde")]
     pub cube: EnumMap<CubeRay, Color>,
-    #[serde(default = "color_octa_default")]
+    #[serde(default = "OctaRay::default_colors")]
     #[serde(with = "crate::util::enum_map_serde")]
     pub octa: EnumMap<OctaRay, Color>,
+    #[serde(default = "DodecaRay::default_colors")]
+    #[serde(with = "crate::util::enum_map_serde")]
+    pub dodeca: EnumMap<DodecaRay, Color>,
+    #[serde(default = "RDodecaRay::default_colors")]
+    #[serde(with = "crate::util::enum_map_serde")]
+    pub r_dodeca: EnumMap<RDodecaRay, Color>,
 }
 
 impl Default for ColorPreferences {
     fn default() -> Self {
         Self {
-            cube: color_cube_default(),
-            octa: color_octa_default(),
+            cube: CubeRay::default_colors(),
+            octa: OctaRay::default_colors(),
+            dodeca: DodecaRay::default_colors(),
+            r_dodeca: RDodecaRay::default_colors(),
         }
     }
 }

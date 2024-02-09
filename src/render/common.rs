@@ -1,5 +1,6 @@
 use crate::puzzle::common::*;
 use crate::ANIMATION_INIT_V;
+use enum_map::Enum;
 use enum_map::EnumMap;
 use std::cmp;
 use std::collections::HashMap;
@@ -11,15 +12,88 @@ use three_d::*;
 
 const DEFAULT_HEIGHT: Deg<f32> = Deg(20.0);
 
+#[derive(Debug, Enum, Clone, Copy, PartialEq, Eq)]
+pub enum BinaryConjugate {
+    Id,
+    Conj,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum ConcreteTurn {
+    Rotation(Vec3, f32), // rotation around (normal) Vec3 by f32
+    Reflection(Vec3),    // reflection perpendicular to (normal) Vec3
+}
+
+impl ConcreteTurn {
+    pub fn mod_angle(&self) -> Self {
+        match self {
+            Self::Rotation(axis, angle) => {
+                let min = if angle > &0.0 { PI * -0.99 } else { PI * -1.01 };
+                Self::Rotation(
+                    axis.clone(),
+                    (angle.rem_euclid(2.0 * PI) - min).rem_euclid(2.0 * PI) + min,
+                )
+            }
+            Self::Reflection(_normal) => self.clone(),
+        }
+    }
+
+    /// t==1.0 => do transform, t==0.0 => identity
+    pub fn to_transform_partial(&self, t: f32) -> Mat4 {
+        match self {
+            Self::Rotation(axis, angle) => Mat4::from_axis_angle(axis.clone(), Rad(angle * t)),
+            Self::Reflection(normal) => Matrix4::new(
+                1.0 - t * 2.0 * normal.x * normal.x,
+                -t * 2.0 * normal.x * normal.y,
+                -t * 2.0 * normal.x * normal.z,
+                0.0,
+                -t * 2.0 * normal.y * normal.x,
+                1.0 - t * 2.0 * normal.y * normal.y,
+                -t * 2.0 * normal.y * normal.z,
+                0.0,
+                -t * 2.0 * normal.z * normal.x,
+                -t * 2.0 * normal.z * normal.y,
+                1.0 - t * 2.0 * normal.z * normal.z,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0,
+            ),
+        }
+    }
+
+    pub fn to_transform(&self) -> Mat4 {
+        self.to_transform_partial(1.0)
+    }
+}
+
 pub trait ConcreteRaySystem
 where
     Self: RaySystem,
-    Self::Conjugate: Default + Eq + Copy + enum_map::Enum + enum_map::EnumArray<CameraFacing>,
+    Self::Conjugate: Eq + Copy + enum_map::Enum + enum_map::EnumArray<CameraFacing>,
 {
     type Conjugate;
 
-    fn axis_to_transform(turn: (Self, i8), conjugate: Self::Conjugate) -> Mat4;
+    /// The angle of the turn is 2π * order_conjugate(conj) / order().
+    //fn concrete_turn(turn: (Self, i8), conjugate: Self::Conjugate) -> ConcreteTurn;
 
+    /*fn order_to_angle(order: i8, conjugate: Self::Conjugate) -> f32 {
+        order as f32 * 2.0 * PI * Self::order_conjugate(conjugate) as f32 / Self::order() as f32
+    }*/
+
+    fn order_conjugate(_conjugate: Self::Conjugate) -> i8 {
+        1
+    }
+
+    fn turn_to_concrete(turn: (Self, i8), conjugate: Self::Conjugate) -> ConcreteTurn {
+        let (ray, order) = turn;
+        ConcreteTurn::Rotation(
+            ray.axis_to_vec(conjugate),
+            order as f32 * 2.0 * Self::order_conjugate(conjugate) as f32 * PI
+                / Self::order() as f32,
+        )
+    }
     /// Unit vector that points along a ray.
     fn ray_to_vec(&self, conjugate: Self::Conjugate) -> Vec3;
 
@@ -28,6 +102,7 @@ where
         self.get_axis()[0].ray_to_vec(conjugate)
     }
 
+    fn default_colors() -> EnumMap<Self, color::Color>;
     fn ray_to_color(prefs: &Preferences) -> &EnumMap<Self, color::Color>;
     fn ray_to_color_mut(prefs: &mut Preferences) -> &mut EnumMap<Self, color::Color>;
 }
@@ -55,6 +130,21 @@ impl SimpleMesh {
     }
 }
 
+#[derive(Debug, Default, Clone, Copy)]
+pub struct StickerOptions {
+    pub core: bool,
+    pub parity: bool,
+}
+
+impl<Ray: RaySystem> Puzzle<Ray> {
+    pub fn piece_by_ind(&self, piece_ind: StickerInd, permutation: &[usize]) -> &Piece<Ray> {
+        match piece_ind {
+            StickerInd::Normal(ind) => &self.pieces[permutation[ind]],
+            StickerInd::Core(ind) => &self.pieces[ind],
+        }
+    }
+}
+
 /// The initial data which will be symmetry-expanded into a sticker.
 #[derive(Debug)]
 pub struct StickerSeed<Ray>
@@ -69,16 +159,23 @@ where
     pub color: Ray,
     /// The vertices of the polygon that makes up the sticker.
     pub vertices: Vec<Vec3>,
+    pub options: StickerOptions,
 }
 
 #[derive(Debug)]
 pub struct StickerAnimation {
-    /// the axis the sticker is turning around
-    pub rotation_axis: Vec3,
-    /// the angle the axis starts at
-    pub start_angle: f32,
+    /// the turn being performed
+    pub turn: ConcreteTurn,
     /// the time remaining for the animation, in milliseconds
     pub time_remaining: f32,
+}
+
+/// Normal: this sticker corresponds to the location on the puzzle at ind
+/// Core: this sticker corresponds to the piece on the puzzle whose solved position is ind
+#[derive(Debug, Clone, Copy)]
+pub enum StickerInd {
+    Normal(usize),
+    Core(usize),
 }
 
 //#[derive(Debug)]
@@ -87,7 +184,7 @@ where
     Ray: ConcreteRaySystem,
 {
     /// The index of the piece this sticker is part of in `permutation` on `Puzzle`.
-    pub piece_ind: usize,
+    pub piece_ind: StickerInd,
     /// The face the sticker is on. Controls what turn is done when clicked.
     pub face: Ray,
     /// The face that controls the color of the sticker.
@@ -128,15 +225,23 @@ impl<Ray: ConcreteRaySystem> Sticker<Ray> {
             self.animation = None;
         }
         if let Some(animation) = &mut self.animation {
-            let sticker_angle = animation.start_angle
-                * cubic_interpolate(animation.time_remaining / animation_length);
-            sticker_mat = Mat4::from_axis_angle(animation.rotation_axis, Rad(sticker_angle));
+            // let sticker_angle = animation.start_angle
+            //     * cubic_interpolate(animation.time_remaining / animation_length);
+            // sticker_mat = Mat4::from_axis_angle(animation.rotation_axis, Rad(sticker_angle));
+            sticker_mat = animation.turn.to_transform_partial(cubic_interpolate(
+                animation.time_remaining / animation_length,
+            ))
         } else {
             sticker_mat = Mat4::identity();
         }
 
         self.gm.material.color = color;
         self.gm.set_transformation(sticker_mat);
+        self.gm.material.render_states.cull = if sticker_mat.determinant() > 0.0 {
+            Cull::Back
+        } else {
+            Cull::Front
+        };
     }
 }
 
@@ -301,13 +406,14 @@ where
 impl<Ray: ConcreteRaySystem> ConcretePuzzle<Ray> {
     pub fn twist(&mut self, (ray, order): (Ray, i8), grip: &[i8], animation_length: f32) {
         self.puzzle.twist((ray, order), grip);
+        let permutation = self.puzzle.permutation();
         for viewport in self.viewports.iter_mut() {
             for sticker in viewport.stickers.iter_mut() {
-                let piece_at_sticker = self.puzzle.index_to_solved_piece(sticker.piece_ind);
+                let piece_at_sticker = self.puzzle.piece_by_ind(sticker.piece_ind, &permutation);
                 if piece_at_sticker.grip_on_axis(ray) == grip {
+                    let turn = Ray::turn_to_concrete((ray, order), viewport.conjugate).mod_angle();
                     sticker.animation = Some(StickerAnimation {
-                        rotation_axis: ray.axis_to_vec(viewport.conjugate),
-                        start_angle: (order as f32) * 2.0 * PI / (ray.order() as f32),
+                        turn,
                         time_remaining: animation_length,
                     })
                 }
@@ -326,4 +432,59 @@ impl<Ray: ConcreteRaySystem> ConcretePuzzle<Ray> {
 
 pub fn polygon_inds(verts: usize) -> Vec<[usize; 3]> {
     (2..verts).map(|i| [0, i - 1, i]).collect()
+}
+
+pub mod concrete_ray_system_tests {
+    use super::*;
+    use crate::enum_iter;
+
+    const EPSILON: f32 = 1e-4;
+
+    fn ray_vectors_unit<Ray>()
+    where
+        Ray: ConcreteRaySystem + std::fmt::Debug,
+        Ray::Conjugate: std::fmt::Debug,
+    {
+        for conjugate in enum_iter::<Ray::Conjugate>() {
+            for ray in enum_iter::<Ray>() {
+                let vec = ray.ray_to_vec(conjugate);
+                assert!(
+                    (vec.magnitude() - 1.0).abs() < EPSILON,
+                    "vector of {ray:?} in conjugate {conjugate:?} is not unit ({vec:?})",
+                );
+            }
+        }
+    }
+
+    fn turn_matrix_matches_abstract<Ray>()
+    where
+        Ray: ConcreteRaySystem + std::fmt::Debug,
+        Ray::Conjugate: std::fmt::Debug,
+    {
+        for conjugate in enum_iter::<Ray::Conjugate>() {
+            for &axis in Ray::AXIS_HEADS {
+                for ray in enum_iter::<Ray>() {
+                    let abst_first = ray.turn((axis, 1)).ray_to_vec(conjugate).extend(1.0);
+                    let conc_first = Ray::turn_to_concrete((axis, 1), conjugate).to_transform()
+                        * ray.ray_to_vec(conjugate).extend(1.0);
+                    assert!(
+                        abst_first.distance(conc_first) < EPSILON,
+                        "concretely turning {ray:?} around {axis:?} in \
+                        conjugate {conjugate:?} does not match abstract \
+                        ({:?},{abst_first:?},{conc_first:?})",
+                        ray.turn((axis, 1))
+                    );
+                }
+            }
+        }
+    }
+
+    pub fn validate_concrete_ray_system<Ray>()
+    where
+        Ray: ConcreteRaySystem + std::fmt::Debug,
+        Ray::Conjugate: std::fmt::Debug,
+    {
+        ray_vectors_unit::<Ray>();
+        turn_matrix_matches_abstract::<Ray>();
+    }
 }

@@ -21,7 +21,7 @@ impl RaySystem for CubeRay {
         }
     }
 
-    fn order(&self) -> i8 {
+    fn order() -> i8 {
         4
     }
 

@@ -46,6 +46,27 @@ impl Add<BasisDiff> for Basis {
     }
 }
 
+impl Add for BasisDiff {
+    type Output = Self;
+    fn add(self, diff: BasisDiff) -> Self {
+        match (self, diff) {
+            (_, BasisDiff::D0) => self,
+            (BasisDiff::D0, _) => self,
+            (BasisDiff::D1, BasisDiff::D1) => BasisDiff::D2,
+            (BasisDiff::D1, BasisDiff::D2) => BasisDiff::D0,
+            (BasisDiff::D2, BasisDiff::D1) => BasisDiff::D0,
+            (BasisDiff::D2, BasisDiff::D2) => BasisDiff::D1,
+        }
+    }
+}
+
+impl Sub<BasisDiff> for Basis {
+    type Output = Self;
+    fn sub(self, diff: BasisDiff) -> Self {
+        self + (-diff)
+    }
+}
+
 impl Sub for Basis {
     type Output = BasisDiff;
     fn sub(self, basis: Self) -> BasisDiff {
@@ -59,6 +80,17 @@ impl Sub for Basis {
             (Basis::Z, Basis::X) => BasisDiff::D2,
             (Basis::X, Basis::Y) => BasisDiff::D2,
             (Basis::Y, Basis::Z) => BasisDiff::D2,
+        }
+    }
+}
+
+impl Neg for BasisDiff {
+    type Output = BasisDiff;
+    fn neg(self) -> Self {
+        match self {
+            BasisDiff::D0 => BasisDiff::D0,
+            BasisDiff::D1 => BasisDiff::D2,
+            BasisDiff::D2 => BasisDiff::D1,
         }
     }
 }
@@ -128,13 +160,13 @@ where
     fn turn(&self, ray_order: (Self, i8)) -> Self {
         let (ray, order) = ray_order;
         let mut turned = *self;
-        for _ in 0..order.rem_euclid(ray.order()) {
+        for _ in 0..order.rem_euclid(Self::order()) {
             turned = turned.turn_one(ray);
         }
         turned
     }
     /// Gets the order of the turn
-    fn order(&self) -> i8;
+    fn order() -> i8;
     /// Returns a list of rays, each one of which is the first ray of its axis.
     const AXIS_HEADS: &'static [Self];
     /// Hamiltonian cycle for symmetry group
@@ -352,7 +384,7 @@ impl<Ray: RaySystem> Puzzle<Ray> {
                 .choose(&mut rng)
                 .expect("ray system should not be empty")
                 .to_vec();
-            self.twist((ray, rng.gen_range(0..ray.order())), &grip[..]);
+            self.twist((ray, rng.gen_range(0..Ray::order())), &grip[..]);
         }
     }
 }
@@ -404,9 +436,25 @@ pub mod ray_system_tests {
             for ray2s in enum_iter::<Ray>().combinations(2) {
                 assert!(
                     ray2s[0].turn_one(ray) != ray2s[1].turn_one(ray),
-                    "{:?} and {:?} turn the same under {:?}",
+                    "{:?} and {:?} both turn to {:?} under {:?}",
                     ray2s[0],
                     ray2s[1],
+                    ray2s[0].turn_one(ray),
+                    ray
+                );
+            }
+        }
+    }
+
+    fn turns_have_correct_order<Ray: RaySystem + std::fmt::Debug>() {
+        for &ray in Ray::AXIS_HEADS {
+            for ray2 in enum_iter::<Ray>() {
+                let r = ray2.turn((ray, Ray::order()));
+                assert!(
+                    ray2 == r,
+                    "{:?} does not turn with order divisible by {:?} under {:?}",
+                    ray2,
+                    Ray::order(),
                     ray
                 );
             }
@@ -418,5 +466,6 @@ pub mod ray_system_tests {
         axis_heads_all_heads::<Ray>();
         turns_consistent_axis::<Ray>();
         turns_permutations::<Ray>();
+        turns_have_correct_order::<Ray>();
     }
 }

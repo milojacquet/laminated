@@ -50,14 +50,16 @@ fn make_viewport(
         window_height as f32 / top_viewport.height,
     );
 
+    // these are the coordinates of the top viewport
+    // x0 and y0 are the bottom-left point of the viewport, not the (0,0)
     let viewport_width = scale * top_viewport.width;
     let viewport_height = scale * top_viewport.height;
     let viewport_x0 = (window_width as f32 / 2.0 - viewport_width / 2.0).max(0.0);
     let viewport_y0 = (window_height as f32 / 2.0 - viewport_height / 2.0).max(0.0);
 
     Viewport {
-        x: (viewport_x0 + abstract_viewport.x * scale).ceil() as i32,
-        y: (viewport_y0 + abstract_viewport.y * scale).ceil() as i32,
+        x: (viewport_x0 + (abstract_viewport.x - top_viewport.x) * scale).ceil() as i32,
+        y: (viewport_y0 + (abstract_viewport.y - top_viewport.y) * scale).ceil() as i32,
         width: (abstract_viewport.width * scale).round() as u32,
         height: (abstract_viewport.height * scale).round() as u32,
     }
@@ -122,15 +124,21 @@ pub fn make_concrete_puzzle<Ray: ConcreteRaySystem>(
                 for turn_m in iter::once(None).chain(Ray::CYCLE.iter().map(Some)) {
                     if let Some(&turn) = turn_m {
                         let (turn_ray, turn_order) = turn;
-                        seed.layers = EnumMap::from_fn(|ray: Ray| {
-                            seed.layers[ray.turn((turn_ray, -turn_order))]
-                        });
+                        if !seed.options.core {
+                            seed.layers = EnumMap::from_fn(|ray: Ray| {
+                                seed.layers[ray.turn((turn_ray, -turn_order))]
+                            });
+                        }
                         seed.face = seed.face.turn(turn);
                         seed.color = seed.color.turn(turn);
 
-                        let mat = Ray::axis_to_transform(turn, viewport_seed.conjugate);
+                        let mat =
+                            Ray::turn_to_concrete(turn, viewport_seed.conjugate).to_transform();
                         for vert in seed.vertices.iter_mut() {
                             *vert = (mat * vert.extend(1.0)).truncate();
+                        }
+                        if seed.options.parity {
+                            seed.vertices.reverse();
                         }
                     }
                     let seed_layers_clone = enum_map_clone(&seed.layers);
@@ -138,9 +146,14 @@ pub fn make_concrete_puzzle<Ray: ConcreteRaySystem>(
                         puzzle.piece_to_index(&Piece::make_solved_from_layers(seed_layers_clone));
 
                     let gm = create_sticker_gm(context, &seed.vertices, seed.color, prefs);
+                    //dbg!(seed.options.parity, i, &seed.vertices, &vertices);
 
                     stickers.push(Sticker {
-                        piece_ind,
+                        piece_ind: if seed.options.core {
+                            StickerInd::Core(piece_ind)
+                        } else {
+                            StickerInd::Normal(piece_ind)
+                        },
                         face: seed.face,
                         color: seed.color,
                         vertices: seed.vertices.clone(),

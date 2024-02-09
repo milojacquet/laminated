@@ -1,7 +1,9 @@
 use crate::key_label::*;
 use crate::preferences::Preferences;
 use crate::puzzle::cube::CubeRay;
+use crate::puzzle::dodeca::DodecaRay;
 use crate::puzzle::octa::OctaRay;
+use crate::puzzle::r_dodeca::RDodecaRay;
 use crate::render::common::*;
 use crate::render::create::*;
 use crate::session::*;
@@ -73,9 +75,9 @@ fn render_puzzle<Ray: ConcreteRaySystem>(
             &camera,
             viewport.stickers.iter_mut().map(|sticker| {
                 let puzzle = &concrete_puzzle.puzzle;
+                let piece_at_sticker = puzzle.piece_by_ind(sticker.piece_ind, &permutation);
                 sticker.update_gm(
-                    Ray::ray_to_color(prefs)
-                        [puzzle.pieces[permutation[sticker.piece_ind]].orientation[sticker.color]]
+                    Ray::ray_to_color(prefs)[piece_at_sticker.orientation[sticker.color]]
                         .to_srgba(),
                     elapsed_time as f32,
                     prefs.animation_length,
@@ -129,24 +131,27 @@ fn color_picker_grid<Ray: ConcreteRaySystem>(
 ) {
     use egui::*;
 
-    ui.label(name);
-    Grid::new(format!("{name}_color_grid"))
-        .min_col_width(0.0)
-        .show(ui, |ui| {
-            for ray in enum_iter::<Ray>() {
-                reset_button_small(
-                    ui,
-                    &mut Ray::ray_to_color_mut(prefs)[ray],
-                    Ray::ray_to_color(&Default::default())[ray],
-                );
-                // i can't make a mutable view &mut [u8; 3] of a Color so i have to do this
-                let mut color = Ray::ray_to_color_mut(prefs)[ray].as_array();
-                ui.color_edit_button_srgb(&mut color);
-                Ray::ray_to_color_mut(prefs)[ray] = color.into();
-                ui.label(ray.name());
-                ui.end_row();
-            }
-        });
+    ui.collapsing(name, |ui| {
+        Grid::new(format!("{name}_color_grid"))
+            .min_col_width(0.0)
+            .show(ui, |ui| {
+                for axis in Ray::AXIS_HEADS {
+                    for ray in axis.get_axis() {
+                        reset_button_small(
+                            ui,
+                            &mut Ray::ray_to_color_mut(prefs)[ray],
+                            Ray::ray_to_color(&Default::default())[ray],
+                        );
+                        // i can't make a mutable view &mut [u8; 3] of a Color so i have to do this
+                        let mut color = Ray::ray_to_color_mut(prefs)[ray].as_array();
+                        ui.color_edit_button_srgb(&mut color);
+                        Ray::ray_to_color_mut(prefs)[ray] = color.into();
+                        ui.label(ray.name());
+                    }
+                    ui.end_row();
+                }
+            });
+    });
 }
 
 // polyfill from egui 0.24.1
@@ -304,15 +309,8 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                                 }
                             }
                         });
+
                         ui.menu_button("Octahedron", |ui| {
-                            // bugged and not useful
-                            /*if ui.button(format!("Core (testing)")).clicked() {
-                                response.new_session = Some(
-                                    SessionType::Octa(OctaPuzzle::Core)
-                                        .make_session_enum(persistent.window_size, &context),
-                                );
-                                ui.close_menu();
-                            }*/
                             for n in 2..=5 {
                                 if ui.button(format!("{0} layers", n)).clicked() {
                                     response.new_session = Some(
@@ -324,6 +322,44 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                                     );
                                     ui.close_menu();
                                 }
+                            }
+                        });
+
+                        ui.menu_button("Dodecahedron", |ui| {
+                            if ui.button(format!("2 layers (Pentultimate)")).clicked() {
+                                response.new_session = Some(
+                                    SessionType::Dodeca(DodecaPuzzle::Pentultimate)
+                                        .make_session_enum(
+                                            persistent.window_size,
+                                            context,
+                                            &persistent.prefs,
+                                        ),
+                                );
+                                ui.close_menu();
+                            }
+                            if ui.button(format!("3 layers (Megaminx)")).clicked() {
+                                response.new_session = Some(
+                                    SessionType::Dodeca(DodecaPuzzle::Megaminx).make_session_enum(
+                                        persistent.window_size,
+                                        context,
+                                        &persistent.prefs,
+                                    ),
+                                );
+                                ui.close_menu();
+                            }
+                        });
+
+                        ui.menu_button("Rhombic Dodecahedron", |ui| {
+                            if ui.button(format!("2 layers (Little Chop)")).clicked() {
+                                response.new_session = Some(
+                                    SessionType::RDodeca(RDodecaPuzzle::LittleChop)
+                                        .make_session_enum(
+                                            persistent.window_size,
+                                            context,
+                                            &persistent.prefs,
+                                        ),
+                                );
+                                ui.close_menu();
                             }
                         });
                     });
@@ -417,57 +453,72 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
             if persistent.settings_open {
                 let frame = Frame::side_top_panel(&gui_context.style())
                     .fill(Color32::from_rgba_premultiplied(0, 0, 0, 222));
-                let settings_panel = SidePanel::left("Settings").frame(frame).min_width(210.0);
+                let settings_panel = SidePanel::left("Settings").frame(frame).min_width(230.0);
                 settings_panel.show(gui_context, |ui| {
-                    ui.collapsing("Colors", |ui| {
-                        color_picker_grid::<CubeRay>("Cube", ui, &mut persistent.prefs);
-                        color_picker_grid::<OctaRay>("Octahedron", ui, &mut persistent.prefs);
-                    });
-
-                    ui.collapsing("Controls", |ui| {
-                        ui.checkbox(
-                            &mut persistent.prefs.viewport_keys,
-                            "Per-viewport layer keys",
-                        );
-
-                        ui.horizontal(|ui| {
-                            reset_button_small(
+                    ScrollArea::vertical().show(ui, |ui| {
+                        ui.collapsing("Colors", |ui| {
+                            color_picker_grid::<CubeRay>("Cube", ui, &mut persistent.prefs);
+                            color_picker_grid::<OctaRay>("Octahedron", ui, &mut persistent.prefs);
+                            color_picker_grid::<DodecaRay>(
+                                "Dodecahedron",
                                 ui,
-                                &mut persistent.prefs.animation_length,
-                                Preferences::default().animation_length,
+                                &mut persistent.prefs,
                             );
-                            ui.add(
-                                DragValue::new(&mut persistent.prefs.animation_length)
-                                    .speed(10.0)
-                                    .clamp_range(0.0..=1000.0)
-                                    .suffix(" ms"),
+                            color_picker_grid::<RDodecaRay>(
+                                "Rhombic Dodecahedron",
+                                ui,
+                                &mut persistent.prefs,
                             );
-                            ui.label("Animation length");
                         });
-                    });
 
-                    ui.collapsing("Puzzle form", |ui| {
-                        if ui
-                            .checkbox(&mut persistent.prefs.concrete.octa_extend, "FTO extensions")
-                            .clicked()
-                        {
-                            response.replace_concrete_puzzle = true;
+                        ui.collapsing("Controls", |ui| {
+                            ui.checkbox(
+                                &mut persistent.prefs.viewport_keys,
+                                "Per-viewport layer keys",
+                            );
+
+                            ui.horizontal(|ui| {
+                                reset_button_small(
+                                    ui,
+                                    &mut persistent.prefs.animation_length,
+                                    Preferences::default().animation_length,
+                                );
+                                ui.add(
+                                    DragValue::new(&mut persistent.prefs.animation_length)
+                                        .speed(10.0)
+                                        .clamp_range(0.0..=1000.0)
+                                        .suffix(" ms"),
+                                );
+                                ui.label("Animation length");
+                            });
+                        });
+
+                        ui.collapsing("Puzzle form", |ui| {
+                            if ui
+                                .checkbox(
+                                    &mut persistent.prefs.concrete.octa_extend,
+                                    "FTO extensions",
+                                )
+                                .clicked()
+                            {
+                                response.replace_concrete_puzzle = true;
+                            }
+                        });
+
+                        ui.separator();
+
+                        if ui.button("Save preferences").clicked() {
+                            response.save_prefs = true;
+                        }
+
+                        if ui.button("Reload preferences").clicked() {
+                            response.load_prefs = true;
+                        }
+
+                        if ui.button("Reset preferences").clicked() {
+                            persistent.prefs = Default::default();
                         }
                     });
-
-                    ui.separator();
-
-                    if ui.button("Save preferences").clicked() {
-                        response.save_prefs = true;
-                    }
-
-                    if ui.button("Reload preferences").clicked() {
-                        response.load_prefs = true;
-                    }
-
-                    if ui.button("Reset preferences").clicked() {
-                        persistent.prefs = Default::default();
-                    }
                 });
             }
         },
@@ -538,7 +589,8 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
 
                     if let Some(sticker) = sticker_m {
                         if button == MouseButton::Middle {
-                            persistent.status_message = Some(format!(
+                            // needs fixing!
+                            /*persistent.status_message = Some(format!(
                                 "position: {}, face: {}, color: {}, piece: {}",
                                 session
                                     .concrete_puzzle
@@ -550,19 +602,19 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
                                     .concrete_puzzle
                                     .puzzle
                                     .permutation()[sticker.piece_ind]]
-                            ));
+                            ));*/
                         } else if let Some((_conjugate, Some((_, press_button)))) =
                             session.mouse_press_location
                         {
                             persistent.status_message = None;
 
                             if press_button == button {
-                                // TODO revise for conjugate
-                                let turn_direction = match button {
-                                    three_d::MouseButton::Left => -1,
-                                    three_d::MouseButton::Right => 1,
-                                    _ => 0, // should never happen
-                                };
+                                let turn_direction =
+                                    match button {
+                                        three_d::MouseButton::Left => -1,
+                                        three_d::MouseButton::Right => 1,
+                                        _ => 0, // should never happen
+                                    } * Ray::order_conjugate(viewport_clicked.conjugate);
 
                                 let turn_face = sticker.face;
                                 let axis_index = turn_face
@@ -583,12 +635,13 @@ fn run_render_loop<Ray: ConcreteRaySystem + std::fmt::Display>(
 
                                 let grips = if default_mode {
                                     // rustfmt? hewwo?
-                                    vec![viewport_clicked.key_layers[axis_index]
-                                        .get(&NUMBER_KEYS[0])
-                                        .expect(
-                                            "viewport grips should have a binding for first key",
-                                        )
-                                        .clone()]
+                                    if let Some(layer) =
+                                        viewport_clicked.key_layers[axis_index].get(&NUMBER_KEYS[0])
+                                    {
+                                        vec![layer.clone()]
+                                    } else {
+                                        vec![]
+                                    }
                                 } else {
                                     let key_layers = if persistent.prefs.viewport_keys {
                                         &viewport_clicked.key_layers
@@ -669,7 +722,7 @@ fn main() {
         max_size: Some((1280, 720)),
         ..Default::default()
     })
-    .unwrap();
+    .expect("should create window");
 
     let context = window.gl();
     context.set_cull(Cull::Back);
@@ -698,6 +751,12 @@ fn main() {
                 run_render_loop(&mut frame_input, session, &mut persistent, &context)
             }
             SessionEnum::Octa(_, ref mut session) => {
+                run_render_loop(&mut frame_input, session, &mut persistent, &context)
+            }
+            SessionEnum::Dodeca(_, ref mut session) => {
+                run_render_loop(&mut frame_input, session, &mut persistent, &context)
+            }
+            SessionEnum::RDodeca(_, ref mut session) => {
                 run_render_loop(&mut frame_input, session, &mut persistent, &context)
             }
         };

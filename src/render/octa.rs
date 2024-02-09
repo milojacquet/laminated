@@ -1,31 +1,38 @@
 use crate::preferences::ConcretePuzzlePreferences;
 use crate::preferences::Preferences;
-use crate::puzzle::cube::Basis;
+use crate::puzzle::common::RaySystem;
+use crate::puzzle::common::{Basis, Sign};
 use crate::puzzle::octa::OctaRay;
 use crate::render::common::*;
 use crate::NUMBER_KEYS;
+use core::f32::consts::PI;
 use enum_map::enum_map;
 use std::collections::HashMap;
-use std::f32::consts::PI;
 
-use crate::util::{color, Mat4, Vec3};
-use cgmath::{InnerSpace, Rad};
+use crate::util::{color, Vec3};
+use cgmath::InnerSpace;
 
 impl ConcreteRaySystem for OctaRay {
     type Conjugate = ();
-
-    fn axis_to_transform((ray, order): (Self, i8), conjugate: Self::Conjugate) -> Mat4 {
-        Mat4::from_axis_angle(
-            ray.axis_to_vec(conjugate),
-            Rad(order as f32 * 2.0 * PI / 3.0),
-        )
-    }
 
     fn ray_to_vec(&self, _conjugate: Self::Conjugate) -> Vec3 {
         (Basis::X.to_vec() * self.0.to_f32()
             + Basis::Y.to_vec() * self.1.to_f32()
             + Basis::Z.to_vec() * self.2.to_f32())
         .normalize()
+    }
+
+    fn default_colors() -> enum_map::EnumMap<Self, color::Color> {
+        enum_map! {
+            Self(Sign::Pos, Sign::Neg, Sign::Pos) => color::WHITE,
+            Self(Sign::Pos, Sign::Neg, Sign::Neg) => color::GREEN,
+            Self(Sign::Neg, Sign::Neg, Sign::Pos) => color::RED,
+            Self(Sign::Neg, Sign::Neg, Sign::Neg) => color::DARK_GREEN,
+            Self(Sign::Pos, Sign::Pos, Sign::Pos) => color::BLUE,
+            Self(Sign::Pos, Sign::Pos, Sign::Neg) => color::ORANGE,
+            Self(Sign::Neg, Sign::Pos, Sign::Pos) => color::PURPLE,
+            Self(Sign::Neg, Sign::Pos, Sign::Neg) => color::YELLOW,
+        }
     }
 
     fn ray_to_color(prefs: &Preferences) -> &enum_map::EnumMap<Self, color::Color> {
@@ -237,6 +244,7 @@ pub fn fto_seeds(order: i8, prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Oct
                                     fv(0.0, 1.0, 0.0) * circrad,
                                     fv(0.0, 0.0, 1.0) * circrad,
                                 ],
+                                options: Default::default(),
                             });
                         } else if i == m && j == n {
                             // corner
@@ -251,6 +259,7 @@ pub fn fto_seeds(order: i8, prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Oct
                                             fv(0.0, cd(il + 1), cd(jl - 1)) * circrad,
                                             fv(0.0, 0.0, 1.0) * circrad,
                                         ],
+                                        options: Default::default(),
                                     });
                                 }
                                 Some(false) => {
@@ -266,6 +275,7 @@ pub fn fto_seeds(order: i8, prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Oct
                                             fv(0.0 - sd, 0.5, 0.5 + sd) * circrad,
                                             fv(0.0 - sd, 0.0 + sd, 1.0) * circrad,
                                         ],
+                                        options: Default::default(),
                                     });
                                 }
                                 Some(true) => {
@@ -278,6 +288,7 @@ pub fn fto_seeds(order: i8, prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Oct
                                             fv(0.0 + sd, 0.5, 0.5 + sd) * circrad,
                                             fv(0.0 + sd, 0.0 + sd, 1.0) * circrad,
                                         ],
+                                        options: Default::default(),
                                     });
                                 }
                             }
@@ -300,6 +311,7 @@ pub fn fto_seeds(order: i8, prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Oct
                                         fv(1.0 + 2.0 * sd, 1.0 + 2.0 * sd, 1.0 + 2.0 * sd) / 3.0
                                             * circrad,
                                     ],
+                                    options: Default::default(),
                                 });
                                 stickers.push(StickerSeed {
                                     layers,
@@ -310,6 +322,7 @@ pub fn fto_seeds(order: i8, prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Oct
                                         fv(sd, 0.5 + sd, 0.5) * circrad,
                                         fv(0.0, 0.5, 0.5) * circrad,
                                     ],
+                                    options: Default::default(),
                                 });
                             } else {
                                 stickers.push(StickerSeed {
@@ -334,6 +347,7 @@ pub fn fto_seeds(order: i8, prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Oct
                                         ) * circrad,
                                         fv(1.0, 1.0, 1.0) / 3.0 * circrad,
                                     ],
+                                    options: Default::default(),
                                 });
                                 stickers.push(StickerSeed {
                                     layers,
@@ -353,6 +367,7 @@ pub fn fto_seeds(order: i8, prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Oct
                                         fv(1.0 - 2.0 * cd(il + 1), cd(il + 1), cd(il + 1))
                                             * circrad,
                                     ],
+                                    options: Default::default(),
                                 });
                             }
                         } else if i == m {
@@ -385,6 +400,7 @@ pub fn fto_seeds(order: i8, prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Oct
                                         cd(jl - 1),
                                     ) * circrad,
                                 ],
+                                options: Default::default(),
                             });
                             stickers.push(StickerSeed {
                                 layers,
@@ -404,6 +420,7 @@ pub fn fto_seeds(order: i8, prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Oct
                                     fv(1.0 - cd(il + 1) - cd(jl + 1), cd(il + 1), cd(jl + 1))
                                         * circrad,
                                 ],
+                                options: Default::default(),
                             });
                         } else if j == m {
                             // trapezoid (x-center) near D
@@ -435,6 +452,7 @@ pub fn fto_seeds(order: i8, prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Oct
                                         (1.0 - cd(il + 1)) / 2.0,
                                     ) * circrad,
                                 ],
+                                options: Default::default(),
                             });
                             stickers.push(StickerSeed {
                                 layers,
@@ -454,6 +472,7 @@ pub fn fto_seeds(order: i8, prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Oct
                                     fv(1.0 - cd(il + 1) - cd(jl + 1), cd(il + 1), cd(jl + 1))
                                         * circrad,
                                 ],
+                                options: Default::default(),
                             });
                         } else if i + j == m + n {
                             // edge or wing
@@ -469,6 +488,7 @@ pub fn fto_seeds(order: i8, prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Oct
                                     fv(1.0 - cd(il - 1) - cd(jl + 1), cd(il - 1), cd(jl + 1))
                                         * circrad,
                                 ],
+                                options: Default::default(),
                             });
                         } else {
                             // rhombus
@@ -494,6 +514,7 @@ pub fn fto_seeds(order: i8, prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Oct
                                     fv(1.0 - cd(il - 1) - cd(jl + 1), cd(il - 1), cd(jl + 1))
                                         * circrad,
                                 ],
+                                options: Default::default(),
                             });
                             stickers.push(StickerSeed {
                                 layers,
@@ -513,6 +534,7 @@ pub fn fto_seeds(order: i8, prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Oct
                                     fv(1.0 - cd(il + 1) - cd(jl + 1), cd(il + 1), cd(jl + 1))
                                         * circrad,
                                 ],
+                                options: Default::default(),
                             });
                         }
                     }
@@ -552,5 +574,16 @@ pub fn fto_seeds(order: i8, prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Oct
         grips,
         viewports,
         key_layers,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::render::common::concrete_ray_system_tests::validate_concrete_ray_system;
+
+    #[test]
+    fn validate_concrete_ray_system_octa() {
+        validate_concrete_ray_system::<OctaRay>()
     }
 }

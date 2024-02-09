@@ -7,7 +7,7 @@ Consider a set $R$ of objects called _rays_ and a group $G$ that acts transitive
 With this construction, it can be seen that laminated puzzles contain a subset of the pieces of complex puzzles. However, laminated puzzles are closer to real puzzles in that they have parallel layers that do not intersect. If the set of rays exists on a sphere, the laminated puzzle is the puzzle that contains all holding point pieces.
 
 ## Features
-laminated supports laminated face-turning cubes and face-turning octahedra.
+laminated supports laminated face-turning cubes, octahedra, dodecahedra, and rhombic dodecahedra.
 
 ## Running
 Clone this repository and run `cargo run --release` in the directory.

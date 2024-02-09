@@ -1,6 +1,7 @@
 use crate::preferences::ConcretePuzzlePreferences;
-use crate::puzzle::cube::Basis;
+use crate::puzzle::common::RaySystem;
 use crate::puzzle::cube::CubeRay;
+use crate::puzzle::cube::{Basis, Sign};
 use crate::render::common::*;
 use crate::NUMBER_KEYS;
 use enum_map::enum_map;
@@ -8,21 +9,12 @@ use std::collections::HashMap;
 use std::f32::consts::PI;
 
 use crate::preferences::Preferences;
-use crate::util::{color, Mat4, Vec3};
-use cgmath::Rad;
+use crate::util::{color, Vec3};
 
 const SUPER_START: f32 = 0.75;
 
 impl ConcreteRaySystem for CubeRay {
     type Conjugate = ();
-
-    fn axis_to_transform((ray, order): (Self, i8), _conjugate: Self::Conjugate) -> Mat4 {
-        match ray.0 {
-            Basis::X => Mat4::from_angle_x(Rad(PI / 2.0 * (order as f32))),
-            Basis::Y => Mat4::from_angle_y(Rad(PI / 2.0 * (order as f32))),
-            Basis::Z => Mat4::from_angle_z(Rad(PI / 2.0 * (order as f32))),
-        }
-    }
 
     fn ray_to_vec(&self, _conjugate: Self::Conjugate) -> Vec3 {
         self.0.to_vec() * self.1.to_f32()
@@ -30,6 +22,17 @@ impl ConcreteRaySystem for CubeRay {
 
     fn axis_to_vec(&self, _conjugate: Self::Conjugate) -> Vec3 {
         self.0.to_vec()
+    }
+
+    fn default_colors() -> enum_map::EnumMap<Self, color::Color> {
+        enum_map! {
+            Self(Basis::Y, Sign::Pos) => color::ORANGE,
+            Self(Basis::Z, Sign::Pos) => color::WHITE,
+            Self(Basis::X, Sign::Pos) => color::BLUE,
+            Self(Basis::Z, Sign::Neg) => color::YELLOW,
+            Self(Basis::X, Sign::Neg) => color::GREEN,
+            Self(Basis::Y, Sign::Neg) => color::RED,
+        }
     }
 
     fn ray_to_color(prefs: &Preferences) -> &enum_map::EnumMap<Self, color::Color> {
@@ -86,6 +89,7 @@ pub fn nnn_seeds(order: i8, _prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Cu
                         face: U,
                         color: U,
                         vertices: vec![cv(-1.0, -1.0), cv(1.0, -1.0), cv(1.0, 1.0), cv(-1.0, 1.0)],
+                        options: Default::default(),
                     });
                 } else if j == i {
                     // x-center
@@ -99,6 +103,7 @@ pub fn nnn_seeds(order: i8, _prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Cu
                             cv(SUPER_START, SUPER_START),
                             cv(-1.0, SUPER_START),
                         ],
+                        options: Default::default(),
                     });
                     stickers.push(StickerSeed {
                         layers,
@@ -110,6 +115,7 @@ pub fn nnn_seeds(order: i8, _prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Cu
                             cv(1.0, 1.0),
                             cv(SUPER_START, SUPER_START),
                         ],
+                        options: Default::default(),
                     });
                     stickers.push(StickerSeed {
                         layers,
@@ -121,6 +127,7 @@ pub fn nnn_seeds(order: i8, _prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Cu
                             cv(1.0, 1.0),
                             cv(-1.0, 1.0),
                         ],
+                        options: Default::default(),
                     });
                 } else {
                     // t-center or oblique
@@ -134,6 +141,7 @@ pub fn nnn_seeds(order: i8, _prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Cu
                             cv(SUPER_START, 1.0),
                             cv(-1.0, 1.0),
                         ],
+                        options: Default::default(),
                     });
                     stickers.push(StickerSeed {
                         layers,
@@ -145,6 +153,7 @@ pub fn nnn_seeds(order: i8, _prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Cu
                             cv(1.0, 1.0),
                             cv(SUPER_START, 1.0),
                         ],
+                        options: Default::default(),
                     });
                 }
             }
@@ -160,6 +169,7 @@ pub fn nnn_seeds(order: i8, _prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Cu
                     Vec3::new(SUPER_START * si, -SUPER_START * si, 1.0) * cube_scale,
                     Vec3::new(SUPER_START * si, SUPER_START * si, 1.0) * cube_scale,
                 ],
+                options: Default::default(),
             });
             stickers.push(StickerSeed {
                 layers,
@@ -171,6 +181,7 @@ pub fn nnn_seeds(order: i8, _prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Cu
                     Vec3::new(si, si, 1.0) * cube_scale,
                     Vec3::new(SUPER_START * si, SUPER_START * si, 1.0) * cube_scale,
                 ],
+                options: Default::default(),
             });
         }
 
@@ -202,5 +213,16 @@ pub fn nnn_seeds(order: i8, _prefs: &ConcretePuzzlePreferences) -> PuzzleSeed<Cu
         grips,
         viewports,
         key_layers,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::render::common::concrete_ray_system_tests::validate_concrete_ray_system;
+
+    #[test]
+    fn validate_concrete_ray_system_cube() {
+        validate_concrete_ray_system::<CubeRay>()
     }
 }
