@@ -306,6 +306,9 @@ pub struct CameraFacing {
 
 impl CameraFacing {
     pub fn orbit(&mut self, (dx, dy): (f32, f32)) {
+        if (dx, dy) == (0.0, 0.0) {
+            return;
+        }
         // (dx, dy) will never both be zero
         let pointing = -1.0 * self.position;
         // camera.up() does not have to be perpendicular to the view vector
